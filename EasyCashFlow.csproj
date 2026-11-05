@@ -21,7 +21,7 @@
     <!-- senza questa riga .NET aggiunge alla versione leggibile il codice del commit, se c'è un repository git -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>EasyCashFlow</Product>
-    <Description>Analisi del cash flow del conto corrente dagli export CBI</Description>
+    <Description>Analisi del cash flow dei conti correnti, anche di banche diverse, dagli export CBI</Description>
 
     <!-- solo le traduzioni italiane dei messaggi di sistema di WPF e .NET: senza questa riga la
          pubblicazione include 13 cartelle di lingue (cs, de, es, ...), circa 9 MB inutili -->

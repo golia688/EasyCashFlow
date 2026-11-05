@@ -1,12 +1,21 @@
 ## Cos'è EasyCashFlow {#introduzione}
 
-EasyCashFlow ti aiuta a capire **dove vanno i tuoi soldi**.
+EasyCashFlow ti aiuta a capire **dove vanno i tuoi soldi**, su un conto o su tutti i tuoi conti insieme.
 
 Funziona così:
 
-1. scarichi dall'home banking l'elenco dei movimenti del tuo conto corrente;
+1. scarichi dall'home banking l'elenco dei movimenti di ogni tuo conto corrente, nel formato **CBI**;
 2. lo importi in EasyCashFlow;
 3. il programma ti mostra entrate, uscite, saldo e grafici, mese per mese.
+
+**Tutti i tuoi conti, anche in banche diverse**
+
+EasyCashFlow è un **aggregatore**: mette insieme in un posto solo i movimenti di tutti i tuoi conti correnti, anche se sono in banche diverse. Funziona perché il CBI è un formato **standard**, uguale per tutte le banche italiane: l'export di una banca e quello di un'altra si leggono allo stesso modo.
+
+- **Importi l'export di ogni conto**, uno dopo l'altro. Il programma riconosce da solo a quale conto appartiene ogni movimento: un conto nuovo si aggiunge all'elenco, e non si confondono mai i movimenti di due conti.
+- **Scegli cosa guardare**: un conto alla volta, alcuni conti, oppure tutti insieme. In questo caso vedi il **cash flow aggregato**: entrate e uscite di tutti i conti, e il saldo come somma dei saldi. La scelta dei conti c'è nella Home, nei movimenti e nelle analisi; la simulazione del saldo e il report Excel usano i conti scelti nelle analisi.
+- **Le causali parlano la stessa lingua**: le prime due cifre di ogni causale sono la *causale CBI*, uguale per tutte le banche, così bonifici, carte o utenze di banche diverse finiscono negli stessi gruppi.
+- **I giroconti tra i tuoi conti** (un bonifico da un tuo conto a un altro tuo conto) non sono né spese né entrate: guardando i conti insieme si conterebbero due volte, come uscita da un conto ed entrata nell'altro. Il programma li riconosce quando la banca usa le causali del giroconto; per un singolo bonifico puoi sceglierlo tu (tipo **Giroconto**, vedi [La pagina dei movimenti](cap:movimenti)).
 
 Non serve internet e non serve un account: tutto resta sul tuo computer, nella cartella del programma.
 
@@ -34,6 +43,8 @@ Scarica dall'home banking l'export dei movimenti in formato CBI e importalo. Il 
 **2. Dai un nome al conto**
 
 Il conto si registra da solo, con un nome provvisorio tipo "ABI 12345 - c/c ...6789". Cambialo con un nome che riconosci, per esempio "Conto di casa". Lo trovi in [Impostazioni](app:impostazioni).
+
+Hai altri conti, anche in altre banche? Importa l'export CBI di ciascuno: ogni conto si aggiunge da solo, e dai un nome anche a quelli. Da quel momento puoi guardarli uno alla volta o tutti insieme.
 
 **3. Controlla i gruppi di causali**
 
@@ -364,7 +375,9 @@ Quando le causali sono tante, usa i filtri sopra l'elenco:
 
 **I conti**
 
-In [Impostazioni](app:impostazioni) trovi i conti importati. Il nome che scegli compare in tutto il programma; premi **Salva** dopo averlo cambiato.
+In [Impostazioni](app:impostazioni) trovi i conti importati, di qualunque banca: per ognuno IBAN, codice della banca (ABI) e divisa, letti dal file. Il nome che scegli compare in tutto il programma; premi **Salva** dopo averlo cambiato. Con un nome chiaro per ogni conto ("Conto di casa", "Conto online") la scelta dei conti nelle pagine si legge al volo.
+
+Quando i conti sono più di uno, nella Home, nei movimenti e nelle analisi compare la scelta dei **conti** (la simulazione e il report Excel usano quelli delle analisi): nessuno scelto vuol dire tutti, cioè il quadro complessivo. Se ne guardi soprattutto uno, puoi farlo proporre già scelto (in Generali, qui sotto).
 
 **I dati**
 

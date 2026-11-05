@@ -3,9 +3,13 @@
   Versione di prova. Il numero di versione e' in Aiuto > Informazioni.
 ===============================================================================
 
-EasyCashFlow ti aiuta a capire dove vanno i soldi del tuo conto corrente.
+EasyCashFlow ti aiuta a capire dove vanno i soldi dei tuoi conti correnti.
 Importi l'elenco dei movimenti scaricato dall'home banking e il programma
 ti mostra entrate, uscite, saldo e grafici, mese per mese.
+
+Puoi importare i movimenti di piu' conti, anche di banche diverse: il
+formato CBI e' uguale per tutte le banche italiane. Poi li guardi uno
+alla volta o tutti insieme, come se fossero un conto solo.
 
 Funziona senza internet e senza account: tutto resta sul tuo computer,
 cifrato con una password che scegli tu.
