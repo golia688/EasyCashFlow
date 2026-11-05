@@ -1,0 +1,517 @@
+﻿@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject AnalisiService Analisi
+@inject DatabaseService Database
+@inject ImportazioneService Importazione
+@inject ImpostazioniService Impostazioni
+@inject IDialogService Dialoghi
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+    <MudText Typo="Typo.h4">Analisi</MudText>
+    <AiutoManuale Capitolo="analisi" />
+</MudStack>
+
+@if (_periodi.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Class="mt-4">
+        Non ci sono ancora movimenti: importa un file CBI dalla sezione Movimenti.
+    </MudAlert>
+    return;
+}
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mt-4" Wrap="Wrap.Wrap">
+    @* come in Movimenti: scegliere un periodo riempie le due date; cambiando una data il periodo diventa
+       "Personalizzato" (AnalisiService.ScegliDate), che vale anche nel dettaglio e nella simulazione *@
+    <MudSelect T="PeriodoAnalisi" Label="Periodo" Value="_periodo" ValueChanged="CambiaPeriodo"
+               ToStringFunc="@(p => p?.Nome)" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 220px;">
+        @foreach (var p in _periodi)
+        {
+            <MudSelectItem T="PeriodoAnalisi" Value="p">@p.Nome</MudSelectItem>
+        }
+        @if (_periodo is { Nome: AnalisiService.NomePersonalizzato } personalizzato)
+        {
+            <MudSelectItem T="PeriodoAnalisi" Value="personalizzato" Disabled="true">@personalizzato.Nome</MudSelectItem>
+        }
+    </MudSelect>
+    @* la larghezza sta sul contenitore: messa sul campo (Style) passava anche al calendario, che si apriva tagliato *@
+    <div style="width: 180px;">
+        <MudDatePicker Label="Data contabile da" Date="@AData(_periodo!.Dal)" DateChanged="CambiaDal"
+                       DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </div>
+    <div style="width: 180px;">
+        <MudDatePicker Label="Data contabile a" Date="@AData(_periodo.Al)" DateChanged="CambiaAl"
+                       DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </div>
+
+    @if (_conti.Count > 1)
+    {
+        <MudSelect T="string" Label="Conti" SelectedValues="_contiScelti" SelectedValuesChanged="CambiaConti"
+                   MultiSelection="true" SelectAll="true" SelectAllText="Tutti" Clearable="true"
+                   Placeholder="Tutti i conti" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 260px;">
+            @foreach (var c in _conti)
+            {
+                <MudSelectItem T="string" Value="@c.Codice">@c.Nome</MudSelectItem>
+            }
+        </MudSelect>
+    }
+
+    <MudTooltip Text="Toglie da numeri e grafici i movimenti che hai segnato come straordinari (spese o entrate che non si ripeteranno)">
+        <MudSwitch T="bool" Value="Analisi.EscludiStraordinari" ValueChanged="CambiaEscludiStraordinari"
+                   Color="Color.Primary" Label="Escludi straordinari" />
+    </MudTooltip>
+    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" OnClick="ApriStraordinari"
+               StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Flag))">Vedi gli straordinari (@_numeroStraordinari)</MudButton>
+
+    <MudSpacer />
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => ApriSimulazione.InvokeAsync()"
+               StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.TrendingUp))">Simula il saldo futuro</MudButton>
+</MudStack>
+
+@if (_risultato is { } r)
+{
+    var k = r.Indicatori;
+
+    @if (k.MesiIncompleti.Count > 0)
+    {
+        <AvvisoMesiIncompleti Mesi="k.Mesi" Incompleti="k.MesiIncompleti" />
+    }
+
+    @* Ogni scheda ha un tooltip con il calcolo fatto sui numeri del periodo *@
+    <div class="indicatori mt-4">
+        @Scheda(Indicatore.Entrate, "Entrate", Euro(k.Entrate), null, MediaAlMese(k.Entrate, k),
+            @<div>
+                <p>Somma dei movimenti in entrata di tipo <b>Ordinario</b>.</p>
+                <p>Non comprende le vendite e i rimborsi di investimenti (@Euro(k.RientratoInvestimenti)),
+                   che sono soldi che rientrano, non guadagni, né i giroconti.</p>
+                <p>Media mensile: @Euro(k.Entrate) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(AlMese(k.Entrate, k)).</p>
+            </div>)
+
+        @Scheda(Indicatore.Uscite, "Uscite", Euro(k.Uscite), null, MediaAlMese(k.Uscite, k),
+            @<div>
+                <p>Somma dei movimenti in uscita di tipo <b>Ordinario</b>.</p>
+                <p>Non comprende i versamenti negli investimenti (@Euro(k.VersatoInvestimenti)) né i giroconti.</p>
+                <p>Media mensile: @Euro(k.Uscite) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(k.UscitaMediaMensile).</p>
+            </div>)
+
+        @Scheda(Indicatore.FlussoNetto, "Flusso netto", Euro(k.Netto, segno: true), k.Netto < 0 ? Color.Error : Color.Success,
+            MediaAlMese(k.Netto, k, segno: true),
+            @<div>
+                <p>Entrate meno uscite: @Euro(k.Entrate) − @Euro(k.Uscite) = <b>@Euro(k.Netto, segno: true)</b></p>
+                <p>Quanto è rimasto (o mancato) dopo le spese, prima di spostare soldi sugli investimenti.</p>
+                <p>Media mensile: @Euro(k.Netto, segno: true) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(AlMese(k.Netto, k), segno: true),
+                   lo stesso flusso netto medio da cui parte la simulazione del saldo.</p>
+            </div>)
+
+        @Scheda(Indicatore.TassoRisparmio, "Tasso di risparmio", k.TassoRisparmio is { } t ? t.ToString("P1", Italiano) : "–", null, "quota delle entrate non spesa",
+            @<div>
+                @if (k.TassoRisparmio is { } tasso)
+                {
+                    <p>Flusso netto / entrate = @Euro(k.Netto) / @Euro(k.Entrate) = <b>@tasso.ToString("P1", Italiano)</b></p>
+                    @if (tasso < 0)
+                    {
+                        <p>È negativo: nel periodo si è speso più di quanto è entrato, attingendo al saldo.</p>
+                    }
+                }
+                else
+                {
+                    <p>Non calcolabile: nel periodo non ci sono entrate.</p>
+                }
+            </div>)
+
+        @Scheda(Indicatore.InvestitoNetto, "Investito netto", Euro(k.InvestitoNetto, segno: true), null,
+            MediaAlMese(k.InvestitoNetto, k, segno: true),
+            @<div>
+                <p>Movimenti di tipo <b>Investimento</b> (PAC, sottoscrizioni, vendite di titoli):</p>
+                <p>versato @Euro(k.VersatoInvestimenti) − vendite e rimborsi @Euro(k.RientratoInvestimenti) = <b>@Euro(k.InvestitoNetto, segno: true)</b></p>
+                <p>Media mensile: @Euro(k.InvestitoNetto, segno: true) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(AlMese(k.InvestitoNetto, k), segno: true),
+                   l'investito medio da cui parte la simulazione del saldo.</p>
+                <p>Positivo: al netto, dal conto sono usciti soldi verso gli investimenti. Non sono spese,
+                   cambiano solo posto: per questo non entrano nelle uscite né nel tasso di risparmio.</p>
+            </div>)
+
+        @Scheda(Indicatore.Saldo, "Saldo a fine periodo", k.SaldoFinale is { } s ? Euro(s) : "–", null,
+            k.VariazioneSaldo is { } v ? $"{Euro(v, segno: true)} dal {k.DataSaldoIniziale:dd/MM/yyyy}"
+            : r.Saldo.Count > 0 ? $"saldi salvati solo dal {r.Saldo[0].Data:dd/MM/yyyy}"
+            : "nessun saldo salvato",
+            @<div>
+                @if (k.SaldoFinale is null)
+                {
+                    <p>Nessun saldo salvato per il periodo: importa di nuovo i file CBI per aggiungerli.</p>
+                }
+                else if (k.VariazioneSaldo is not { } variazione)
+                {
+                    <p>Saldo contabile al @k.DataSaldoFinale?.ToString("dd/MM/yyyy"): <b>@Euro(k.SaldoFinale.Value)</b></p>
+                    <p>I saldi salvati partono dal @r.Saldo[0].Data.ToString("dd/MM/yyyy"), dopo l'inizio del periodo:
+                       la variazione non si può calcolare. Importa i file CBI più vecchi per completarli.</p>
+                }
+                else
+                {
+                    var atteso = k.Netto - k.InvestitoNetto + k.Giroconti + k.StraordinariEsclusi;
+                    <p>Saldo al @k.DataSaldoIniziale?.ToString("dd/MM/yyyy"): @Euro(k.SaldoIniziale!.Value)<br />
+                       Saldo al @k.DataSaldoFinale?.ToString("dd/MM/yyyy"): @Euro(k.SaldoFinale.Value)<br />
+                       Variazione: <b>@Euro(variazione, segno: true)</b></p>
+                    <p>Verifica: flusso netto − investito netto @(k.Giroconti != 0 ? "+ giroconti " : "")=
+                       @Euro(k.Netto) − @Euro(k.InvestitoNetto)@(k.Giroconti != 0 ? $" {Euro(k.Giroconti, segno: true)}" : "") = @Euro(atteso - k.StraordinariEsclusi, segno: true)</p>
+                    @if (k.NumeroStraordinariEsclusi > 0)
+                    {
+                        <p>più i @k.NumeroStraordinariEsclusi movimenti straordinari esclusi (@Euro(k.StraordinariEsclusi, segno: true)),
+                           che non contano nei numeri ma cambiano il saldo: in tutto @Euro(atteso, segno: true).</p>
+                    }
+                    @if (atteso == variazione)
+                    {
+                        <p>Coincide: tutti i movimenti del periodo sono importati e classificati.</p>
+                    }
+                    else
+                    {
+                        <p>Differenza di @Euro(variazione - atteso, segno: true): probabilmente mancano movimenti,
+                           per esempio un file CBI non importato per una parte del periodo.</p>
+                    }
+                }
+            </div>)
+    </div>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">Entrate e uscite per mese</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            Le uscite sono sotto lo zero; la linea è il flusso netto del mese.
+            Clicca una colonna o un punto per vedere i movimenti di quel mese.
+        </MudText>
+        <Grafico Opzioni="_opzioniMesi" Altezza="340px" ClicSerie="@(c => ApriMese(c, r.Mesi))" />
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">Andamento del saldo</MudText>
+        @if (r.Saldo.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                Non ci sono saldi salvati per questo periodo. I saldi giornalieri si salvano a ogni
+                importazione: per avere lo storico, importa di nuovo i file CBI già caricati
+                (i movimenti risulteranno "già presenti", ma i saldi verranno aggiunti).
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Saldo contabile a fine giornata.</MudText>
+            <Grafico Opzioni="_opzioniSaldo" Altezza="300px" />
+        }
+    </MudPaper>
+
+    <MudGrid Spacing="4" Class="mt-0">
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4 mt-4" Elevation="1" Style="height: calc(100% - 16px);">
+                <MudText Typo="Typo.h6">Dove vanno i soldi</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Uscite per gruppo di causali.</MudText>
+                <Grafico Opzioni="_opzioniUscite" Altezza="@AltezzaBarre(r.UscitePerGruppo.Count)"
+                         ClicElemento="@(g => ApriGruppo(Indicatore.Uscite, g, r.UscitePerGruppo))" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4 mt-4" Elevation="1" Style="height: calc(100% - 16px);">
+                <MudText Typo="Typo.h6">Da dove arrivano</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Entrate per gruppo di causali.</MudText>
+                <Grafico Opzioni="_opzioniEntrate" Altezza="@AltezzaBarre(r.EntratePerGruppo.Count)"
+                         ClicElemento="@(g => ApriGruppo(Indicatore.Entrate, g, r.EntratePerGruppo))" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4" Elevation="1" Style="height: 100%;">
+                <MudText Typo="Typo.h6">Spese ricorrenti e variabili</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                    Ricorrenti: mutuo, utenze, imposte e altre uscite fisse. Clicca una colonna per i movimenti.
+                </MudText>
+                <Grafico Opzioni="_opzioniRicorrenti" Altezza="300px" ClicSerie="@(c => ApriMese(c, r.Mesi))" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4" Elevation="1" Style="height: 100%;">
+                <MudText Typo="Typo.h6">Flusso netto cumulato</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                    Quanto si accumula dall'inizio dell'anno, a confronto con l'anno prima. Se la linea sale, in quel mese è entrato più di quanto è uscito; se scende, hai speso più di quanto è entrato.
+                </MudText>
+                <Grafico Opzioni="_opzioniCumulati" Altezza="300px" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">Movimenti più grandi</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">I dieci movimenti di importo maggiore nel periodo, entrate e uscite.</MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Gruppo</th>
+                    <th>Descrizione</th>
+                    <th style="text-align: right;">Importo (€)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in r.MovimentiMaggiori)
+                {
+                    <tr>
+                        <td>@m.Data.ToString("dd/MM/yyyy")</td>
+                        <td>@m.Gruppo</td>
+                        <td>@(m.DescrizioneEstesa != "" ? m.DescrizioneEstesa : m.DescrizioneBreve)</td>
+                        <td style="text-align: right;">
+                            <MudText Typo="Typo.body2" Class="importo" Color="@(m.Importo < 0 ? Color.Error : Color.Success)">
+                                @m.Importo.ToString("N2", Italiano)
+                            </MudText>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+<style>
+    .indicatori {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .indicatore {
+        padding: 16px;
+        height: 100%;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .indicatore:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    .spiegazione {
+        max-width: 340px;
+        text-align: left;
+        line-height: 1.5;
+    }
+
+    .spiegazione p + p {
+        margin-top: 6px;
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    [CascadingParameter(Name = "TemaScuro")] public bool TemaScuro { get; set; }
+    [Parameter] public EventCallback<Indicatore> ApriDettaglio { get; set; }
+    [Parameter] public EventCallback ApriSimulazione { get; set; }
+    /// <summary>Dettaglio di un indicatore già filtrato su un gruppo (clic su una barra per gruppo).</summary>
+    [Parameter] public EventCallback<(Indicatore Indicatore, string? Gruppo)> ApriDettaglioGruppo { get; set; }
+    /// <summary>Dettaglio di un indicatore su un solo mese (clic su una colonna dei grafici per mese);
+    /// Ricorrenti: true = solo le uscite ricorrenti, false = solo le variabili, null = tutte.</summary>
+    [Parameter] public EventCallback<(Indicatore Indicatore, PeriodoAnalisi Mese, bool? Ricorrenti)> ApriDettaglioMese { get; set; }
+
+    private List<PeriodoAnalisi> _periodi = [];
+    private PeriodoAnalisi? _periodo;
+    private List<ContoCorrente> _conti = [];
+    private IReadOnlyCollection<string> _contiScelti = [];
+    private RisultatoAnalisi? _risultato;
+
+    // le opzioni dei grafici dipendono dai dati e dal tema: si ricalcolano quando cambia uno dei due
+    private bool? _temaDelleOpzioni;
+    private object _opzioniMesi = new();
+    private object _opzioniSaldo = new();
+    private object _opzioniUscite = new();
+    private object _opzioniEntrate = new();
+    private object _opzioniRicorrenti = new();
+    private object _opzioniCumulati = new();
+
+    // periodo e conti sono quelli scelti l'ultima volta (li ricorda AnalisiService), così tornando
+    // dal dettaglio di un indicatore la pagina è come l'avevi lasciata
+    protected override void OnInitialized()
+    {
+        _conti = Database.ElencoConti();
+        _periodi = Analisi.Periodi();
+        _periodo = Analisi.TrovaPeriodo(Analisi.PeriodoScelto);
+        _contiScelti = Analisi.ContiScelti;
+        Calcola();
+        Importazione.ImportCompletato += OnImportCompletato;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_temaDelleOpzioni != TemaScuro)
+            CostruisciOpzioni();
+    }
+
+    private void CambiaPeriodo(PeriodoAnalisi periodo)
+    {
+        _periodo = periodo;
+        Analisi.PeriodoScelto = periodo.Nome;
+        Calcola();
+    }
+
+    private static DateTime AData(DateOnly data) => data.ToDateTime(TimeOnly.MinValue);
+
+    // Una data cancellata non cambia niente. Se "da" supera "a" (o il contrario), l'altra data si sposta
+    // sulla stessa: il periodo resta valido.
+    private void CambiaDal(DateTime? data)
+    {
+        if (data is not { } d || _periodo is null) return;
+        var dal = DateOnly.FromDateTime(d);
+        CambiaDate(dal, _periodo.Al < dal ? dal : _periodo.Al);
+    }
+
+    private void CambiaAl(DateTime? data)
+    {
+        if (data is not { } d || _periodo is null) return;
+        var al = DateOnly.FromDateTime(d);
+        CambiaDate(_periodo.Dal > al ? al : _periodo.Dal, al);
+    }
+
+    private void CambiaDate(DateOnly dal, DateOnly al)
+    {
+        if (_periodo is not null && dal == _periodo.Dal && al == _periodo.Al) return;
+        _periodo = Analisi.ScegliDate(dal, al);
+        Calcola();
+    }
+
+    private int _numeroStraordinari;
+
+    // l'elenco degli straordinari del periodo, dove si può anche togliere l'etichetta; poi si ricalcola
+    private async Task ApriStraordinari()
+    {
+        if (_periodo is null) return;
+        var parametri = new DialogParameters<DialogoStraordinari>
+        {
+            { d => d.Periodo, _periodo },
+            { d => d.Conti, _contiScelti }
+        };
+        var dialogo = await Dialoghi.ShowAsync<DialogoStraordinari>("Movimenti straordinari", parametri,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true, CloseButton = true });
+        await dialogo.Result;
+        Calcola();
+    }
+
+    private void CambiaEscludiStraordinari(bool escludi)
+    {
+        Analisi.EscludiStraordinari = escludi;
+        Calcola();
+    }
+
+    private void CambiaConti(IReadOnlyCollection<string> conti)
+    {
+        _contiScelti = conti;
+        Analisi.ContiScelti = conti;
+        Calcola();
+    }
+
+    private void Calcola()
+    {
+        if (_periodo is null) return;
+        _risultato = Analisi.Calcola(_periodo, _contiScelti, Analisi.EscludiStraordinari);
+        _numeroStraordinari = Analisi.ContaStraordinari(_periodo, _contiScelti);
+        CostruisciOpzioni();
+    }
+
+    private void CostruisciOpzioni()
+    {
+        _temaDelleOpzioni = TemaScuro;
+        if (_risultato is not { } r) return;
+
+        var colori = ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale);
+        _opzioniMesi = OpzioniGrafici.EntrateUscitePerMese(r.Mesi, colori);
+        _opzioniSaldo = OpzioniGrafici.Saldo(r.Saldo, colori);
+        _opzioniUscite = OpzioniGrafici.PerGruppo(r.UscitePerGruppo, colori.Uscite, "Uscite", colori);
+        _opzioniEntrate = OpzioniGrafici.PerGruppo(r.EntratePerGruppo, colori.Entrate, "Entrate", colori);
+        _opzioniRicorrenti = OpzioniGrafici.RicorrentiVariabili(r.Mesi, colori);
+        _opzioniCumulati = OpzioniGrafici.Cumulati(r.Cumulati, colori);
+    }
+
+    // dopo un'importazione possono esserci nuovi mesi, anni e saldi
+    private void OnImportCompletato(EsitoImportazione esito) => _ = InvokeAsync(() =>
+    {
+        _conti = Database.ElencoConti();
+        var nome = _periodo?.Nome;
+        _periodi = Analisi.Periodi();
+        _periodo = Analisi.TrovaPeriodo(nome);     // anche il personalizzato, che resta con le sue date
+        Calcola();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Importazione.ImportCompletato -= OnImportCompletato;
+
+    // Una scheda degli indicatori: passandoci sopra con il mouse compare la spiegazione del calcolo,
+    // cliccandola si apre il dettaglio con i movimenti. L'icona (i) segnala che la spiegazione c'è.
+    private RenderFragment Scheda(Indicatore indicatore, string titolo, string valore, Color? colore, string didascalia,
+                                  RenderFragment spiegazione) =>
+        @<MudTooltip Placement="Placement.Bottom" Arrow="true" RootStyle="display: block;">
+            <ChildContent>
+                <MudPaper Class="indicatore" Elevation="1" @onclick="() => ApriDettaglio.InvokeAsync(indicatore)">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@titolo</MudText>
+                        <MudIcon Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Info))" Size="Size.Small"
+                                 Class="mud-text-secondary" Style="opacity: 0.6;" />
+                    </MudStack>
+                    @* gli importi si nascondono con l'occhio accanto al "?"; il tasso di risparmio no, è una percentuale *@
+                    <MudText Typo="Typo.h5" Color="@(colore ?? Color.Default)" Class="@ClasseImporto(indicatore)">@valore</MudText>
+                    <MudText Typo="Typo.caption" Class="@($"mud-text-secondary {ClasseImporto(indicatore)}")">@didascalia</MudText>
+                </MudPaper>
+            </ChildContent>
+            <TooltipContent>
+                <div class="spiegazione importo-blocco">
+                    @spiegazione
+                    <p><i>Clicca la scheda per vedere i movimenti.</i></p>
+                </div>
+            </TooltipContent>
+        </MudTooltip>;
+
+    // Clic su una barra di "Dove vanno i soldi" o "Da dove arrivano": il dettaglio di uscite o entrate
+    // filtrato su quel gruppo. "Altro" quando raccoglie più gruppi non è un gruppo solo: si apre il
+    // dettaglio senza filtro, dove il riepilogo per gruppo li mostra tutti.
+    private Task ApriGruppo(Indicatore indicatore, string gruppo, IReadOnlyList<TotaleGruppo> gruppi)
+    {
+        var raccolti = gruppi.FirstOrDefault(g => g.Gruppo == gruppo)?.Contiene is not null;
+        return ApriDettaglioGruppo.InvokeAsync((indicatore, raccolti ? null : gruppo));
+    }
+
+    // Clic su una colonna (o un punto) di "Entrate e uscite per mese" o "Spese ricorrenti e variabili":
+    // il dettaglio della serie cliccata su quel mese. Il mese è tagliato sulle date del periodo, come
+    // nei grafici: con "Tutto" il primo e l'ultimo mese possono essere parziali.
+    private Task ApriMese((string Serie, int Indice) clic, IReadOnlyList<ValoriMese> mesi)
+    {
+        if (_periodo is not { } periodo || clic.Indice < 0 || clic.Indice >= mesi.Count) return Task.CompletedTask;
+
+        (Indicatore Indicatore, bool? Ricorrenti)? scelta = clic.Serie switch
+        {
+            "Entrate" => (Indicatore.Entrate, null),
+            "Uscite" => (Indicatore.Uscite, null),
+            "Flusso netto" => (Indicatore.FlussoNetto, null),
+            "Ricorrenti" => (Indicatore.Uscite, true),
+            "Variabili" => (Indicatore.Uscite, false),
+            _ => null
+        };
+        if (scelta is not { } s) return Task.CompletedTask;
+
+        var inizio = mesi[clic.Indice].Mese;
+        var dal = inizio < periodo.Dal ? periodo.Dal : inizio;
+        var fine = inizio.AddMonths(1).AddDays(-1);
+        var al = fine > periodo.Al ? periodo.Al : fine;
+        var nome = Italiano.TextInfo.ToTitleCase(inizio.ToString("MMMM yyyy", Italiano));
+        return ApriDettaglioMese.InvokeAsync((s.Indicatore, new PeriodoAnalisi(nome, dal, al), s.Ricorrenti));
+    }
+
+    private static string AltezzaBarre(int barre) => $"{Math.Max(120, barre * 40 + 16)}px";
+
+    // media mensile come quella delle uscite: sui mesi del periodo, anche se l'ultimo è incompleto
+    private static decimal AlMese(decimal totale, IndicatoriPeriodo k) => k.Mesi > 0 ? totale / k.Mesi : 0;
+
+    // Sotto il valore delle schede. Con meno di un mese (per esempio date a mano di pochi giorni) la media al mese
+    // sarebbe una proiezione dei giorni che ci sono, non una media: non la si mostra.
+    private static string MediaAlMese(decimal totale, IndicatoriPeriodo k, bool segno = false) =>
+        k.Mesi < 1
+            ? $"periodo di {AnalisiService.TestoMesi(k.Mesi)}: niente media"
+            : $"in media {Euro(AlMese(totale, k), segno)} al mese";
+
+    private static string? ClasseImporto(Indicatore indicatore) => indicatore == Indicatore.TassoRisparmio ? null : "importo";
+
+    private static string Euro(decimal valore, bool segno = false) =>
+        (segno && valore > 0 ? "+" : "") + valore.ToString("C2", Italiano);
+}

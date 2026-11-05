@@ -1,0 +1,245 @@
+===============================================================================
+  EASYCASHFLOW - LEGGIMI
+  Versione di prova. Il numero di versione e' in Aiuto > Informazioni.
+===============================================================================
+
+EasyCashFlow ti aiuta a capire dove vanno i soldi del tuo conto corrente.
+Importi l'elenco dei movimenti scaricato dall'home banking e il programma
+ti mostra entrate, uscite, saldo e grafici, mese per mese.
+
+Funziona senza internet e senza account: tutto resta sul tuo computer,
+cifrato con una password che scegli tu.
+
+Leggi questo file prima di avviare il programma: sono pochi minuti.
+Se avevi gia' una versione precedente, leggi prima NOVITA.txt.
+
+
+-------------------------------------------------------------------------------
+ 1. COSA SERVE
+-------------------------------------------------------------------------------
+
+ - Windows 10 o Windows 11 a 64 bit.
+
+ - Microsoft Edge WebView2 Runtime: e' il componente di Windows che il
+   programma usa per disegnare le sue pagine.
+   Su Windows 11 c'e' gia'. Su Windows 10 c'e' quasi sempre, se il computer
+   e' aggiornato. Se manca, il programma resta vuoto (vedi il punto 6):
+   si scarica gratis da Microsoft cercando "WebView2 Runtime" oppure da
+   https://developer.microsoft.com/microsoft-edge/webview2/
+   (scegli "Evergreen Bootstrapper" e avvialo).
+
+ - NON serve installare .NET: e' gia' incluso nella cartella del programma.
+
+
+-------------------------------------------------------------------------------
+ 2. INSTALLAZIONE
+-------------------------------------------------------------------------------
+
+Il programma non si installa: funziona dalla cartella in cui lo metti.
+
+ 1. Tasto destro sul file .zip > "Estrai tutto...".
+    Non avviare il programma da dentro lo zip senza estrarlo: non funziona.
+
+ 2. Come destinazione scegli una cartella TUA, per esempio:
+        C:\Users\<il tuo nome>\Documents\EasyCashFlow
+    (in italiano: Documenti\EasyCashFlow)
+
+ 3. NON metterlo in "C:\Programmi" (Program Files): il programma salva i
+    dati nella sua cartella e li' Windows non glielo permette.
+
+ 4. Leggi anche il punto 4: la cartella che scegli conta per la sicurezza
+    dei tuoi dati.
+
+
+-------------------------------------------------------------------------------
+ 3. PRIMO AVVIO
+-------------------------------------------------------------------------------
+
+ 1. Doppio clic su EasyCashFlow.exe.
+
+ 2. Quasi certamente Windows mostra una finestra blu:
+        "Windows ha protetto il PC"
+    E' normale: il programma non ha una firma digitale a pagamento, come
+    succede per i programmi fatti in proprio. Clicca:
+        "Ulteriori informazioni"  e poi  "Esegui comunque"
+    Lo chiede solo la prima volta.
+
+ 3. Compare una schermata con il logo e una barra che scorre: il primo
+    avvio puo' richiedere qualche secondo in piu'.
+
+ 4. Il programma ti chiede di scegliere una PASSWORD. Te la chiedera' a
+    ogni avvio. Scegline una robusta: lunga (almeno 10 caratteri, meglio
+    di piu'), che non usi per nient'altro e che non si possa indovinare
+    conoscendoti. Il pulsante "Suggerisci una frase" ne propone una fatta
+    di cinque parole a caso, robusta e facile da ricordare.
+
+ 5. Subito dopo vedi il CODICE DI RECUPERO: 30 caratteri in sei gruppi.
+    E' l'UNICO modo per aprire i tuoi dati se dimentichi la password, e lo
+    vedi una volta sola. ANNOTALO e conservalo in un posto sicuro, lontano
+    dal computer, oppure in un gestore di password (per esempio KeePass):
+    puoi selezionarlo e copiarlo con Ctrl+C. Il programma non lo salva da
+    nessuna parte. Per continuare ti chiede di riscriverne un gruppo.
+
+      >>> SENZA PASSWORD E SENZA CODICE DI RECUPERO I DATI NON SI <<<
+      >>> POSSONO PIU' APRIRE. NESSUNO PUO' FARLO, NEMMENO CHI HA  <<<
+      >>> SCRITTO IL PROGRAMMA.                                    <<<
+
+    Se perdi il codice ma ricordi la password, puoi crearne uno nuovo in
+    Impostazioni > Preferenze > Sicurezza.
+
+ 6. Nella pagina Home trovi tre "Primi passi" da seguire. Il manuale
+    completo, scritto in modo semplice, e' nel menu Aiuto > Manuale.
+    Accanto al titolo di ogni pagina, l'icona "?" apre la spiegazione di
+    quella pagina.
+
+Per importare i movimenti ti serve l'export del conto in formato CBI
+("Saldi e movimenti"), scaricato dall'home banking. Il manuale spiega cosa
+cercare (capitolo "Scaricare l'export dalla banca").
+
+
+-------------------------------------------------------------------------------
+ 4. I TUOI DATI E COME SONO PROTETTI
+-------------------------------------------------------------------------------
+
+Il programma crea, accanto a EasyCashFlow.exe, due cartelle:
+
+    dati\   easycashflow.db   il database con TUTTI i tuoi movimenti,
+                              CIFRATO
+            chiave.json       la chiave del database, chiusa con la tua
+                              password e con il codice di recupero
+            preferenze.json   le scelte di aspetto (non contiene dati
+                              dei tuoi soldi)
+    log\    il diario del programma: importi, descrizioni e IBAN sono
+            nascosti
+
+Il database contiene importi, date, IBAN, nomi di persone e aziende a cui
+hai pagato o da cui hai ricevuto soldi. E' cifrato: senza la password chi
+copia la cartella non legge niente.
+
+La protezione vale quanto la tua password: chi copia la cartella "dati"
+puo' provare a indovinarla con calma. Per questo deve essere robusta.
+
+Cosa la cifratura NON protegge:
+
+ - il programma APERTO: chi si siede al computer mentre lo usi vede tutto.
+   Il programma si blocca da solo dopo 15 minuti senza usarlo (si cambia
+   in Impostazioni > Preferenze > Sicurezza) e puoi bloccarlo subito con
+   il lucchetto "Blocca" nella barra a sinistra;
+ - un virus sul computer mentre il programma e' aperto;
+ - i file CBI scaricati dalla banca: sono in chiaro. Una volta importati,
+   cancellali o custodiscili con attenzione;
+ - il report Excel (Analisi > Report): e' in chiaro, il programma te lo
+   ricorda prima di salvarlo.
+
+Quindi, in piu':
+
+ - tieni il programma in una cartella del TUO utente di Windows;
+ - usa un utente di Windows protetto da password;
+ - non metterlo in cartelle condivise in rete, su chiavette che presti o
+   in cartelle cloud condivise con altre persone;
+ - sui portatili e' meglio avere il disco cifrato (BitLocker o
+   "Crittografia del dispositivo" di Windows).
+
+Il manuale spiega tutto nel capitolo "I tuoi dati".
+
+
+-------------------------------------------------------------------------------
+ 5. COPIA DI SICUREZZA
+-------------------------------------------------------------------------------
+
+Il modo piu' semplice: menu Impostazioni > Dati > Backup > "Crea un
+backup". Il programma crea un file .zip con la data nel nome
+(EasyCashFlow-backup-AAAA-MM-GG-HHMM.zip) nella cartella che scegli, e
+controlla subito che si apra.
+
+A mano: chiudi il programma e copia TUTTA la cartella "dati". Il database
+da solo non basta: senza chiave.json non si apre piu', nemmeno con la
+password giusta.
+
+ - La copia e' cifrata come i dati, ma mettila FUORI da questo computer:
+   su una chiavetta o in uno spazio cloud personale.
+ - ATTENZIONE: la copia si apre con la password che valeva quando l'hai
+   fatta. Se poi cambi la password, la copia continua ad aprirsi con
+   quella vecchia.
+
+Per ripristinarla: chiudi il programma, estrai lo zip (o copia i file)
+nella cartella "dati" sostituendo quelli che ci sono, e riavvia.
+ATTENZIONE: i dati attuali vengono sostituiti da quelli della copia.
+
+
+-------------------------------------------------------------------------------
+ 6. SE QUALCOSA NON VA
+-------------------------------------------------------------------------------
+
+ * "Windows ha protetto il PC" e non c'e' "Esegui comunque"
+   Clicca prima "Ulteriori informazioni": il pulsante compare dopo.
+   Se ancora non c'e', tasto destro sul file .zip > Proprieta' > spunta
+   "Sblocca" > OK, poi estrai di nuovo.
+
+ * Doppio clic e non succede niente, oppure il file .exe e' sparito
+   L'antivirus potrebbe averlo bloccato o messo in quarantena, perche' e'
+   un programma nuovo e senza firma. Controlla l'antivirus e, se ti fidi
+   di chi te l'ha mandato, consenti il programma.
+
+ * La finestra resta sul logo con la barra che scorre, oppure resta vuota
+   Di solito manca il componente WebView2: installalo come spiegato al
+   punto 1 e riavvia il programma. Dopo circa 30 secondi il programma
+   prova comunque a mostrarsi.
+
+ * All'avvio un messaggio dice che il database e' di una versione di
+   prova precedente
+   Le versioni fino alla 0.9.2 non cifravano i dati e questa versione non
+   li apre. Segui le istruzioni di NOVITA.txt ("Come aggiornare").
+
+ * All'avvio un messaggio dice che manca il file chiave.json
+   Il database c'e' ma la sua chiave no. Rimetti chiave.json nella
+   cartella "dati", prendendolo dalla stessa copia del database.
+
+ * Ho dimenticato la password
+   Nella schermata della password clicca "Ho dimenticato la password" e
+   scrivi il codice di recupero. Poi scegli una password nuova e annota
+   il codice nuovo che ricevi. Senza password e senza codice i dati non
+   si aprono piu': si ricomincia da una cartella nuova reimportando i
+   file CBI.
+
+ * Mentre lo uso, il programma mi chiede di nuovo la password
+   E' il blocco per inattivita'. Scrivi la password e ritrovi tutto com'era.
+
+ * Errori di "accesso negato", oppure i dati non restano salvati
+   La cartella non e' scrivibile (per esempio e' in C:\Programmi).
+   Chiudi il programma e sposta tutta la cartella in Documenti.
+
+ * L'importazione dice che il file non sembra un export CBI
+   Il file scaricato non e' nel formato giusto: in home banking scegli il
+   formato CBI ("Saldi e movimenti"), non PDF, Excel o CSV.
+
+ * L'importazione mostra degli avvisi
+   Non e' un errore: il programma segnala qualcosa di strano nel file.
+   Gli avvisi sono nel riepilogo della finestra di importazione,
+   raggruppati per tipo. Il manuale spiega i casi piu' comuni (capitoli
+   "Importare i movimenti" e "Domande frequenti").
+
+
+-------------------------------------------------------------------------------
+ 7. DISINSTALLARE
+-------------------------------------------------------------------------------
+
+Chiudi il programma e cancella la sua cartella: dentro ci sono anche i tuoi
+dati, quindi se ti servono fai prima una copia (punto 5).
+
+Windows tiene anche una piccola cartella di lavoro del componente WebView2,
+che non contiene i tuoi movimenti. Se vuoi togliere proprio tutto, cancella
+anche:
+    C:\Users\<il tuo nome>\AppData\Local\EasyCashFlow.WebView2
+
+
+-------------------------------------------------------------------------------
+ 8. SEGNALARE UN PROBLEMA
+-------------------------------------------------------------------------------
+
+Indica la versione (Aiuto > Informazioni) e cosa stavi facendo.
+Se ti viene chiesto il file di log (menu Log > Apri il file di log di oggi,
+oppure "Apri il log" nel riepilogo di un'importazione),
+puoi mandarlo: importi, descrizioni e IBAN sono nascosti, restano solo le
+date, i codici delle causali e le ultime quattro cifre del conto. Non
+mandare mai la cartella "dati", la password o il codice di recupero.

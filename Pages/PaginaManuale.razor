@@ -1,0 +1,235 @@
+@using MudBlazor
+@using Microsoft.JSInterop
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject ManualeService Manuale
+@inject ImpostazioniService Impostazioni
+@inject IJSRuntime JS
+
+@* Il manuale: indice dei capitoli a sinistra, un capitolo alla volta a destra. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudTooltip Text="Torna indietro">
+        <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))" OnClick="() => TornaIndietro.InvokeAsync()" />
+    </MudTooltip>
+    <MudText Typo="Typo.h4">Manuale</MudText>
+</MudStack>
+
+<div class="manuale-corpo mt-4">
+    <MudPaper Class="pa-2 manuale-indice" Elevation="1">
+        @foreach (var (c, i) in Manuale.Capitoli.Select((c, i) => (c, i)))
+        {
+            <div class="voce-indice @(c == _capitolo ? "voce-scelta" : null)" @onclick="() => Mostra(c)">
+                <span class="numero-capitolo">@(i + 1)</span>
+                <span>@c.Titolo</span>
+            </div>
+        }
+    </MudPaper>
+
+    <MudPaper Class="pa-6 manuale-testo" Elevation="1">
+        @if (_capitolo is { } capitolo)
+        {
+            <MudText Typo="Typo.h5" Class="mb-4">@capitolo.Titolo</MudText>
+            <div class="manuale" @ref="_testo">@((MarkupString)capitolo.Html)</div>
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
+                @if (Vicino(-1) is { } precedente)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => Mostra(precedente)"
+                               StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))">@precedente.Titolo</MudButton>
+                }
+                else
+                {
+                    <span></span>
+                }
+                @if (Vicino(+1) is { } successivo)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => Mostra(successivo)"
+                               EndIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowForward))">@successivo.Titolo</MudButton>
+                }
+            </MudStack>
+        }
+    </MudPaper>
+</div>
+
+<style>
+    .manuale-corpo {
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+
+    @@media (max-width: 900px) {
+        .manuale-corpo {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    .manuale-indice {
+        position: sticky;
+        top: 64px;
+    }
+
+    .voce-indice {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        padding: 8px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .voce-indice:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    .voce-indice.voce-scelta {
+        background-color: var(--mud-palette-action-default-hover);
+        color: var(--mud-palette-primary);
+        font-weight: 500;
+    }
+
+    .numero-capitolo {
+        min-width: 18px;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .manuale-testo {
+        max-width: 860px;
+    }
+
+    /* il testo del manuale è HTML semplice: qui il suo aspetto, con i colori del tema */
+    .manuale {
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    .manuale p, .manuale ul, .manuale ol {
+        margin: 0 0 14px 0;
+    }
+
+    .manuale ul, .manuale ol {
+        padding-left: 24px;
+    }
+
+    .manuale ul {
+        list-style: disc;
+    }
+
+    .manuale ol {
+        list-style: decimal;
+    }
+
+    .manuale li {
+        margin-bottom: 4px;
+    }
+
+    .manuale li > ul {
+        margin: 4px 0 0 0;
+        list-style: circle;
+    }
+
+    .manuale strong {
+        font-weight: 600;
+    }
+
+    .manuale a {
+        color: var(--mud-palette-primary);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        cursor: pointer;
+    }
+
+    /* le citazioni Markdown ("> testo") sono gli avvisi importanti: riquadro con il colore di avviso */
+    .manuale blockquote {
+        margin: 0 0 16px 0;
+        padding: 12px 16px;
+        border-left: 4px solid var(--mud-palette-warning);
+        border-radius: 0 6px 6px 0;
+        background-color: color-mix(in srgb, var(--mud-palette-warning) 12%, transparent);
+    }
+
+    .manuale blockquote p:last-child {
+        margin-bottom: 0;
+    }
+
+    .manuale code {
+        padding: 1px 6px;
+        border-radius: 4px;
+        background-color: var(--mud-palette-background);
+        font-size: 0.9em;
+    }
+</style>
+
+@code {
+    /// <summary>Capitolo da mostrare all'apertura (null = il primo).</summary>
+    [Parameter] public string? Capitolo { get; set; }
+    /// <summary>Un collegamento "app:pagina" del testo: la pagina principale decide dove andare.</summary>
+    [Parameter] public EventCallback<string> ApriPagina { get; set; }
+    [Parameter] public EventCallback TornaIndietro { get; set; }
+
+    private CapitoloManuale? _capitolo;
+    private string? _capitoloRichiesto;
+    private ElementReference _testo;
+    private DotNetObjectReference<PaginaManuale>? _riferimento;
+    private bool _collegato;
+    private bool _tornaInCima;
+
+    protected override void OnParametersSet()
+    {
+        // si cambia capitolo solo se ne è stato chiesto uno diverso, non a ogni ridisegno
+        if (_capitolo is not null && Capitolo == _capitoloRichiesto) return;
+        _capitoloRichiesto = Capitolo;
+        _capitolo = Manuale.Capitoli.FirstOrDefault(c => c.Id == Capitolo) ?? Manuale.Capitoli.FirstOrDefault();
+        _tornaInCima = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool primoRender)
+    {
+        // il contenitore del testo resta lo stesso cambiando capitolo: i clic si collegano una volta sola
+        if (!_collegato && _capitolo is not null)
+        {
+            _riferimento = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("manuale.collega", _testo, _riferimento);
+            _collegato = true;
+        }
+        if (_tornaInCima)
+        {
+            _tornaInCima = false;
+            await JS.InvokeVoidAsync("manuale.inCima");
+        }
+    }
+
+    private void Mostra(CapitoloManuale capitolo)
+    {
+        _capitolo = capitolo;
+        _tornaInCima = true;
+    }
+
+    private CapitoloManuale? Vicino(int passo)
+    {
+        var indice = _capitolo is null ? -1 : Manuale.Capitoli.ToList().IndexOf(_capitolo) + passo;
+        return indice >= 0 && indice < Manuale.Capitoli.Count ? Manuale.Capitoli[indice] : null;
+    }
+
+    [JSInvokable]
+    public async Task Collegamento(string destinazione)
+    {
+        if (destinazione.StartsWith("cap:"))
+        {
+            if (Manuale.Capitoli.FirstOrDefault(c => c.Id == destinazione[4..]) is { } capitolo)
+            {
+                Mostra(capitolo);
+                StateHasChanged();
+            }
+        }
+        else if (destinazione.StartsWith("app:"))
+        {
+            await ApriPagina.InvokeAsync(destinazione[4..]);
+        }
+    }
+
+    public void Dispose() => _riferimento?.Dispose();
+}

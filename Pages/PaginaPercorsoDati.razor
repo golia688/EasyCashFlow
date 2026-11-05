@@ -1,0 +1,105 @@
+@using System.Diagnostics
+@using System.Globalization
+@using System.IO
+@using MudBlazor
+@using EasyCashFlow.Services
+@inject ImpostazioniService Impostazioni
+@inject LogService Log
+
+@* Impostazioni > Dati > Percorso dati: dove sono il programma, i dati e i log, con le dimensioni e i
+   pulsanti per aprire le cartelle. Solo da guardare: la cartella dati sta sempre accanto al programma,
+   che è portable (spostare i dati vuol dire spostare tutta la cartella del programma). *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+    <MudText Typo="Typo.h4">Percorso dati</MudText>
+    <AiutoManuale Capitolo="dati" />
+</MudStack>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mt-2" Style="max-width: 900px;">
+    EasyCashFlow è <i>portable</i>: non si installa, e i tuoi dati stanno sempre nella cartella <b>dati</b> accanto
+    al programma. Per spostarli, chiudi il programma e sposta tutta la sua cartella: dati e log vanno con lui.
+</MudText>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1" Style="max-width: 900px">
+    @Cartella("Cartella del programma", AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar),
+              "L'eseguibile e i suoi file. Contiene anche le cartelle dati e log.")
+    <MudDivider Class="my-3" />
+    @Cartella("Dati", PercorsiDati.Cartella, "Vanno sempre copiati insieme: senza chiave.json il database non si apre.")
+    <div class="file-dati">
+        @FileDati("easycashflow.db", PercorsiDati.Database, "i tuoi movimenti, cifrati")
+        @FileDati("chiave.json", PercorsiDati.Chiave, "la chiave del database, chiusa con la password e con il codice di recupero")
+        @FileDati("preferenze.json", PercorsiDati.Preferenze, "le scelte di Aspetto e i giorni dei log, in chiaro")
+    </div>
+    <MudDivider Class="my-3" />
+    @Cartella("Log", Log.Cartella, $"{_numeroLog} file, {Dimensione(_byteLog)}: il diario del programma, senza i dati dei movimenti.")
+</MudPaper>
+
+<style>
+    .file-dati {
+        display: grid;
+        grid-template-columns: max-content max-content 1fr;
+        column-gap: 24px;
+        row-gap: 4px;
+        margin: 8px 0 0 16px;
+        align-items: baseline;
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    private int _numeroLog;
+    private long _byteLog;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            var log = new DirectoryInfo(Log.Cartella).GetFiles("*.log");
+            _numeroLog = log.Length;
+            _byteLog = log.Sum(f => f.Length);
+        }
+        catch (IOException) { }
+    }
+
+    private RenderFragment Cartella(string titolo, string percorso, string nota) =>
+        @<div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                <div>
+                    <MudText Typo="Typo.subtitle1"><b>@titolo</b></MudText>
+                    <MudText Typo="Typo.body2" Style="word-break: break-all;">@percorso</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@nota</MudText>
+                </div>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                           StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FolderOpen))"
+                           OnClick="() => Apri(percorso)">Apri la cartella</MudButton>
+            </MudStack>
+        </div>;
+
+    private RenderFragment FileDati(string nome, string percorso, string cosa) =>
+        @<text>
+            <MudText Typo="Typo.body2"><code>@nome</code></MudText>
+            <MudText Typo="Typo.body2" Align="Align.Right">
+                @(System.IO.File.Exists(percorso) ? Dimensione(new FileInfo(percorso).Length) : "non c'è")
+            </MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@cosa</MudText>
+        </text>;
+
+    private static string Dimensione(long byte_) => byte_ switch
+    {
+        < 1024 => $"{byte_} byte",
+        < 1024 * 1024 => $"{byte_ / 1024.0:N0} KB",
+        _ => (byte_ / (1024.0 * 1024)).ToString("N1", Italiano) + " MB"
+    };
+
+    private void Apri(string cartella)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = cartella, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Log.Errore("Apertura della cartella non riuscita", ex);
+        }
+    }
+}

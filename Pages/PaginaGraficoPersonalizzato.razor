@@ -1,0 +1,345 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject DatabaseService Database
+@inject AnalisiService Analisi
+@inject ImportazioneService Importazione
+@inject ImpostazioniService Impostazioni
+@inject LogService Log
+@inject StatoGraficoPersonalizzato Stato
+@inject IDialogService Dialoghi
+
+@* Analisi > Grafici > Grafico personalizzato: entrate e uscite per mese di movimenti scelti a mano. In alto
+   i filtri di Movimenti (PannelloFiltriMovimenti) e la griglia con le caselle; "Aggiungi al grafico" mette
+   nella selezione tutti i risultati del filtro, le caselle tolgono o aggiungono i singoli movimenti. Sotto,
+   il grafico della selezione, che si aggiorna a ogni spunta. Filtri e selezione restano finché il
+   programma è aperto (StatoGraficoPersonalizzato), non si salvano. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudTooltip Text="Torna all'analisi">
+        <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))" OnClick="() => TornaIndietro.InvokeAsync()" />
+    </MudTooltip>
+    <MudText Typo="Typo.h4">Grafico personalizzato</MudText>
+    <AiutoManuale Capitolo="grafico" />
+</MudStack>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+    Scegli tu i movimenti da mettere nel grafico: cerca con i filtri (per esempio il nome di un fornitore nella
+    descrizione) e premi <b>Aggiungi al grafico</b>; poi togli con le caselle quelli che non c'entrano.
+    Il grafico in fondo alla pagina si aggiorna a ogni spunta.
+</MudText>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <PannelloFiltriMovimenti @ref="_pannello" Filtri="_filtri">
+        <Pulsanti>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_inCorso"
+                       StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.AddChart))" OnClick="Aggiungi">Aggiungi al grafico</MudButton>
+            <MudButton Variant="Variant.Outlined" Disabled="_inCorso"
+                       StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FilterAlt))" OnClick="Cerca">Cerca soltanto</MudButton>
+            <MudButton Variant="Variant.Outlined" Disabled="_inCorso"
+                       StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.PlaylistRemove))" OnClick="Togli">Togli dal grafico</MudButton>
+            <MudButton Variant="Variant.Text" OnClick="AzzeraFiltri">Azzera i filtri</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" Disabled="@(_selezione.Count == 0)"
+                       StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Deselect))" OnClick="Svuota">Svuota il grafico</MudButton>
+        </Pulsanti>
+    </PannelloFiltriMovimenti>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2 d-block">
+        "Aggiungi al grafico" e "Togli dal grafico" valgono per tutti i movimenti che corrispondono ai filtri,
+        anche quelli nelle altre pagine della griglia. "Cerca soltanto" mostra i risultati senza cambiare il grafico.
+    </MudText>
+</MudPaper>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4">
+    <MudSwitch T="bool" Value="Stato.SoloSelezione" ValueChanged="CambiaSoloSelezione" Color="Color.Primary"
+               Label="@($"Mostra solo i movimenti nel grafico ({_selezione.Count})")" />
+</MudStack>
+
+<MudDataGrid @ref="_griglia" @key="_versioneGriglia" T="MovimentoCbi" ServerData="CaricaDati"
+             RowsPerPage="Stato.RighePerPagina"
+             MultiSelection="true" SelectOnRowClick="true"
+             SelectedItems="_selezione" SelectedItemsChanged="SelezioneCambiata"
+             SortMode="SortMode.Single" Dense="true" Hover="true" Striped="true" Class="mt-1">
+    <Columns>
+        <SelectColumn T="MovimentoCbi" />
+        @if (_conti.Count > 1)
+        {
+            <PropertyColumn Property="x => x.Conto" Title="Conto" InitialDirection="@Direzione("Conto")">
+                <CellTemplate>@_conti.GetValueOrDefault(context.Item.Conto, context.Item.Conto)</CellTemplate>
+            </PropertyColumn>
+        }
+        @* colonne ordinabili: l'ordine lo fa la query (o, con "solo i movimenti nel grafico", OrdinaSelezione) *@
+        <PropertyColumn Property="x => x.DataContabile" Title="Data contabile" Format="dd/MM/yyyy" InitialDirection="@Direzione("DataContabile")" />
+        <PropertyColumn Property="x => x.Importo" Title="Importo (€)" InitialDirection="@Direzione("Importo")">
+            <CellTemplate>
+                <MudText Typo="Typo.body2" Align="Align.Right" Class="importo" Color="@(context.Item.Importo < 0 ? Color.Error : Color.Success)">
+                    @context.Item.Importo.ToString("N2", Italiano)
+                </MudText>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Causale" Title="Causale" InitialDirection="@Direzione("Causale")" />
+        <PropertyColumn Property="x => x.DescrizioneBreve" Title="Descrizione" InitialDirection="@Direzione("DescrizioneBreve")" />
+        <PropertyColumn Property="x => x.DescrizioneEstesa" Title="Dettaglio" InitialDirection="@Direzione("DescrizioneEstesa")" />
+    </Columns>
+    <NoRecordsContent>
+        <MudText Class="pa-4">
+            @(Stato.SoloSelezione ? "Nel grafico non c'è ancora nessun movimento." : "Nessun movimento corrisponde ai filtri.")
+        </MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="MovimentoCbi" PageSizeOptions="@(new[] { 10, 25, 50, 100 })"
+                          RowsPerPageString="Righe per pagina"
+                          InfoFormat="{first_item}-{last_item} di {all_items}" />
+    </PagerContent>
+</MudDataGrid>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Il grafico della selezione</MudText>
+    @if (_selezione.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+            Nessun movimento nel grafico: cerca con i filtri e premi "Aggiungi al grafico", oppure spunta le caselle nella griglia.
+        </MudText>
+    }
+    else
+    {
+        var entrate = _selezione.Where(m => m.Importo > 0).Sum(m => m.Importo);
+        var uscite = -_selezione.Where(m => m.Importo < 0).Sum(m => m.Importo);
+        var netto = entrate - uscite;
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-1">
+            Le uscite sono sotto lo zero; la linea è il flusso netto del mese. Contano tutti i movimenti scelti,
+            qualunque sia il loro gruppo o tipo. Clicca una colonna o un punto per vedere i movimenti di quel mese.
+        </MudText>
+        <div class="numeri-selezione mt-3">
+            @Numero("Movimenti", _selezione.Count.ToString("N0", Italiano), $"dal {_selezione.Min(m => m.DataContabile):dd/MM/yyyy} al {_selezione.Max(m => m.DataContabile):dd/MM/yyyy}", Color.Default, importo: false)
+            @Numero("Entrate", Euro(entrate), $"in media {Euro(entrate / _mesi.Count)} al mese", Color.Success)
+            @Numero("Uscite", Euro(uscite), $"in media {Euro(uscite / _mesi.Count)} al mese", Color.Error)
+            @Numero("Flusso netto", Euro(netto, segno: true), $"in media {Euro(netto / _mesi.Count, segno: true)} al mese",
+                    netto < 0 ? Color.Error : Color.Success)
+        </div>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Medie su @(_mesi.Count == 1 ? "1 mese" : $"{_mesi.Count} mesi"), dal mese del primo movimento a quello dell'ultimo, anche quelli senza movimenti.
+        </MudText>
+        <Grafico Opzioni="_opzioni" Altezza="320px" ClicSerie="ApriMese" />
+    }
+</MudPaper>
+
+<style>
+    .numeri-selezione {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .numero-selezione {
+        padding: 12px;
+        border-radius: 8px;
+        background-color: var(--mud-palette-background);
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    [CascadingParameter(Name = "TemaScuro")] public bool TemaScuro { get; set; }
+
+    [Parameter] public EventCallback TornaIndietro { get; set; }
+
+    private PannelloFiltriMovimenti? _pannello;
+    private MudDataGrid<MovimentoCbi>? _griglia;
+    private int _versioneGriglia;           // cambiandolo, la griglia riparte dalla pagina 1 con le caselle aggiornate
+    private bool _inCorso;
+    private Dictionary<string, string> _conti = [];
+
+    private FiltriMovimenti _filtri { get => Stato.Filtri!; set => Stato.Filtri = value; }
+    private FiltriMovimenti _filtriAttivi { get => Stato.FiltriAttivi!; set => Stato.FiltriAttivi = value; }
+    private HashSet<MovimentoCbi> _selezione { get => Stato.Selezione; set => Stato.Selezione = value; }
+
+    private List<ValoriMese> _mesi = [];
+    private object _opzioni = new();
+    private bool? _temaDelleOpzioni;
+
+    protected override void OnInitialized()
+    {
+        _conti = Database.ElencoConti().ToDictionary(c => c.Codice, c => c.Nome);
+        // la prima volta come in Movimenti: il conto predefinito già scelto
+        if (Stato.Filtri is null)
+        {
+            _filtri = new FiltriMovimenti { Conti = Analisi.ContiPredefiniti() };
+            _filtriAttivi = _filtri.Copia();
+        }
+        Ricalcola();
+        Importazione.ImportCompletato += OnImportCompletato;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_temaDelleOpzioni != TemaScuro)
+            Ricalcola();
+    }
+
+    public void Dispose() => Importazione.ImportCompletato -= OnImportCompletato;
+
+    // la griglia: i risultati del filtro, oppure solo i movimenti nel grafico (dal più recente)
+    private async Task<GridData<MovimentoCbi>> CaricaDati(GridState<MovimentoCbi> stato, CancellationToken token)
+    {
+        Stato.RighePerPagina = stato.PageSize;
+        var ordine = Stato.Ordine = OrdineGriglia.Da(stato.SortDefinitions);
+        if (Stato.SoloSelezione)
+        {
+            var scelti = OrdinaSelezione(ordine);
+            return new GridData<MovimentoCbi>
+            {
+                Items = scelti.Skip(stato.Page * stato.PageSize).Take(stato.PageSize).ToList(),
+                TotalItems = scelti.Count
+            };
+        }
+        var (righe, totale) = await Task.Run(() => Database.CercaMovimenti(_filtriAttivi, stato.Page, stato.PageSize, ordine), token);
+        return new GridData<MovimentoCbi> { Items = righe, TotalItems = totale };
+    }
+
+    private SortDirection Direzione(string campo) => OrdineGriglia.Direzione(Stato.Ordine, campo);
+
+    // "solo i movimenti nel grafico": la selezione è in memoria, si ordina qui come farebbe la query
+    private List<MovimentoCbi> OrdinaSelezione(OrdineGriglia? ordine)
+    {
+        IEnumerable<MovimentoCbi> elenco = _selezione;
+        if (ordine is null)
+            return elenco.OrderByDescending(m => m.DataContabile).ThenBy(m => m.Importo).ToList();
+
+        Func<MovimentoCbi, object> chiave = ordine.Campo switch
+        {
+            "Conto" => m => _conti.GetValueOrDefault(m.Conto, m.Conto),
+            "Importo" => m => m.Importo,
+            "Causale" => m => m.Causale,
+            "DescrizioneBreve" => m => m.DescrizioneBreve,
+            "DescrizioneEstesa" => m => m.DescrizioneEstesa,
+            _ => m => m.DataContabile
+        };
+        var confronto = StringComparer.Create(Italiano, ignoreCase: true);
+        var comparatore = Comparer<object>.Create((a, b) => a is string x && b is string y
+            ? confronto.Compare(x, y)
+            : Comparer<object>.Default.Compare(a, b));
+        return (ordine.Decrescente ? elenco.OrderByDescending(chiave, comparatore) : elenco.OrderBy(chiave, comparatore))
+               .ThenByDescending(m => m.DataContabile).ToList();
+    }
+
+    private void Cerca()
+    {
+        _filtriAttivi = _filtri.Copia();
+        Stato.SoloSelezione = false;
+        Log.Debug($"Grafico personalizzato, ricerca: {_filtriAttivi}");
+        _versioneGriglia++;
+    }
+
+    // tutti i risultati del filtro, non solo quelli della pagina visibile
+    private async Task Aggiungi()
+    {
+        Cerca();
+        await CambiaSelezione(tutti => new HashSet<MovimentoCbi>(_selezione.Concat(tutti)), "aggiunti");
+    }
+
+    private async Task Togli()
+    {
+        Cerca();
+        await CambiaSelezione(tutti => new HashSet<MovimentoCbi>(_selezione.Except(tutti)), "tolti");
+    }
+
+    private async Task CambiaSelezione(Func<List<MovimentoCbi>, HashSet<MovimentoCbi>> cambia, string cosa)
+    {
+        _inCorso = true;
+        try
+        {
+            var tutti = await Task.Run(() => Database.TuttiMovimenti(_filtriAttivi));
+            _selezione = cambia(tutti);
+            Log.Debug($"Grafico personalizzato: {tutti.Count} movimenti del filtro {cosa}, nel grafico {_selezione.Count}");
+            Ricalcola();
+            _versioneGriglia++;     // la griglia ricreata mostra le caselle aggiornate
+        }
+        finally
+        {
+            _inCorso = false;
+        }
+    }
+
+    private void AzzeraFiltri() => _filtri = new FiltriMovimenti();
+
+    private void Svuota()
+    {
+        _selezione = [];
+        Log.Debug("Grafico personalizzato svuotato");
+        Ricalcola();
+        _versioneGriglia++;
+    }
+
+    private void SelezioneCambiata(HashSet<MovimentoCbi> selezione)
+    {
+        _selezione = selezione;
+        Ricalcola();
+        // con "solo i movimenti nel grafico" una riga tolta deve sparire dalla griglia
+        if (Stato.SoloSelezione) _versioneGriglia++;
+    }
+
+    private void CambiaSoloSelezione(bool solo)
+    {
+        Stato.SoloSelezione = solo;
+        _versioneGriglia++;
+    }
+
+    private void Ricalcola()
+    {
+        _temaDelleOpzioni = TemaScuro;
+        _mesi = AnalisiService.PerMese(_selezione);
+        _opzioni = OpzioniGrafici.EntrateUscitePerMese(_mesi, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale));
+    }
+
+    // clic su una colonna (Entrate, Uscite) o su un punto del flusso netto: i movimenti scelti di quel mese,
+    // solo quelli di quella serie
+    private async Task ApriMese((string Serie, int Indice) clic)
+    {
+        if (clic.Indice < 0 || clic.Indice >= _mesi.Count) return;
+        var mese = _mesi[clic.Indice].Mese;
+        Func<MovimentoCbi, bool>? serie = clic.Serie switch
+        {
+            "Entrate" => m => m.Importo > 0,
+            "Uscite" => m => m.Importo < 0,
+            "Flusso netto" => _ => true,
+            _ => null
+        };
+        if (serie is null) return;
+
+        var movimenti = _selezione
+            .Where(m => m.DataContabile.Year == mese.Year && m.DataContabile.Month == mese.Month && serie(m))
+            .OrderBy(m => m.DataContabile).ThenBy(m => m.Importo)
+            .ToList();
+        var nomeMese = mese.ToString("MMMM yyyy", Italiano);
+        var titolo = clic.Serie == "Flusso netto" ? $"Movimenti di {nomeMese}" : $"{clic.Serie} di {nomeMese}";
+        Log.Debug($"Grafico personalizzato: {clic.Serie} di {mese:MM/yyyy}, {movimenti.Count} movimenti");
+
+        var parametri = new DialogParameters<DialogoMovimentiMese> { { d => d.Movimenti, movimenti } };
+        await Dialoghi.ShowAsync<DialogoMovimentiMese>(titolo, parametri,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true, CloseButton = true });
+    }
+
+    private void OnImportCompletato(EsitoImportazione esito) => _ = InvokeAsync(() =>
+    {
+        if (esito.Errore is not null) return;
+        _conti = Database.ElencoConti().ToDictionary(c => c.Codice, c => c.Nome);
+        _pannello?.Ricarica();
+        _versioneGriglia++;
+        StateHasChanged();
+    });
+
+    private static string Euro(decimal valore, bool segno = false) =>
+        (segno && valore > 0 ? "+" : "") + valore.ToString("C2", Italiano);
+
+    // importo: valore e nota si nascondono con l'occhio accanto al "?" (non il numero dei movimenti)
+    private static RenderFragment Numero(string titolo, string valore, string nota, Color colore, bool importo = true) =>
+        @<div class="numero-selezione">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@titolo</MudText>
+            <MudText Typo="Typo.h6" Color="colore" Class="@(importo ? "importo" : null)">@valore</MudText>
+            <MudText Typo="Typo.caption" Class="@($"mud-text-secondary {(importo ? "importo" : null)}")">@nota</MudText>
+        </div>;
+}

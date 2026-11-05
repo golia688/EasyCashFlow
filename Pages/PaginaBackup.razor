@@ -1,0 +1,132 @@
+@using System.Diagnostics
+@using System.Globalization
+@using System.IO
+@using MudBlazor
+@using EasyCashFlow.Services
+@inject BackupService Backup
+@inject PreferenzeService Preferenze
+@inject SelettoreFile Selettore
+@inject ImpostazioniService Impostazioni
+@inject LogService Log
+
+@* Impostazioni > Dati > Backup: uno zip verificato con database, chiave.json e preferenze (BackupService).
+   Il ripristino resta manuale, come spiega il manuale in "I tuoi dati". *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+    <MudText Typo="Typo.h4">Backup</MudText>
+    <AiutoManuale Capitolo="dati" />
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1" Style="max-width: 900px">
+    <MudText Typo="Typo.h6">Copia di sicurezza dei dati</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1">
+        Crea un file <b>.zip</b> con il database, il file <code>chiave.json</code> e le preferenze, nella cartella che
+        scegli. Il programma controlla subito che la copia si apra e contenga tutti i movimenti.
+    </MudText>
+    <ul class="mt-2 avvertenze">
+        <li><MudText Typo="Typo.body2">La copia è <b>cifrata</b> come i dati e si apre con la password di adesso
+            (o con il codice di recupero).</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Warning"><b>ATTENZIONE</b>: se poi cambi la password, questa copia
+            continua ad aprirsi con quella vecchia.</MudText></li>
+        <li><MudText Typo="Typo.body2">Mettila <b>fuori da questo computer</b>: su una chiavetta, un disco esterno o uno
+            spazio cloud personale. Una copia sullo stesso disco non serve se il disco si rompe.</MudText></li>
+        <li><MudText Typo="Typo.body2">Per tornare a una copia: chiudi il programma, estrai lo zip nella cartella
+            <b>dati</b> accanto al programma, sostituendo i file, e riavvialo.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Warning"><b>ATTENZIONE</b>: i dati attuali presenti nel database
+            verranno sovrascritti con quelli della copia di backup.</MudText></li>
+    </ul>
+
+    <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">
+        @if (Preferenze.UltimoBackup is { } ultimo)
+        {
+            <span>Ultimo backup il @ultimo.ToString("dd/MM/yyyy 'alle' HH:mm"), in @Preferenze.CartellaBackup.</span>
+        }
+        else
+        {
+            <span>Non hai ancora fatto un backup.</span>
+        }
+    </MudText>
+
+    @if (_attesa)
+    {
+        <AttesaCalcolo Testo="Creazione e verifica del backup…" />
+    }
+    else
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                   StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Backup))" OnClick="Crea">Crea un backup</MudButton>
+    }
+
+    @if (_esito is { Errore: null, Percorso: { } percorso } ok)
+    {
+        <MudAlert Severity="Severity.Success" Class="mt-4">
+            Backup creato e verificato: <b>@Path.GetFileName(percorso)</b>, @Dimensione(ok.Byte), @ok.Movimenti.ToString("N0", Italiano) movimenti.
+            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Success" Class="ml-2"
+                       OnClick="() => Apri(Path.GetDirectoryName(percorso)!)">Apri la cartella</MudButton>
+        </MudAlert>
+    }
+    else if (_esito is { Errore: { } errore })
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">
+            Il backup non è riuscito: @errore. Nessun file è stato lasciato a metà; i dettagli sono nel log.
+        </MudAlert>
+    }
+</MudPaper>
+
+<style>
+    .avvertenze {
+        padding-left: 20px;
+    }
+
+    .avvertenze li {
+        margin-bottom: 4px;
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    private bool _attesa;
+    private EsitoBackup? _esito;
+
+    private async Task Crea()
+    {
+        var cartella = await Selettore.ScegliCartellaAsync("Dove salvare il backup di EasyCashFlow", Preferenze.CartellaBackup);
+        if (cartella is null) return;
+
+        if (Path.GetFullPath(cartella).TrimEnd('\\').StartsWith(Path.GetFullPath(PercorsiDati.Cartella).TrimEnd('\\'),
+                                                                  StringComparison.OrdinalIgnoreCase))
+        {
+            _esito = new EsitoBackup(null, 0, 0, "non si può salvare il backup dentro la cartella dati");
+            return;
+        }
+
+        _attesa = true;
+        _esito = null;
+        StateHasChanged();
+        try
+        {
+            _esito = await Backup.CreaAsync(cartella);
+        }
+        finally
+        {
+            _attesa = false;
+        }
+    }
+
+    private static string Dimensione(long byte_) => byte_ < 1024 * 1024
+        ? $"{byte_ / 1024.0:N0} KB"
+        : (byte_ / (1024.0 * 1024)).ToString("N1", Italiano) + " MB";
+
+    private void Apri(string cartella)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = cartella, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Log.Errore("Apertura della cartella non riuscita", ex);
+        }
+    }
+}

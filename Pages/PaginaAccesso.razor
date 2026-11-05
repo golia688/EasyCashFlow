@@ -1,0 +1,274 @@
+@using MudBlazor
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject AccessoService Accesso
+@inject ChiusuraService Chiusura
+@inject ImpostazioniService Impostazioni
+@inject LogService Log
+
+@* Prima delle pagine: creare la password (primo avvio), sbloccare, recuperare con il codice.
+   Niente menu né barra laterale finché il database non è aperto (docs/07-sicurezza.md, sezione 6). *@
+
+<div class="accesso">
+    <MudPaper Class="pa-8 riquadro-accesso" Elevation="3">
+        <div class="testata-accesso">
+            <img src="img/easycashflow.png" alt="" />
+            <MudText Typo="Typo.h5">EasyCashFlow</MudText>
+        </div>
+
+        @if (_attesa is not null)
+        {
+            <AttesaCalcolo Testo="@_attesa" />
+        }
+        else
+        {
+            @switch (_vista)
+            {
+                case Vista.Crea:
+                    <MudText Typo="Typo.h6" Class="mt-6">Proteggi i tuoi dati</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        EasyCashFlow salva i tuoi movimenti <b>cifrati</b>: senza la password nessuno può leggerli,
+                        nemmeno copiando la cartella del programma. Te la chiederà a ogni avvio.
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2 mud-text-secondary">
+                        Scegli una password robusta: lunga, che non usi per nient'altro e che non si possa indovinare conoscendoti. Se non ti viene in mente, Suggerisci una frase ne propone una.
+                    </MudText>
+                    <NuovaPassword TestoPulsante="Crea la password" Confermato="SalvaPassword" Messaggi="@Errore()" />
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">
+                        Se dimentichi la password ti servirà il <b>codice di recupero</b>, che vedrai al passo successivo.
+                        Senza password e senza codice i dati non si possono più aprire: nessuno può farlo,
+                        nemmeno chi ha scritto il programma.
+                    </MudAlert>
+                    break;
+
+                case Vista.NuovaPassword:
+                    <MudText Typo="Typo.h6" Class="mt-6">Scegli una password nuova</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Il codice di recupero è giusto. Ora scegli una password nuova: il codice che hai usato
+                        non varrà più e al passo successivo ne riceverai uno nuovo.
+                    </MudText>
+                    <NuovaPassword TestoPulsante="Salva la password nuova" Confermato="SalvaPassword" Messaggi="@Errore()" />
+                    break;
+
+                case Vista.Codice:
+                    <MudText Typo="Typo.h6" Class="mt-6">Il tuo codice di recupero</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Se dimentichi la password, questo codice è <b>l'unico modo</b> per aprire i tuoi dati.
+                        Lo vedi adesso e non lo vedrai più.
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2 mud-text-secondary">
+                        Se lo perdi prima di averlo annotato, potrai crearne uno nuovo da Impostazioni &gt; Sicurezza,
+                        con la password.
+                    </MudText>
+                    <CodiceRecupero Codice="@_codice" Confermato="ConcludiCodice" />
+                    break;
+
+                case Vista.Sblocca:
+                    @if (Accesso.Bloccato)
+                    {
+                        <MudText Typo="Typo.h6" Class="mt-6">EasyCashFlow è bloccato</MudText>
+                        <MudText Typo="Typo.body2" Class="mt-2">
+                            Inserisci la password per continuare: ritroverai tutto come l'avevi lasciato.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h6" Class="mt-6">Inserisci la password</MudText>
+                    }
+                    <MudTextField T="string" @bind-Value="_password" Immediate="true" AutoFocus="true" Class="mt-3"
+                                  Label="Password" InputType="@(_mostra ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End" AdornmentIcon="@IconaMostra" OnAdornmentClick="() => _mostra = !_mostra"
+                                  OnKeyUp="@(e => e.Key == "Enter" ? Sblocca() : Task.CompletedTask)"
+                                  Disabled="_inCorso" Variant="Variant.Outlined" />
+                    @Errore()
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4"
+                               Disabled="@(_inCorso || string.IsNullOrEmpty(_password) || InAttesa)" OnClick="Sblocca">
+                        Sblocca
+                    </MudButton>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-3">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => Vai(Vista.Recupero)">Ho dimenticato la password</MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="Esci">Esci</MudButton>
+                    </MudStack>
+                    break;
+
+                case Vista.Recupero:
+                    <MudText Typo="Typo.h6" Class="mt-6">Password dimenticata</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Scrivi il codice di recupero che hai ricevuto quando hai creato la password
+                        (30 caratteri; maiuscole, spazi e trattini non contano). Poi sceglierai una password nuova.
+                    </MudText>
+                    <MudTextField T="string" @bind-Value="_codiceScritto" Immediate="true" AutoFocus="true" Class="mt-3"
+                                  Label="Codice di recupero" Placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
+                                  OnKeyUp="@(e => e.Key == "Enter" ? SbloccaConCodice() : Task.CompletedTask)"
+                                  Disabled="_inCorso" Variant="Variant.Outlined" />
+                    @Errore()
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4"
+                               Disabled="@(_inCorso || string.IsNullOrWhiteSpace(_codiceScritto) || InAttesa)" OnClick="SbloccaConCodice">
+                        Apri con il codice
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Class="mt-3" OnClick="() => Vai(Vista.Sblocca)">Torna alla password</MudButton>
+                    break;
+            }
+        }
+    </MudPaper>
+</div>
+
+<style>
+    .accesso {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .riquadro-accesso {
+        width: 100%;
+        max-width: 560px;
+    }
+
+    .testata-accesso {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .testata-accesso img {
+        width: 40px;
+        height: 40px;
+    }
+</style>
+
+@code {
+    private enum Vista { Crea, NuovaPassword, Codice, Sblocca, Recupero }
+
+    private Vista _vista;
+    private string? _password;
+    private bool _mostra;
+    private string? _attesa;     // testo sotto la barra di caricamento; null = nessuna attesa
+    private bool _inCorso => _attesa is not null;
+    private string? _errore;
+    private string? _codiceScritto;
+
+    private string _codice = "";
+
+    private Timer? _orologio;     // aggiorna il conto alla rovescia dopo troppi tentativi sbagliati
+
+    protected override void OnInitialized()
+    {
+        _vista = Accesso.Fase == FaseAccesso.CreaPassword ? Vista.Crea : Vista.Sblocca;
+        _orologio = new Timer(_ => { if (_vista is Vista.Sblocca or Vista.Recupero) InvokeAsync(StateHasChanged); }, null, 1000, 1000);
+    }
+
+    public void Dispose() => _orologio?.Dispose();
+
+    private bool InAttesa => Accesso.AttesaRimanente > TimeSpan.Zero;
+
+    private string IconaMostra => Impostazioni.Icona(_mostra ? nameof(Icons.Material.Filled.VisibilityOff) : nameof(Icons.Material.Filled.Visibility));
+
+    private void Vai(Vista vista)
+    {
+        _vista = vista;
+        _errore = null;
+        _password = _codiceScritto = null;
+        _mostra = false;
+    }
+
+    // ---- creare o cambiare la password (il modulo è NuovaPassword.razor) ----
+
+    private async Task SalvaPassword(string password)
+    {
+        if (_inCorso) return;
+        _attesa = _vista == Vista.Crea ? "Creazione della password e dei dati cifrati…" : "Salvataggio della password nuova…";
+        _errore = null;
+        try
+        {
+            var codice = _vista == Vista.Crea
+                ? await Accesso.CreaAsync(password)
+                : await Accesso.NuovaPasswordDopoRecuperoAsync(password);
+            MostraCodice(codice);
+        }
+        catch (Exception ex)
+        {
+            Log.Errore("Creazione della password non riuscita", ex);
+            _errore = $"Non è stato possibile salvare la password: {ex.Message}";
+        }
+        finally
+        {
+            _attesa = null;
+        }
+    }
+
+    // ---- codice di recupero ----
+
+    private void MostraCodice(string codice)
+    {
+        _codice = codice;
+        _password = null;
+        _vista = Vista.Codice;
+    }
+
+    private void ConcludiCodice()
+    {
+        _codice = "";
+        Accesso.Completa();
+    }
+
+    // ---- sbloccare ----
+
+    private Task Sblocca() =>
+        ProvaASbloccare(() => Accesso.SbloccaAsync(_password ?? ""), "Controllo della password…", dopo: Accesso.Completa);
+
+    private Task SbloccaConCodice() =>
+        ProvaASbloccare(() => Accesso.SbloccaConCodiceAsync(_codiceScritto ?? ""), "Controllo del codice di recupero…",
+                        dopo: () => Vai(Vista.NuovaPassword));
+
+    private async Task ProvaASbloccare(Func<Task<EsitoSblocco>> prova, string testoAttesa, Action dopo)
+    {
+        if (_inCorso || InAttesa) return;
+        _attesa = testoAttesa;
+        _errore = null;
+        try
+        {
+            var esito = await prova();
+            switch (esito)
+            {
+                case EsitoSblocco.Riuscito:
+                    dopo();
+                    return;
+                case EsitoSblocco.Sbagliato:
+                    _errore = _vista == Vista.Recupero ? "Codice di recupero sbagliato." : "Password sbagliata.";
+                    _password = null;
+                    break;
+                case EsitoSblocco.DatabaseNonApribile:
+                    _errore = "La password è giusta, ma il database non si apre con questa chiave: il file chiave.json " +
+                              "probabilmente viene da un'altra copia dei dati. Rimetti insieme il database e la sua chiave.";
+                    break;
+                case EsitoSblocco.FileChiaveRovinato:
+                    _errore = "Il file della chiave (dati\\chiave.json) è rovinato o non leggibile. " +
+                              "Rimettilo da una copia di sicurezza della cartella dati.";
+                    break;
+            }
+        }
+        finally
+        {
+            _attesa = null;
+        }
+    }
+
+    private RenderFragment Errore() =>
+        @<div>
+            @if (InAttesa)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Error" Class="mt-2">
+                    Troppi tentativi sbagliati: puoi riprovare tra @Math.Ceiling(Accesso.AttesaRimanente.TotalSeconds) secondi.
+                </MudText>
+            }
+            else if (_errore is not null)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Error" Class="mt-2">@_errore</MudText>
+            }
+        </div>;
+
+    private void Esci() => Chiusura.Chiudi();
+}

@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="EasyCashFlow.csproj">
+    <BuildType Project="Release" />
+  </Project>
+</Solution>

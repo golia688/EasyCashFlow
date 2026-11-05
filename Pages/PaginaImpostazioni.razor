@@ -1,0 +1,120 @@
+﻿@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+@inject ISnackbar Snackbar
+@inject ImpostazioniService Impostazioni
+
+@* la freccia c'è solo se la pagina si è aperta dalla Home ("Vai ai conti", Main.razor) *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+    @if (TornaIndietro.HasDelegate)
+    {
+        <MudTooltip Text="@TestoRitorno">
+            <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))" OnClick="() => TornaIndietro.InvokeAsync()" />
+        </MudTooltip>
+    }
+    <MudText Typo="Typo.h4">Impostazioni</MudText>
+    <AiutoManuale Capitolo="impostazioni" />
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Conti correnti</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mb-3 mud-text-secondary">
+        I conti vengono registrati da soli alla prima importazione di un loro file. Dai a ciascuno
+        un nome che riconosci: è quello che compare nelle griglie e nei filtri.
+    </MudText>
+
+    @if (_conti.Count == 0)
+    {
+        <MudText Typo="Typo.body2">Nessun conto registrato: importa un file CBI dalla sezione Movimenti.</MudText>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th style="min-width: 260px;">Nome</th>
+                    <th>IBAN</th>
+                    <th>ABI</th>
+                    <th>Divisa</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _conti)
+                {
+                    <tr>
+                        <td>
+                            <MudTextField T="string" @bind-Value="_nomi[c.Codice]" Immediate="true"
+                                          MaxLength="60" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          Error="@(Errore(c) is not null)" ErrorText="@Errore(c)" />
+                        </td>
+                        <td style="font-family: monospace;">
+                            @if (c.Iban == "")
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                    non disponibile (si completa alla prossima importazione)
+                                </MudText>
+                            }
+                            else
+                            {
+                                @FormattaIban(c.Iban)
+                            }
+                        </td>
+                        <td>@c.Abi</td>
+                        <td>@(c.Divisa == "" ? "-" : c.Divisa)</td>
+                        <td>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       Disabled="@(!Modificato(c) || Errore(c) is not null)"
+                                       OnClick="@(() => Salva(c))">Salva</MudButton>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudPaper>
+
+@code {
+    /// <summary>Solo se la pagina si è aperta dalla Home: mostra la freccia per tornarci.</summary>
+    [Parameter] public EventCallback TornaIndietro { get; set; }
+
+    [Parameter] public string TestoRitorno { get; set; } = "Torna indietro";
+
+    private List<ContoCorrente> _conti = new();
+    private Dictionary<string, string> _nomi = new();   // nomi nei campi, per codice del conto
+
+    protected override void OnInitialized() => Carica();
+
+    private void Carica()
+    {
+        _conti = Database.ElencoConti();
+        _nomi = _conti.ToDictionary(c => c.Codice, c => c.Nome);
+    }
+
+    private bool Modificato(ContoCorrente c) => (_nomi[c.Codice] ?? "").Trim() != c.Nome;
+
+    // Il nome deve esserci e non deve ripetersi, altrimenti nei filtri due conti non si distinguono.
+    private string? Errore(ContoCorrente c)
+    {
+        var nome = (_nomi[c.Codice] ?? "").Trim();
+        if (nome == "") return "Il nome non può essere vuoto";
+
+        var doppio = _nomi.Any(n => n.Key != c.Codice &&
+                                    string.Equals((n.Value ?? "").Trim(), nome, StringComparison.OrdinalIgnoreCase));
+        return doppio ? "Nome già usato da un altro conto" : null;
+    }
+
+    private void Salva(ContoCorrente c)
+    {
+        var nome = _nomi[c.Codice].Trim();
+        Database.RinominaConto(c.Codice, nome);
+        Snackbar.Add($"Conto rinominato in \"{nome}\".", Severity.Success);
+        Carica();
+    }
+
+    // IT60X0542811101000000123456 -> IT60 X054 2811 1010 0000 0123 456
+    private static string FormattaIban(string iban) =>
+        string.Join(" ", Enumerable.Range(0, (iban.Length + 3) / 4)
+                                   .Select(i => iban.Substring(i * 4, Math.Min(4, iban.Length - i * 4))));
+}

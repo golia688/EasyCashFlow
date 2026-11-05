@@ -1,0 +1,462 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject AnalisiService Analisi
+@inject ImpostazioniService Impostazioni
+@inject IDialogService Dialoghi
+@inject PreferenzeService Preferenze
+
+@* Simulazione del saldo futuro: dalla media di un periodo passato (senza i gruppi esclusi) si proietta
+   il saldo mese per mese. Il flusso netto si cambia con un valore unico o mese per mese; il tasso di
+   risparmio si ricalcola con le entrate medie della base. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudTooltip Text="Torna all'analisi">
+        <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))" OnClick="() => TornaIndietro.InvokeAsync()" />
+    </MudTooltip>
+    <MudText Typo="Typo.h4">Simulazione del saldo</MudText>
+    <AiutoManuale Capitolo="simulazione" />
+</MudStack>
+
+@if (_base is not { } b || _periodo is null)
+{
+    <MudAlert Severity="Severity.Info" Class="mt-4">Non ci sono ancora movimenti: importa un file CBI dalla sezione Movimenti.</MudAlert>
+    return;
+}
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+    Come andrà il saldo nei prossimi mesi se entrate e uscite restano come nel periodo che scegli?
+    Cambia il flusso netto per provare altre ipotesi: per tutti i mesi o solo per alcuni.
+</MudText>
+
+@if (b.SaldoIniziale is null)
+{
+    <MudAlert Severity="Severity.Warning" Class="mt-4">
+        Non ci sono saldi salvati: la simulazione parte dal saldo reale più recente. I saldi si salvano a
+        ogni importazione; importa di nuovo un file CBI recente per aggiungerli.
+    </MudAlert>
+}
+
+@* la base: periodo, orizzonte, gruppi esclusi *@
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">La base</MudText>
+    <MudGrid Spacing="2" Class="mt-1">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="PeriodoAnalisi" Label="Periodo su cui fare la media" Value="_periodo" ValueChanged="CambiaPeriodo"
+                       ToStringFunc="NomePeriodo" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var p in _periodi)
+                {
+                    <MudSelectItem T="PeriodoAnalisi" Value="p">@NomePeriodo(p)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudSelect T="int" Label="Mesi da simulare" Value="_orizzonte" ValueChanged="CambiaOrizzonte"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var n in new[] { 6, 12, 24, 36 })
+                {
+                    <MudSelectItem T="int" Value="n">@n mesi</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="7">
+            <MudSelect T="string" Label="Gruppi da escludere dalla media (spese che non si ripeteranno)"
+                       SelectedValues="_esclusi" SelectedValuesChanged="CambiaEsclusi" MultiSelection="true"
+                       Clearable="true" Placeholder="Nessuno" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var g in b.Gruppi)
+                {
+                    <MudSelectItem T="string" Value="g.Gruppo">@g.Gruppo (<span class="importo">@Euro(g.Totale, segno: true)</span>)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @* con meno di un mese di movimenti niente medie: sarebbero i pochi giorni moltiplicati (vedi sotto) *@
+    @if (!PeriodoTroppoCorto)
+    {
+    <div class="numeri-base mt-3">
+        @Numero("Entrate medie", Euro(b.EntrateMedie), "al mese")
+        @Numero("Uscite medie", Euro(b.UsciteMedie), "al mese")
+        @Numero("Flusso netto medio", Euro(b.NettoMedio, segno: true), $"tasso di risparmio {Percentuale(b.Tasso(b.NettoMedio))}",
+                SpiegazioneTasso)
+        @Numero("Investito medio", Euro(b.InvestitoMedio, segno: true), "al mese, verso gli investimenti")
+        @Numero("Saldo di partenza", b.SaldoIniziale is { } s ? Euro(s.Saldo) : "–",
+                b.SaldoIniziale is { } s2 ? $"al {s2.Data:dd/MM/yyyy}" : "nessun saldo")
+    </div>
+    }
+    <MudSwitch T="bool" Value="_escludiStraordinari" ValueChanged="CambiaEscludiStraordinari" Color="Color.Primary"
+               Label="@(b.StraordinariEsclusi > 0 || !_escludiStraordinari
+                   ? $"Escludi i movimenti straordinari{(b.StraordinariEsclusi > 0 ? $" ({b.StraordinariEsclusi}{(Preferenze.ImportiNascosti ? "" : $", {Euro(b.TotaleStraordinariEsclusi, segno: true)}")})" : "")}"
+                   : "Escludi i movimenti straordinari (nessuno nel periodo)")" />
+    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" OnClick="ApriStraordinari"
+               StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Flag))">Vedi gli straordinari del periodo</MudButton>
+    @if (!PeriodoTroppoCorto)
+    {
+        @if (b.MesiIncompleti.Count > 0)
+        {
+            <AvvisoMesiIncompleti Mesi="b.Mesi" Incompleti="b.MesiIncompleti" />
+        }
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Medie su @AnalisiService.TestoMesi(b.Mesi), dal @_periodo.Dal.ToString("dd/MM/yyyy") al @_periodo.Al.ToString("dd/MM/yyyy")@(_esclusi.Count > 0 ? $", senza {_esclusi.Count} gruppi" : "").
+        </MudText>
+    }
+</MudPaper>
+
+@* Protezione: la simulazione proietta per mesi la media mensile della base, e con meno di un mese di
+   movimenti quella media è solo qualche giorno moltiplicato (3 giorni con 90 € di spese = 900 € al
+   mese). Niente medie e niente simulazione, finché non si sceglie un periodo più lungo. *@
+@if (PeriodoTroppoCorto)
+{
+    <MudAlert Severity="Severity.Warning" Class="mt-4">
+        @if (b.Mesi == 0)
+        {
+            <b>Nel periodo scelto non ci sono movimenti importati</b><span>, quindi non c'è niente su cui fare la media.</span>
+            <p class="mt-2">Scegli un altro periodo, qui sopra o in Analisi.</p>
+        }
+        else
+        {
+            <b>Il periodo scelto è troppo corto per simulare il saldo.</b>
+            <p class="mt-2">
+                Dal @_periodo.Dal.ToString("dd/MM/yyyy") al @_periodo.Al.ToString("dd/MM/yyyy") ci sono movimenti
+                per @AnalisiService.TestoMesi(b.Mesi), meno di un mese. La simulazione prende la <b>media al mese</b>
+                di entrate, uscite e investimenti del periodo e la ripete per i mesi futuri: con pochi giorni quella
+                media non è una media, è quei giorni moltiplicati. Per esempio, 90 € di spese in 3 giorni
+                diventerebbero 900 € al mese, un versamento di 300 € in un fondo 3.000 € al mese, e lo stipendio,
+                se in quei giorni non è ancora arrivato, mancherebbe del tutto.
+            </p>
+            <p class="mt-2">
+                Scegli un periodo di <b>almeno un mese</b>, meglio se di mesi completi: per esempio gli ultimi 12 mesi,
+                che comprendono anche le spese che arrivano una volta all'anno. Succede soprattutto con le date scelte a mano: i periodi
+                dell'elenco ("Ultimo mese completo", "Ultimi 3 mesi completi"…) sono sempre di mesi interi.
+            </p>
+        }
+    </MudAlert>
+    return;
+}
+
+@* le ipotesi: valori unici per tutti i mesi *@
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Le ipotesi</MudText>
+    <MudGrid Spacing="3" Class="mt-1">
+        <MudItem xs="12" sm="6" md="4">
+            <MudNumericField T="decimal" Class="importo-campo" Label="Flusso netto al mese (€)" Value="_nettoUnico" ValueChanged="CambiaNettoUnico"
+                             Culture="Italiano" Format="N0" HideSpinButtons="true" Immediate="true" DebounceInterval="400"
+                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                             HelperText="@($"Tasso di risparmio: {Percentuale(b.Tasso(_nettoUnico))}")" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudNumericField T="decimal" Class="importo-campo" Label="Investito netto al mese (€)" Value="_investito" ValueChanged="CambiaInvestito"
+                             Culture="Italiano" Format="N0" HideSpinButtons="true" Immediate="true" DebounceInterval="400"
+                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                             HelperText="Versamenti in PAC e fondi, meno le vendite" />
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex flex-column justify-center">
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="Ripristina"
+                       Disabled="@(!IpotesiModificate)">Ripristina i valori della base</MudButton>
+        </MudItem>
+    </MudGrid>
+    @{ var variazioneMensile = _nettoUnico - _investito; }
+    <MudText Typo="Typo.body1" Class="mt-1 importo-blocco">
+        Ogni mese il saldo del conto cambia di
+        @Euro(_nettoUnico, segno: true) − @Euro(_investito) =
+        <b style="color: @(variazioneMensile < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)")">@Euro(variazioneMensile, segno: true)</b>
+        @(_nettoPerMese.Count > 0 ? " (nei mesi non modificati a mano)" : "")
+    </MudText>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+        Le entrate restano quelle medie della base: un flusso netto diverso vuol dire spendere di più o di meno.
+        @if (_nettoUnico > 0 && variazioneMensile < 0)
+        {
+            <span>Stai risparmiando, ma versi negli investimenti più di quanto risparmi: la differenza esce dal conto,
+                anche se il totale dei tuoi soldi (conto più investimenti) cresce.</span>
+        }
+    </MudText>
+</MudPaper>
+
+@* il risultato *@
+@if (_mesi.Count > 0)
+{
+    var ultimo = _mesi[^1];
+    var sottoZero = _mesi.FirstOrDefault(m => m.Saldo < 0);
+    var tassoMedio = b.EntrateMedie > 0 ? _mesi.Sum(m => m.Netto) / (b.EntrateMedie * _mesi.Count) : (decimal?)null;
+
+    <div class="numeri-base mt-4">
+        @Numero($"Saldo a fine {NomeMese(ultimo.Mese)}", Euro(ultimo.Saldo), $"tra {_mesi.Count} mesi")
+        @Numero("Variazione del conto", Euro(ultimo.Saldo - b.SaldoIniziale!.Saldo, segno: true), notaConImporti: true,
+                nota:
+                $"{Euro(_mesi.Sum(m => m.Netto), segno: true)} risparmiati, {Euro(-_mesi.Sum(m => m.Investito), segno: true)} versati negli investimenti",
+                spiegazione: "La variazione del saldo del conto corrente è la somma, mese per mese, del flusso netto (quello che "
+                + "risparmi) meno l'investito (quello che sposti nei PAC e nei fondi). I soldi versati negli "
+                + "investimenti escono dal conto ma restano tuoi.")
+        @Numero("Tasso di risparmio", Percentuale(tassoMedio), "medio dei mesi simulati", SpiegazioneTasso, importo: false)
+        @Numero("Sotto zero", sottoZero is null ? "mai" : NomeMese(sottoZero.Mese),
+                sottoZero is null ? "il saldo resta positivo" : "primo mese con saldo negativo", importo: false)
+    </div>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">Andamento</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            Linea piena: saldo reale degli ultimi 12 mesi. Tratteggiata: saldo simulato a fine mese.
+        </MudText>
+        <Grafico Opzioni="_opzioni" Altezza="340px" />
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">Mese per mese</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            Cambia il flusso netto di un mese per un'entrata o una spesa che sai già (una tredicesima, un'auto, le vacanze).
+            @if (_nettoPerMese.Count > 0)
+            {
+                <span> @_nettoPerMese.Count @(_nettoPerMese.Count == 1 ? "mese modificato" : "mesi modificati") a mano ·
+                    <MudLink OnClick="AnnullaMesi" Typo="Typo.body2">annulla</MudLink></span>
+            }
+        </MudText>
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>Mese</th>
+                    <th style="min-width: 170px;">Flusso netto (€)</th>
+                    <th style="text-align: right;">Tasso</th>
+                    <th style="text-align: right;">Investito (€)</th>
+                    <th style="text-align: right;">Variazione (€)</th>
+                    <th style="text-align: right;">Saldo a fine mese (€)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in _mesi)
+                {
+                    <tr class="@(m.NettoModificato ? "mese-modificato" : null)">
+                        <td>@NomeMese(m.Mese)</td>
+                        <td>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudNumericField T="decimal" Class="importo-campo" Value="m.Netto" ValueChanged="@(v => CambiaNettoMese(m.Mese, v))"
+                                                 Culture="Italiano" Format="N0" HideSpinButtons="true" Immediate="true"
+                                                 DebounceInterval="400" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                @if (m.NettoModificato)
+                                {
+                                    <MudTooltip Text="Torna al valore unico">
+                                        <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Undo))" Size="Size.Small"
+                                                       OnClick="@(() => AnnullaMese(m.Mese))" />
+                                    </MudTooltip>
+                                }
+                            </MudStack>
+                        </td>
+                        <td style="text-align: right;">@Percentuale(b.Tasso(m.Netto))</td>
+                        <td class="importo" style="text-align: right;">@m.Investito.ToString("N0", Italiano)</td>
+                        <td style="text-align: right;">
+                            <MudText Typo="Typo.body2" Class="importo" Color="@(m.Variazione < 0 ? Color.Error : Color.Success)">@m.Variazione.ToString("N0", Italiano)</MudText>
+                        </td>
+                        <td style="text-align: right;">
+                            <MudText Typo="Typo.body2" Class="importo" Color="@(m.Saldo < 0 ? Color.Error : Color.Default)"
+                                     Style="font-weight: 500;">@m.Saldo.ToString("N0", Italiano)</MudText>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+<style>
+    .numeri-base {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .numero-base {
+        padding: 12px;
+        border-radius: 8px;
+        background-color: var(--mud-palette-background);
+    }
+
+    /* i mesi con un flusso netto scelto a mano, diverso dal valore unico */
+    .mese-modificato td {
+        background-color: color-mix(in srgb, var(--mud-palette-primary) 12%, transparent);
+    }
+
+    .mese-modificato td:first-child {
+        box-shadow: inset 4px 0 0 var(--mud-palette-primary);
+        font-weight: 500;
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    [CascadingParameter(Name = "TemaScuro")] public bool TemaScuro { get; set; }
+    [Parameter] public EventCallback TornaIndietro { get; set; }
+
+    private List<PeriodoAnalisi> _periodi = [];
+    private PeriodoAnalisi? _periodo;
+    private int _orizzonte = 12;
+    private IReadOnlyCollection<string> _esclusi = [];
+    private bool _escludiStraordinari = true;     // gli straordinari non si ripeteranno
+    private BaseSimulazione? _base;
+
+    // le ipotesi: valori unici e mesi modificati a mano (chiave: primo giorno del mese)
+    private decimal _nettoUnico;
+    private decimal _investito;
+    private readonly Dictionary<DateOnly, decimal> _nettoPerMese = [];
+
+    private List<MeseSimulato> _mesi = [];
+    private object _opzioni = new();
+    private bool? _temaDelleOpzioni;
+
+    private bool IpotesiModificate => _base is { } b
+        && (_nettoUnico != Math.Round(b.NettoMedio) || _investito != Math.Round(b.InvestitoMedio) || _nettoPerMese.Count > 0);
+
+    // la protezione: con meno di un mese di movimenti non si fanno medie né simulazione
+    private bool PeriodoTroppoCorto => _base is { Mesi: < 1 };
+
+    protected override void OnInitialized()
+    {
+        // con le date scelte a mano in Analisi c'è anche il periodo personalizzato, già selezionato
+        _periodi = Analisi.PeriodiConPersonalizzato();
+        _periodo = Analisi.TrovaPeriodo(Analisi.PeriodoScelto);
+        CaricaBase();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_temaDelleOpzioni != TemaScuro)
+            Ricalcola();
+    }
+
+    // Cambiando periodo o gruppi esclusi cambia la base: le ipotesi ripartono dai suoi valori.
+    private void CaricaBase()
+    {
+        if (_periodo is null) return;
+        _base = Analisi.BaseSimulazione(_periodo, Analisi.ContiScelti, _esclusi, _escludiStraordinari);
+        _nettoUnico = Math.Round(_base.NettoMedio);
+        _investito = Math.Round(_base.InvestitoMedio);
+        _nettoPerMese.Clear();
+        Ricalcola();
+    }
+
+    private void Ricalcola()
+    {
+        _temaDelleOpzioni = TemaScuro;
+        if (_base is not { } b) return;
+        _mesi = AnalisiService.Simula(b, _orizzonte, _nettoUnico, _investito, _nettoPerMese);
+        _opzioni = OpzioniGrafici.Simulazione(b.Storico, b.SaldoIniziale, _mesi,
+                                              ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale));
+    }
+
+    private void CambiaPeriodo(PeriodoAnalisi periodo)
+    {
+        _periodo = periodo;
+        CaricaBase();
+    }
+
+    // il periodo personalizzato si riconosce dalle date
+    private static string? NomePeriodo(PeriodoAnalisi? p) =>
+        p is { Nome: AnalisiService.NomePersonalizzato }
+            ? $"Dal {p.Dal:dd/MM/yyyy} al {p.Al:dd/MM/yyyy}"
+            : p?.Nome;
+
+    private void CambiaOrizzonte(int mesi)
+    {
+        _orizzonte = mesi;
+        Ricalcola();
+    }
+
+    // l'elenco degli straordinari del periodo di base; se se ne cambia qualcuno, la base si ricalcola
+    private async Task ApriStraordinari()
+    {
+        if (_periodo is null) return;
+        var parametri = new DialogParameters<DialogoStraordinari>
+        {
+            { d => d.Periodo, _periodo },
+            { d => d.Conti, Analisi.ContiScelti }
+        };
+        var dialogo = await Dialoghi.ShowAsync<DialogoStraordinari>("Movimenti straordinari", parametri,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true, CloseButton = true });
+        var esito = await dialogo.Result;
+        if (esito is { Canceled: false, Data: true })
+            CaricaBase();
+    }
+
+    private void CambiaEscludiStraordinari(bool escludi)
+    {
+        _escludiStraordinari = escludi;
+        CaricaBase();
+    }
+
+    private void CambiaEsclusi(IReadOnlyCollection<string> gruppi)
+    {
+        _esclusi = gruppi;
+        CaricaBase();
+    }
+
+    private void CambiaNettoUnico(decimal valore)
+    {
+        _nettoUnico = valore;
+        Ricalcola();
+    }
+
+    private void CambiaInvestito(decimal valore)
+    {
+        _investito = valore;
+        Ricalcola();
+    }
+
+    // un mese con lo stesso valore del flusso netto unico non è più "modificato"
+    private void CambiaNettoMese(DateOnly mese, decimal valore)
+    {
+        if (valore == _nettoUnico)
+            _nettoPerMese.Remove(mese);
+        else
+            _nettoPerMese[mese] = valore;
+        Ricalcola();
+    }
+
+    private void AnnullaMese(DateOnly mese)
+    {
+        _nettoPerMese.Remove(mese);
+        Ricalcola();
+    }
+
+    private void AnnullaMesi()
+    {
+        _nettoPerMese.Clear();
+        Ricalcola();
+    }
+
+    private void Ripristina() => CaricaBase();
+
+    private static string NomeMese(DateOnly mese) =>
+        Italiano.TextInfo.ToTitleCase(mese.ToString("MMMM yyyy", Italiano));
+
+    private static string Percentuale(decimal? valore) => valore is { } v ? v.ToString("P1", Italiano) : "–";
+
+    private static string Euro(decimal valore, bool segno = false) =>
+        (segno && valore > 0 ? "+" : "") + valore.ToString("C0", Italiano);
+
+    private const string SpiegazioneTasso =
+        "Il tasso di risparmio è il flusso netto diviso le entrate: la parte delle entrate che non spendi. "
+        + "Non comprende gli investimenti: i soldi versati in PAC e fondi non sono spesi, cambiano solo posto. "
+        + "Per questo il tasso può essere positivo anche se il saldo del conto scende.";
+
+    // Una scheda numerica; con una spiegazione, compare al passaggio del mouse (icona "i").
+    // importo: il valore si nasconde con l'occhio accanto al "?" (non per tasso e mese); notaConImporti: la
+    // nota contiene importi e si sfoca
+    private RenderFragment Numero(string titolo, string valore, string nota, string? spiegazione = null,
+                                  bool importo = true, bool notaConImporti = false) =>
+        @<MudTooltip Text="@spiegazione" Disabled="@(spiegazione is null)" Placement="Placement.Bottom" Arrow="true"
+                     RootStyle="display: block; height: 100%;">
+            <div class="numero-base">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@titolo</MudText>
+                    @if (spiegazione is not null)
+                    {
+                        <MudIcon Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Info))" Size="Size.Small"
+                                 Class="mud-text-secondary" Style="opacity: 0.6; font-size: 1rem;" />
+                    }
+                </MudStack>
+                <MudText Typo="Typo.h6" Class="@(importo ? "importo" : null)">@valore</MudText>
+                <MudText Typo="Typo.caption" Class="@($"mud-text-secondary {(notaConImporti ? "importo-blocco" : null)}")">@nota</MudText>
+            </div>
+        </MudTooltip>;
+}

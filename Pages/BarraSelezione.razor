@@ -1,0 +1,67 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Services
+@inject ImpostazioniService Impostazioni
+
+@* Barra in fondo alla pagina con il riepilogo delle righe selezionate in una griglia.
+   Compare solo se c'è almeno una riga selezionata e resta visibile scorrendo la pagina. *@
+
+@if (Importi.Count > 0)
+{
+    <MudPaper Elevation="8" Class="pa-3 mt-4" Style="position: sticky; bottom: 12px; z-index: 10;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="6" Wrap="Wrap.Wrap">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.CheckBox))" Color="Color.Primary" />
+                <MudText Typo="Typo.subtitle1">
+                    <b>@Importi.Count</b> @(Importi.Count == 1 ? "riga selezionata" : "righe selezionate")
+                </MudText>
+            </MudStack>
+
+            <MudText Typo="Typo.body2">
+                Entrate <span class="importo" style="color: var(--mud-palette-success);">@Formatta(Entrate)</span>
+            </MudText>
+            <MudText Typo="Typo.body2">
+                Uscite <span class="importo" style="color: var(--mud-palette-error);">@Formatta(Uscite)</span>
+            </MudText>
+
+            <MudText Typo="Typo.h6">
+                Somma <span class="importo" style="color: @(Somma < 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)");">@Formatta(Somma) €</span>
+            </MudText>
+
+            <MudSpacer />
+
+            @if (OnStraordinari.HasDelegate)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning"
+                           StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Flag))"
+                           OnClick="() => OnStraordinari.InvokeAsync(true)">Segna come straordinari</MudButton>
+                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="() => OnStraordinari.InvokeAsync(false)">
+                    Non straordinari
+                </MudButton>
+            }
+
+            <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                       StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Clear))" OnClick="Deseleziona">Deseleziona tutto</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    /// <summary>Importi con segno delle righe selezionate.</summary>
+    [Parameter] public IReadOnlyCollection<decimal> Importi { get; set; } = Array.Empty<decimal>();
+
+    [Parameter] public EventCallback OnDeseleziona { get; set; }
+
+    /// <summary>Se presente, la barra offre di segnare le righe selezionate come straordinarie (true) o no (false).</summary>
+    [Parameter] public EventCallback<bool> OnStraordinari { get; set; }
+
+    private decimal Entrate => Importi.Where(i => i > 0).Sum();
+    private decimal Uscite => Importi.Where(i => i < 0).Sum();
+    private decimal Somma => Importi.Sum();
+
+    private static string Formatta(decimal importo) => importo.ToString("N2", Italiano);
+
+    private Task Deseleziona() => OnDeseleziona.InvokeAsync();
+}

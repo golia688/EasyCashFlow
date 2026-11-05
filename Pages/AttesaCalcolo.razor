@@ -1,0 +1,23 @@
+@using MudBlazor
+
+@* Barra di caricamento con una scritta sotto, come quella della schermata di avvio: si mostra al posto di
+   un modulo mentre si lavora con la password (Argon2 dura circa mezzo secondo per ogni passaggio).
+   La usano PaginaAccesso e PaginaSicurezza. *@
+
+<div class="attesa-calcolo">
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Rounded="true" Style="width: 160px" />
+    <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">@Testo</MudText>
+</div>
+
+<style>
+    .attesa-calcolo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 0 32px;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired] public string Testo { get; set; } = "";
+}

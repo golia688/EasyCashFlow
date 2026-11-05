@@ -1,0 +1,818 @@
+﻿@using MudBlazor
+@using EasyCashFlow.Pages
+@inject ISnackbar Snackbar
+@inject IDialogService Dialoghi
+@inject ChiusuraService Chiusura
+@inject ManualeService Manuale
+@inject AvvioService Avvio
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject ImportazioneService Importazione
+@inject LogService Log
+@inject ImpostazioniService Impostazioni
+@inject AccessoService Accesso
+@inject PreferenzeService Preferenze
+@inject BloccoService Blocco
+@inject NotificheService Notifiche
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+@* Il cambio di tema di Windows lo seguiamo noi (WatchSystemDarkModeAsync) solo se l'utente
+   ha scelto "Come Windows": per questo l'osservazione automatica di MudBlazor è spenta. *@
+<MudThemeProvider @ref="_temaProvider" Theme="Tema" IsDarkMode="TemaScuro" ObserveSystemDarkModeChange="false" />
+@* Da bloccato quello che c'è sotto la pagina di accesso, dialoghi e menu aperti compresi, resta com'era
+   ma inerte: niente clic, tasti o Tab *@
+<div style="display: contents" inert="@Bloccato" class="@ClasseImporti">
+    <MudPopoverProvider />
+    <MudDialogProvider />
+</div>
+<MudSnackbarProvider />
+
+@* Lo stile Classico è quello di MudBlazor: gli altri lo correggono per tutti i pulsanti con testo
+   (i pulsanti a sola icona restano tondi). Le anteprime della pagina Aspetto ne sono escluse. *@
+@if (Impostazioni.StilePulsanti != StilePulsanti.Classico)
+{
+    <style>
+        .mud-button-root:not(.mud-icon-button):not(.anteprima-pulsante) {
+            text-transform: none;
+            letter-spacing: normal;
+            border-radius: @(Impostazioni.StilePulsanti == StilePulsanti.Arrotondato ? "999px" : "8px");
+        }
+
+        .mud-button-filled:not(.anteprima-pulsante),
+        .mud-button-filled:not(.anteprima-pulsante):hover,
+        .mud-button-filled:not(.anteprima-pulsante):active {
+            box-shadow: none !important;
+        }
+    </style>
+}
+
+@* Finché il database non è aperto (password da creare o da inserire) si vede solo la pagina di accesso *@
+@if (!Accesso.Aperto && !_giaAperto)
+{
+    <PaginaAccesso />
+    return;
+}
+
+@* Bloccato (per inattività o con "Blocca adesso"): la pagina di accesso copre tutto, e sbloccando si
+   ritrova la pagina com'era *@
+@if (Bloccato)
+{
+    <div class="schermo-blocco">
+        <PaginaAccesso />
+    </div>
+}
+
+<div style="display: contents" inert="@Bloccato" class="@ClasseImporti">
+<MudLayout>
+    <MudDrawer @bind-Open="_drawerAperto" Variant="DrawerVariant.Mini" Elevation="2">
+        @* Il drawer allarga i figli a tutta la sua larghezza: da aperto il pulsante diventerebbe
+           ovale. Allineato a sinistra resta tondo e fermo sopra le icone del menu. *@
+        <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Menu))" Class="ma-1"
+                       Style="align-self: flex-start;"
+                       OnClick="@(() => _drawerAperto = !_drawerAperto)" />
+        <MudNavMenu>
+            <MudNavLink Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Home))" Style="@StileAttivo(Sezione.Home)"
+                        OnClick="@(() => Vai(Sezione.Home))">Home</MudNavLink>
+            <MudNavLink Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.SwapHoriz))" Style="@StileAttivo(Sezione.Movimenti)"
+                        OnClick="@(() => Vai(Sezione.Movimenti))">Movimenti</MudNavLink>
+            <MudNavLink Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.BarChart))" Style="@StileAttivo(Sezione.Analisi)"
+                        OnClick="@(() => Vai(Sezione.Analisi))">Analisi</MudNavLink>
+            <MudNavLink Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Settings))" Style="@StileAttivo(Sezione.Impostazioni)"
+                        OnClick="@(() => Vai(Sezione.Impostazioni))">Impostazioni</MudNavLink>
+            <MudNavLink Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ExitToApp))"
+                        OnClick="Esci">Esci</MudNavLink>
+        </MudNavMenu>
+        @* Blocca in fondo alla barra, lontano dalle pagine (suggerimento del tester, 05/11): come "Blocca
+           adesso" di Impostazioni > Sicurezza, ma da qualunque pagina *@
+        <div style="flex: 1 1 auto;"></div>
+        <MudNavMenu Class="mb-2">
+            <MudNavLink Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Lock))"
+                        OnClick="@(() => Accesso.Blocca("voce Blocca"))">Blocca</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    @* Niente titolo nella barra: il nome della pagina è già il titolo in cima alla pagina stessa *@
+    <MudAppBar Dense="true" Elevation="1">
+        @foreach (var (titolo, voci) in MenuCorrente)
+        {
+            <MudMenu Label="@titolo" Color="Color.Inherit" Variant="Variant.Text">
+                @foreach (var voce in voci)
+                {
+                    <MudMenuItem OnClick="@(() => EseguiVoce(voce))">@voce</MudMenuItem>
+                }
+            </MudMenu>
+        }
+
+        <MudSpacer />
+
+        @if (Log.Livello != LivelloLog.Normale)
+        {
+            <MudText Typo="Typo.button" Class="mr-3"
+                     Color="@(Log.Livello == LivelloLog.Debug ? Color.Error : Color.Warning)">
+                LOG: @Log.Livello.ToString().ToUpperInvariant()
+            </MudText>
+        }
+
+        @* Log, notifiche e aiuto come icone con il suggerimento (suggerimento del tester, 05/11) *@
+        <MudTooltip Text="Log">
+        <MudMenu Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Article))" Color="Color.Inherit" aria-label="Log"
+                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudMenuItem Icon="@IconaLivello(LivelloLog.Normale)"
+                         OnClick="@(() => ImpostaLivello(LivelloLog.Normale))">Normale (solo scarti ed errori)</MudMenuItem>
+            <MudMenuItem Icon="@IconaLivello(LivelloLog.Trace)"
+                         OnClick="@(() => ImpostaLivello(LivelloLog.Trace))">Trace importazione</MudMenuItem>
+            <MudMenuItem Icon="@IconaLivello(LivelloLog.Debug)"
+                         OnClick="@(() => ImpostaLivello(LivelloLog.Debug))">Trace-debug (dettagliato)</MudMenuItem>
+            <MudDivider />
+            <MudMenuItem OnClick="@(() => Log.ApriFileCorrente())">Apri il file di log di oggi</MudMenuItem>
+            <MudMenuItem OnClick="@(() => Log.ApriCartella())">Apri la cartella dei log</MudMenuItem>
+        </MudMenu>
+        </MudTooltip>
+
+        <CampanellaNotifiche Esegui="EseguiNotifica" />
+
+        <MudTooltip Text="Aiuto">
+        <MudMenu Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.HelpOutline))" Color="Color.Inherit" aria-label="Aiuto"
+                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudMenuItem OnClick="@(() => ApriManuale(null))">Manuale</MudMenuItem>
+            <MudMenuItem OnClick="ApriInformazioni">Informazioni su EasyCashFlow</MudMenuItem>
+        </MudMenu>
+        </MudTooltip>
+    </MudAppBar>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="mt-6">
+            @switch (_sezione)
+            {
+                case Sezione.Home:
+                    <CascadingValue Name="TemaScuro" Value="TemaScuro">
+                        <PaginaHome @ref="_home" ApriConti="@(() => Vai(Sezione.Impostazioni))"
+                                    ApriGruppi="@(() => Vai(Sezione.GruppiCausali))"
+                                    ApriAnalisi="@(() => Vai(Sezione.Analisi))"
+                                    ApriMovimenti="@(() => Vai(Sezione.Movimenti))"
+                                    ApriScarti="@(() => Vai(Sezione.Scarti))" />
+                    </CascadingValue>
+                    break;
+                case Sezione.Movimenti:
+                    <PaginaMovimenti ApriScarti="@(() => Vai(Sezione.Scarti))" />
+                    break;
+                case Sezione.Scarti:
+                    <PaginaScarti TornaIndietro="@(() => Vai(Sezione.Movimenti))" />
+                    break;
+                case Sezione.Analisi:
+                    <CascadingValue Name="TemaScuro" Value="TemaScuro">
+                        <PaginaAnalisi ApriDettaglio="@(i => ApriDettaglio(i, null, null, Sezione.Analisi))"
+                                       ApriDettaglioGruppo="@(d => ApriDettaglio(d.Indicatore, d.Gruppo, null, Sezione.Analisi))"
+                                       ApriDettaglioMese="@(d => ApriDettaglio(d.Indicatore, null, null, Sezione.Analisi, d.Mese, d.Ricorrenti))"
+                                       ApriSimulazione="@(() => Vai(Sezione.Simulazione))" />
+                    </CascadingValue>
+                    break;
+                case Sezione.DettaglioAnalisi:
+                    <PaginaDettaglioIndicatore Indicatore="_indicatoreDettaglio" Gruppo="@_gruppoDettaglio"
+                                               Periodo="@_periodoDettaglio" Mese="@_meseDettaglio" Ricorrenti="@_ricorrentiDettaglio"
+                                               TestoRitorno="@(_ritornoDettaglio == Sezione.GruppiCausali ? "Torna ai gruppi di causali" : "Torna all'analisi")"
+                                               TornaIndietro="@(() => Vai(_ritornoDettaglio))" />
+                    break;
+                case Sezione.Impostazioni:
+                    @if (_ritornoConti is { } daDoveConti)
+                    {
+                        <PaginaImpostazioni TornaIndietro="@(() => Vai(daDoveConti))" TestoRitorno="@TestoRitorno(daDoveConti)" />
+                    }
+                    else
+                    {
+                        <PaginaImpostazioni />
+                    }
+                    break;
+                case Sezione.Aspetto:
+                    <CascadingValue Name="TemaScuro" Value="TemaScuro">
+                        <PaginaAspetto />
+                    </CascadingValue>
+                    break;
+                case Sezione.Generali:
+                    <PaginaGenerali />
+                    break;
+                case Sezione.Sicurezza:
+                    <PaginaSicurezza />
+                    break;
+                case Sezione.PercorsoDati:
+                    <PaginaPercorsoDati />
+                    break;
+                case Sezione.Backup:
+                    <PaginaBackup />
+                    break;
+                case Sezione.Simulazione:
+                    <CascadingValue Name="TemaScuro" Value="TemaScuro">
+                        <PaginaSimulazione TornaIndietro="@(() => Vai(Sezione.Analisi))" />
+                    </CascadingValue>
+                    break;
+                case Sezione.GraficoPersonalizzato:
+                    <CascadingValue Name="TemaScuro" Value="TemaScuro">
+                        <PaginaGraficoPersonalizzato TornaIndietro="@(() => Vai(Sezione.Analisi))" />
+                    </CascadingValue>
+                    break;
+                case Sezione.Manuale:
+                    <PaginaManuale Capitolo="@_capitoloManuale" ApriPagina="ApriPaginaDalManuale"
+                                   TornaIndietro="@(() => Vai(_primaDelManuale))" />
+                    break;
+                case Sezione.GruppiCausali:
+                    @* da qui il dettaglio si apre su tutto il periodo: il totale della riga è su tutti i movimenti *@
+                    @* aperta dalla Home o da Movimenti (menu Dati), la pagina ha la freccia per tornarci *@
+                    @if (_ritornoGruppi is { } daDoveGruppi)
+                    {
+                        <PaginaGruppiCausali ApriDettaglio="@(d => ApriDettaglio(d.Indicatore, d.Gruppo, "Tutto", Sezione.GruppiCausali))"
+                                             TornaIndietro="@(() => Vai(daDoveGruppi))" TestoRitorno="@TestoRitorno(daDoveGruppi)" />
+                    }
+                    else
+                    {
+                        <PaginaGruppiCausali ApriDettaglio="@(d => ApriDettaglio(d.Indicatore, d.Gruppo, "Tutto", Sezione.GruppiCausali))" />
+                    }
+                    break;
+            }
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+</div>
+
+<style>
+    /* Importi nascosti (l'occhio accanto al "?", Ctrl+H): ogni elemento con la classe "importo" diventa
+       •••••• nello stesso posto e con lo stesso allineamento; i campi in cui si scrive un importo si
+       sfocano. Il testo resta nella pagina ma trasparente, così la larghezza delle colonne non cambia. */
+    .importi-nascosti .importo {
+        position: relative;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .importi-nascosti .importo::after {
+        content: "••••••";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        text-align: inherit;
+        white-space: nowrap;
+        overflow: hidden;
+        letter-spacing: 0.1em;
+        -webkit-text-fill-color: var(--mud-palette-text-secondary);
+    }
+
+    .importi-nascosti .importo-campo input {
+        filter: blur(6px);
+    }
+
+    /* un blocco di testo con importi in mezzo alle parole (le spiegazioni delle schede, i calcoli): sfocato */
+    .importi-nascosti .importo-blocco {
+        filter: blur(5px);
+    }
+
+    .mud-drawer-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .schermo-blocco {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;      /* sopra barra, dialoghi (1400) e notifiche (1500) */
+        overflow: auto;
+        background-color: var(--mud-palette-background);
+    }
+</style>
+
+@code {
+    // Scarti, Generali, Aspetto, Sicurezza, GruppiCausali, PercorsoDati, Backup, DettaglioAnalisi, Simulazione e
+    // GraficoPersonalizzato non hanno un'icona propria: sono sotto-pagine di Movimenti, Impostazioni e Analisi.
+    private enum Sezione { Home, Movimenti, Scarti, Analisi, Impostazioni, Generali, Aspetto, Sicurezza, GruppiCausali, DettaglioAnalisi, Manuale, Simulazione, GraficoPersonalizzato, PercorsoDati, Backup }
+
+    private Sezione _sezione = Sezione.Home;
+
+    // vero dalla prima apertura del database: da lì in poi una pagina di accesso è un blocco
+    private bool _giaAperto;
+    private bool Bloccato => _giaAperto && !Accesso.Aperto;
+    private DotNetObjectReference<BloccoService>? _riferimentoBlocco;
+
+    // cosa mostra la pagina di dettaglio di un indicatore, e dove riporta la freccia indietro
+    private Indicatore _indicatoreDettaglio;
+    private string? _gruppoDettaglio;
+    private string? _periodoDettaglio;      // null = il periodo scelto nella pagina Analisi
+    private PeriodoAnalisi? _meseDettaglio;  // un solo mese, da una colonna dei grafici per mese
+    private bool? _ricorrentiDettaglio;     // solo uscite ricorrenti (true) o variabili (false)
+    private Sezione _ritornoDettaglio = Sezione.Analisi;
+
+    // il manuale: capitolo da aprire e pagina a cui riporta la freccia indietro
+    private string? _capitoloManuale;
+    private Sezione _primaDelManuale = Sezione.Home;
+
+    private void ApriManuale(string? capitolo)
+    {
+        if (_sezione != Sezione.Manuale)
+            _primaDelManuale = _sezione;
+        _capitoloManuale = capitolo;
+        Vai(Sezione.Manuale);
+    }
+
+    // l'icona "?" di una pagina passa da ManualeService, che non conosce la navigazione
+    private void OnManualeRichiesto(string? capitolo) => _ = InvokeAsync(() =>
+    {
+        ApriManuale(capitolo);
+        StateHasChanged();
+    });
+
+    // i collegamenti "app:pagina" del testo del manuale
+    private void ApriPaginaDalManuale(string pagina) => Vai(pagina switch
+    {
+        "home" => Sezione.Home,
+        "movimenti" => Sezione.Movimenti,
+        "scarti" => Sezione.Scarti,
+        "analisi" => Sezione.Analisi,
+        "impostazioni" => Sezione.Impostazioni,
+        "generali" => Sezione.Generali,
+        "aspetto" => Sezione.Aspetto,
+        "sicurezza" => Sezione.Sicurezza,
+        "backup" => Sezione.Backup,
+        "percorso" => Sezione.PercorsoDati,
+        "gruppi" => Sezione.GruppiCausali,
+        "grafico" => Sezione.GraficoPersonalizzato,
+        _ => _sezione
+    });
+
+    private void ApriDettaglio(Indicatore indicatore, string? gruppo, string? periodo, Sezione ritorno,
+                               PeriodoAnalisi? mese = null, bool? ricorrenti = null)
+    {
+        _meseDettaglio = mese;
+        _ricorrentiDettaglio = ricorrenti;
+        _indicatoreDettaglio = indicatore;
+        _gruppoDettaglio = gruppo;
+        _periodoDettaglio = periodo;
+        _ritornoDettaglio = ritorno;
+        Vai(Sezione.DettaglioAnalisi);
+    }
+    private bool _drawerAperto = false;
+
+    private MudThemeProvider? _temaProvider;
+
+    // per le voci del menu Dashboard, che agiscono sulla Home
+    private PaginaHome? _home;
+    private bool _windowsScuro = true;      // tema di Windows, letto all'avvio e poi osservato
+
+    // Il tema si ricrea solo quando cambia il colore: MudBlazor rigenera gli stili
+    // ogni volta che riceve un'istanza diversa.
+    private MudTheme? _tema;
+    private ColoreTema? _coloreDelTema;
+
+    private MudTheme Tema
+    {
+        get
+        {
+            var colore = Impostazioni.ColorePrincipale;
+            if (_tema is null || colore != _coloreDelTema)
+            {
+                _tema = new MudTheme
+                {
+                    PaletteLight = new PaletteLight
+                    {
+                        Primary = colore.Chiaro,
+                        PrimaryContrastText = ColoreTema.TestoSu(colore.Chiaro),
+                        AppbarBackground = colore.Chiaro,
+                        AppbarText = ColoreTema.TestoSu(colore.Chiaro),
+                        // fondo avorio invece del bianco puro, che stanca la vista
+                        Background = "#EFEEE9",
+                        Surface = "#F7F6F2",
+                        DrawerBackground = "#EFEEE9",
+                        TableStriped = "rgba(0,0,0,0.02)",
+                        TableHover = "rgba(0,0,0,0.05)",
+                        Secondary = ColoreTema.Secondario.Chiaro,
+                        SecondaryContrastText = ColoreTema.TestoSu(ColoreTema.Secondario.Chiaro),
+                        Success = ColoreTema.Entrate.Chiaro,
+                        SuccessContrastText = ColoreTema.TestoSu(ColoreTema.Entrate.Chiaro),
+                        Error = ColoreTema.Uscite.Chiaro,
+                        ErrorContrastText = ColoreTema.TestoSu(ColoreTema.Uscite.Chiaro),
+                        Warning = ColoreTema.Avviso.Chiaro,
+                        WarningContrastText = ColoreTema.TestoSu(ColoreTema.Avviso.Chiaro),
+                        Info = ColoreTema.Informazione.Chiaro,
+                        InfoContrastText = ColoreTema.TestoSu(ColoreTema.Informazione.Chiaro)
+                    },
+                    PaletteDark = new PaletteDark
+                    {
+                        Primary = colore.Scuro,
+                        PrimaryContrastText = ColoreTema.TestoSu(colore.Scuro),
+                        // righe alternate appena accennate (il predefinito di MudBlazor è molto marcato);
+                        // il passaggio del mouse resta più evidente dell'alternanza
+                        TableStriped = "rgba(255,255,255,0.04)",
+                        TableHover = "rgba(255,255,255,0.08)",
+                        Secondary = ColoreTema.Secondario.Scuro,
+                        SecondaryContrastText = ColoreTema.TestoSu(ColoreTema.Secondario.Scuro),
+                        Success = ColoreTema.Entrate.Scuro,
+                        SuccessContrastText = ColoreTema.TestoSu(ColoreTema.Entrate.Scuro),
+                        Error = ColoreTema.Uscite.Scuro,
+                        ErrorContrastText = ColoreTema.TestoSu(ColoreTema.Uscite.Scuro),
+                        Warning = ColoreTema.Avviso.Scuro,
+                        WarningContrastText = ColoreTema.TestoSu(ColoreTema.Avviso.Scuro),
+                        Info = ColoreTema.Informazione.Scuro,
+                        InfoContrastText = ColoreTema.TestoSu(ColoreTema.Informazione.Scuro)
+                    }
+                };
+                _coloreDelTema = colore;
+            }
+            return _tema;
+        }
+    }
+
+    private bool TemaScuro => Impostazioni.Tema switch
+    {
+        ModoTema.Chiaro => false,
+        ModoTema.Sistema => _windowsScuro,
+        _ => true
+    };
+
+    // La sezione della barra laterale da evidenziare per ogni sotto-pagina. Il dettaglio di un indicatore
+    // appartiene alla sezione da cui è stato aperto (Analisi, oppure Impostazioni dai gruppi di causali).
+    private Sezione SezionePadre(Sezione sezione) => sezione switch
+    {
+        Sezione.Scarti => Sezione.Movimenti,
+        Sezione.Generali => Sezione.Impostazioni,
+        Sezione.Aspetto => Sezione.Impostazioni,
+        Sezione.Sicurezza => Sezione.Impostazioni,
+        Sezione.PercorsoDati => Sezione.Impostazioni,
+        Sezione.Backup => Sezione.Impostazioni,
+        Sezione.GruppiCausali => _gruppiDaMovimenti ? Sezione.Movimenti : Sezione.Impostazioni,
+        Sezione.DettaglioAnalisi => SezionePadre(_ritornoDettaglio),
+        Sezione.Simulazione => Sezione.Analisi,
+        Sezione.GraficoPersonalizzato => Sezione.Analisi,
+        _ => sezione
+    };
+
+    // Menu comune alle pagine di Impostazioni. Deve stare prima di MenuPerSezione, che lo usa:
+    // i campi statici si inizializzano nell'ordine in cui sono scritti.
+    private static readonly (string Titolo, string[] Voci)[] MenuImpostazioni =
+    {
+        ("Preferenze", new[] { "Generali", "Aspetto", "Sicurezza" }),
+        ("Dati", new[] { "Conti correnti", "Gruppi di causali", "Percorso dati", "Backup" })
+    };
+
+    private static readonly (string Titolo, string[] Voci)[] MenuAnalisi =
+    {
+        ("Grafici", new[] { "Grafico personalizzato" }),
+        ("Simulazione", new[] { "Simula il saldo futuro" }),
+        ("Report", new[] { "Genera report Excel" })
+    };
+
+    // Voci dei menu in alto per ogni sezione: per aggiungerne basta una riga qui.
+    private static readonly Dictionary<Sezione, (string Titolo, string[] Voci)[]> MenuPerSezione = new()
+    {
+        [Sezione.Home] = new[]
+        {
+            ("Dashboard", new[] { "Aggiorna", "Scegli periodo" })
+        },
+        [Sezione.Movimenti] = new[]
+        {
+            // niente modifica a mano dei movimenti: arrivano solo dai file CBI della banca
+            // Gruppi di causali: scorciatoia alla pagina di Impostazioni, per capire dove finisce un movimento
+            ("Dati", new[] { "Importa file CBI", "Movimenti scartati", "Gruppi di causali" })
+        },
+        [Sezione.Scarti] = new[]
+        {
+            ("Dati", new[] { "Importa file CBI", "Torna ai movimenti" })
+        },
+        [Sezione.Analisi] = MenuAnalisi,
+        [Sezione.DettaglioAnalisi] = MenuAnalisi,
+        [Sezione.Simulazione] = MenuAnalisi,
+        [Sezione.GraficoPersonalizzato] = MenuAnalisi,
+        [Sezione.Impostazioni] = MenuImpostazioni,
+        [Sezione.Generali] = MenuImpostazioni,
+        [Sezione.Aspetto] = MenuImpostazioni,
+        [Sezione.Sicurezza] = MenuImpostazioni,
+        [Sezione.PercorsoDati] = MenuImpostazioni,
+        [Sezione.Backup] = MenuImpostazioni,
+        [Sezione.GruppiCausali] = MenuImpostazioni,
+        [Sezione.Manuale] = []
+    };
+
+    private void Vai(Sezione sezione)
+    {
+        Log.Debug($"Navigazione: {_sezione} -> {sezione}");
+        // Gruppi di causali e conti ricordano da dove ci si è arrivati (Home, o Movimenti per i gruppi), per
+        // la freccia; tornando dal dettaglio di un gruppo o con la freccia del manuale si resta nella stessa
+        // situazione
+        var ritorno = _sezione == Sezione.DettaglioAnalisi || (_sezione == Sezione.Manuale && sezione == _primaDelManuale);
+        if (sezione == Sezione.GruppiCausali && !ritorno)
+            _ritornoGruppi = _sezione is Sezione.Movimenti or Sezione.Home ? _sezione : null;
+        if (sezione == Sezione.Impostazioni && !ritorno)
+            _ritornoConti = _sezione == Sezione.Home ? _sezione : null;
+        _sezione = sezione;
+        Notifiche.Aggiorna();
+    }
+
+    private Sezione? _ritornoGruppi;
+    private Sezione? _ritornoConti;
+
+    // Gruppi di causali aperti dal menu Dati di Movimenti: Movimenti evidenziato nella barra laterale e il
+    // suo menu in alto (dalla Home restano quelli di Impostazioni, perché il menu Dashboard agisce sulla Home)
+    private bool _gruppiDaMovimenti => _ritornoGruppi == Sezione.Movimenti;
+
+    private static string TestoRitorno(Sezione sezione) => sezione switch
+    {
+        Sezione.Home => "Torna alla Home",
+        Sezione.Movimenti => "Torna ai movimenti",
+        _ => "Torna indietro"
+    };
+
+    private (string Titolo, string[] Voci)[] MenuCorrente =>
+        _sezione == Sezione.GruppiCausali && _gruppiDaMovimenti
+            ? MenuPerSezione[Sezione.Movimenti]
+            : MenuPerSezione[_sezione];
+
+    private string? StileAttivo(Sezione sezione) =>
+        SezionePadre(_sezione) == sezione
+            ? "background-color: var(--mud-palette-action-default-hover); border-left: 3px solid var(--mud-palette-primary);"
+            : null;
+
+    private void Segnaposto(string voce)
+    {
+        Snackbar.Add($"\"{voce}\": funzione non ancora implementata", Severity.Info);
+    }
+
+    private Task ApriInformazioni() =>
+        Dialoghi.ShowAsync<DialogoInformazioni>("Informazioni su EasyCashFlow",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true, CloseButton = true });
+    // Conferma dell'uscita, per la voce Esci e per la X della finestra (che passa da ChiusuraService).
+    // Se la finestra di conferma è già aperta, un secondo clic sulla X non ne apre un'altra.
+    private bool _confermaAperta;
+
+    private Task Esci() => ConfermaUscita("voce Esci");
+
+    private Task OnChiusuraRichiesta() => InvokeAsync(() => ConfermaUscita("X della finestra"));
+
+    private async Task ConfermaUscita(string origine)
+    {
+        // da bloccato la conferma resterebbe sotto la pagina di accesso: si chiude e basta
+        if (Bloccato)
+        {
+            Log.Info($"Applicazione chiusa dall'utente da bloccata ({origine})");
+            Chiusura.Chiudi();
+            return;
+        }
+        if (_confermaAperta) return;
+        _confermaAperta = true;
+        try
+        {
+            var conferma = await Dialoghi.ShowMessageBoxAsync(
+                "Uscire da EasyCashFlow?",
+                "L'applicazione verrà chiusa. I dati sono già salvati.",
+                yesText: "Esci", cancelText: "Annulla");
+
+            if (conferma != true)
+            {
+                Log.Debug($"Uscita annullata dall'utente ({origine})");
+                return;
+            }
+        }
+        finally
+        {
+            _confermaAperta = false;
+        }
+
+        Log.Info($"Applicazione chiusa dall'utente ({origine})");
+        Chiusura.Chiudi();
+    }
+
+    protected override void OnInitialized()
+    {
+        Impostazioni.Cambiate += OnImpostazioniCambiate;
+        Chiusura.ConfermaRichiesta += OnChiusuraRichiesta;
+        Manuale.AperturaRichiesta += OnManualeRichiesto;
+        Accesso.Cambiato += OnAccessoCambiato;
+        Blocco.BloccoRichiesto += OnBloccoRichiesto;
+    }
+
+    // alla prima apertura del database si va alla pagina iniziale scelta in Generali
+    private void OnAccessoCambiato() => _ = InvokeAsync(() =>
+    {
+        if (Accesso.Aperto && !_giaAperto)
+        {
+            _giaAperto = true;
+            _sezione = Preferenze.PaginaIniziale switch
+            {
+                PaginaIniziale.Movimenti => Sezione.Movimenti,
+                PaginaIniziale.Analisi => Sezione.Analisi,
+                _ => Sezione.Home
+            };
+            Log.Debug($"Pagina iniziale: {_sezione}");
+            Preferenze.ImportiNascostiCambiati += OnImportiNascostiCambiati;
+            if (Preferenze.ImportiNascosti)
+                _ = ApplicaImportiNascostiAiGrafici();
+        }
+        StateHasChanged();
+    });
+
+    // importi nascosti: la classe sulla pagina (e sui dialoghi), i grafici e la scorciatoia Ctrl+H. Lo stato si
+    // legge solo a database aperto, perché sta nelle preferenze cifrate
+    private string? ClasseImporti => _giaAperto && Preferenze.ImportiNascosti ? "importi-nascosti" : null;
+    private DotNetObjectReference<Main>? _riferimentoMain;
+
+    private void OnImportiNascostiCambiati() => _ = InvokeAsync(async () =>
+    {
+        StateHasChanged();
+        await ApplicaImportiNascostiAiGrafici();
+    });
+
+    private async Task ApplicaImportiNascostiAiGrafici()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("grafici.impostaNascosti", Preferenze.ImportiNascosti);
+        }
+        catch (Exception ex)
+        {
+            Log.EccezioneGestita("importi nascosti nei grafici", ex);
+        }
+    }
+
+    /// <summary>Ctrl+H (wwwroot/js/attivita.js): come l'occhio accanto al "?".</summary>
+    [JSInvokable]
+    public void CommutaImporti()
+    {
+        if (!Accesso.Aperto) return;
+        Preferenze.ImpostaImportiNascosti(!Preferenze.ImportiNascosti);
+    }
+
+    // nel thread dell'interfaccia, così il database non si chiude a metà di un suo aggiornamento
+    private void OnBloccoRichiesto() => _ = InvokeAsync(() => Accesso.Blocca("inattività"));
+
+    protected override async Task OnAfterRenderAsync(bool primoRender)
+    {
+        if (!primoRender) return;
+        // la finestra WPF può togliere la schermata di avvio e mostrare l'interfaccia
+        Avvio.SegnalaPronta();
+
+        // l'attività nella finestra (mouse, tasti) azzera il conto del blocco per inattività
+        try
+        {
+            _riferimentoBlocco = DotNetObjectReference.Create(Blocco);
+            await JS.InvokeVoidAsync("attivita.osserva", _riferimentoBlocco);
+            _riferimentoMain = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("attivita.scorciatoiaImporti", _riferimentoMain);
+        }
+        catch (Exception ex)
+        {
+            Log.EccezioneGestita("osservazione dell'attività per il blocco", ex);
+        }
+
+        if (_temaProvider is null) return;
+
+        // il tema di Windows si può leggere solo dalla pagina, quindi dopo il primo disegno
+        try
+        {
+            _windowsScuro = await _temaProvider.GetSystemDarkModeAsync();
+            await _temaProvider.WatchSystemDarkModeAsync(OnTemaWindowsCambiato);
+            Log.Debug($"Tema di Windows: {(_windowsScuro ? "scuro" : "chiaro")}");
+        }
+        catch (Exception ex)
+        {
+            Log.EccezioneGestita("lettura del tema di Windows", ex);
+        }
+
+        if (Impostazioni.Tema == ModoTema.Sistema)
+            StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Impostazioni.Cambiate -= OnImpostazioniCambiate;
+        Chiusura.ConfermaRichiesta -= OnChiusuraRichiesta;
+        Manuale.AperturaRichiesta -= OnManualeRichiesto;
+        Accesso.Cambiato -= OnAccessoCambiato;
+        Blocco.BloccoRichiesto -= OnBloccoRichiesto;
+        _riferimentoBlocco?.Dispose();
+        Preferenze.ImportiNascostiCambiati -= OnImportiNascostiCambiati;
+        _riferimentoMain?.Dispose();
+    }
+
+    private void OnImpostazioniCambiate() => _ = InvokeAsync(StateHasChanged);
+
+    private Task OnTemaWindowsCambiato(bool scuro)
+    {
+        _windowsScuro = scuro;
+        Log.Debug($"Tema di Windows cambiato: {(scuro ? "scuro" : "chiaro")}");
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task EseguiVoce(string voce)
+    {
+        Log.Debug($"Voce di menu selezionata: {voce} (sezione {_sezione})");
+
+        switch (voce)
+        {
+            case "Aggiorna":
+                _home?.Aggiorna();
+                break;
+            case "Scegli periodo":
+                if (_home is not null) await _home.ScegliPeriodoAsync();
+                break;
+            case "Importa file CBI":
+                await ImportaAsync();
+                break;
+            case "Movimenti scartati":
+                Vai(Sezione.Scarti);
+                break;
+            case "Torna ai movimenti":
+                Vai(Sezione.Movimenti);
+                break;
+            case "Generali":
+                Vai(Sezione.Generali);
+                break;
+            case "Aspetto":
+                Vai(Sezione.Aspetto);
+                break;
+            case "Sicurezza":
+                Vai(Sezione.Sicurezza);
+                break;
+            case "Conti correnti":
+                Vai(Sezione.Impostazioni);
+                break;
+            case "Percorso dati":
+                Vai(Sezione.PercorsoDati);
+                break;
+            case "Backup":
+                Vai(Sezione.Backup);
+                break;
+            case "Gruppi di causali":
+                Vai(Sezione.GruppiCausali);
+                break;
+            case "Genera report Excel":
+                await Dialoghi.ShowAsync<DialogoReport>("Report Excel",
+                    new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true, CloseButton = true });
+                break;
+            case "Grafico personalizzato":
+                Vai(Sezione.GraficoPersonalizzato);
+                break;
+            case "Simula il saldo futuro":
+                Vai(Sezione.Simulazione);
+                break;
+            default:
+                Segnaposto(voce);   // le altre voci restano segnaposto
+                break;
+        }
+    }
+
+    private string IconaLivello(LivelloLog livello) =>
+        Log.Livello == livello
+            ? Impostazioni.Icona(nameof(Icons.Material.Filled.RadioButtonChecked))
+            : Impostazioni.Icona(nameof(Icons.Material.Filled.RadioButtonUnchecked));
+
+    private void ImpostaLivello(LivelloLog livello)
+    {
+        Log.Livello = livello;
+
+        switch (livello)
+        {
+            case LivelloLog.Normale:
+                Snackbar.Add("Log in modalità normale: vengono registrati solo record scartati ed errori.", Severity.Info);
+                break;
+            case LivelloLog.Trace:
+                Snackbar.Add("Trace attivo: durante l'importazione viene registrato tutto il flusso.", Severity.Info);
+                break;
+            case LivelloLog.Debug:
+                Snackbar.Add("Trace-debug attivo: viene registrato tutto, con stack trace. Il file cresce in fretta: torna a Normale quando hai finito. Importi, descrizioni e IBAN restano comunque mascherati.",
+                    Severity.Warning, o => o.RequireInteraction = true);
+                break;
+        }
+    }
+
+    // Il pulsante di una notifica della campanella
+    private async Task EseguiNotifica(Notifica notifica)
+    {
+        Log.Debug($"Notifica: {notifica.Id} -> {notifica.Azione}");
+        switch (notifica.Azione)
+        {
+            case AzioneNotifica.Importa:
+                await ImportaAsync();
+                break;
+            case AzioneNotifica.RiepilogoImportazione when Notifiche.UltimaImportazione is { } esito:
+                if (await DialogoImportazione.MostraRiepilogoAsync(Dialoghi, esito))
+                    Vai(Sezione.Scarti);
+                break;
+            case AzioneNotifica.GruppiCausali:
+                Vai(Sezione.GruppiCausali);
+                break;
+            case AzioneNotifica.Scarti:
+                Vai(Sezione.Scarti);
+                break;
+            case AzioneNotifica.Conti:
+                Vai(Sezione.Impostazioni);
+                break;
+            case AzioneNotifica.Backup:
+                Vai(Sezione.Backup);
+                break;
+        }
+    }
+
+    // Importa file CBI da qualunque pagina: la finestra di importazione mostra caricamento e riepilogo
+    // (fino al 05/11 l'esito arrivava come notifiche, una per avviso)
+    private async Task ImportaAsync()
+    {
+        if (await DialogoImportazione.ApriAsync(Dialoghi))
+            Vai(Sezione.Scarti);
+    }
+}

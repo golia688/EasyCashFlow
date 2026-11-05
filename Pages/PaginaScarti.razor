@@ -1,0 +1,320 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject DatabaseService Database
+@inject ImportazioneService Importazione
+@inject LogService Log
+@inject ImpostazioniService Impostazioni
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudTooltip Text="Torna ai movimenti">
+        <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))" OnClick="TornaAiMovimenti" />
+    </MudTooltip>
+    <MudText Typo="Typo.h4">Movimenti scartati</MudText>
+    <AiutoManuale Capitolo="scarti" />
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mt-2 mud-text-secondary">
+    Movimenti non importati perché nel database esiste già un movimento con la stessa chiave
+    (conto, data contabile, riferimento e importo) ma con contenuto diverso. Espandi una riga per
+    confrontarlo con il movimento salvato: i campi diversi sono evidenziati in rosso.
+</MudText>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" Label="Conti" @bind-SelectedValues="_filtri.Conti"
+                       MultiSelection="true" SelectAll="true" SelectAllText="Tutti" Clearable="true"
+                       MultiSelectionTextFunc="TestoConti" Placeholder="Tutti i conti"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var c in _conti)
+                {
+                    <MudSelectItem T="string" Value="@c.Codice">@c.Nome</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="Data contabile da" @bind-Date="_filtri.DataDa"
+                           DateFormat="dd/MM/yyyy" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="Data contabile a" @bind-Date="_filtri.DataA"
+                           DateFormat="dd/MM/yyyy" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" Label="File di origine" @bind-Value="_filtri.NomeFile"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="string" Value="@("")">Tutti</MudSelectItem>
+                @foreach (var nome in _file)
+                {
+                    <MudSelectItem T="string" Value="@nome">@nome</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField T="string" Label="Testo in descrizione o riferimento" @bind-Value="_filtri.Testo"
+                          Immediate="true" Clearable="true"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudNumericField T="decimal?" Class="importo-campo" Label="Importo da (€)" @bind-Value="_filtri.ImportoDa"
+                             HideSpinButtons="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudNumericField T="decimal?" Class="importo-campo" Label="Importo a (€)" @bind-Value="_filtri.ImportoA"
+                             HideSpinButtons="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Spacing="2" Class="mt-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FilterAlt))" OnClick="Applica">Applica filtri</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="Azzera">Azzera</MudButton>
+        @if (_tuttiSelezionati)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Deselect))"
+                       OnClick="Deseleziona">Deseleziona tutto</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.LibraryAddCheck))"
+                       Disabled="@(_totaleRisultati == 0 || _selezioneInCorso)" OnClick="SelezionaTuttiIRisultati">
+                Seleziona tutti i risultati (@_totaleRisultati)
+            </MudButton>
+        }
+    </MudStack>
+</MudPaper>
+
+<MudDataGrid @key="_versioneGriglia" T="MovimentoScartato" ServerData="CaricaDati"
+             RowsPerPage="_righePerPagina"
+             MultiSelection="true" SelectOnRowClick="false" Comparer="StessoId"
+             SelectedItems="_selezionati" SelectedItemsChanged="SelezioneCambiata"
+             SortMode="SortMode.Single" Dense="true" Hover="true" Striped="true" Class="mt-4">
+    <Columns>
+        <SelectColumn T="MovimentoScartato" />
+        <HierarchyColumn T="MovimentoScartato" />
+        @* colonne ordinabili: l'ordine lo fa la query (OrdineGriglia), su tutti gli scarti del filtro *@
+        <PropertyColumn Property="x => x.ScartatoIl" Title="Scartato il" Format="dd/MM/yyyy HH:mm" InitialDirection="@Direzione("ScartatoIl")" />
+        <PropertyColumn Property="x => x.Scartato.Conto" Title="Conto" InitialDirection="@Direzione("Conto")">
+            <CellTemplate>@NomeConto(context.Item.Scartato.Conto)</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.NomeFile" Title="File" InitialDirection="@Direzione("NomeFile")" />
+        <PropertyColumn Property="x => x.RigaFile" Title="Riga" InitialDirection="@Direzione("RigaFile")" />
+        <PropertyColumn Property="x => x.Scartato.DataContabile" Title="Data contabile" Format="dd/MM/yyyy" InitialDirection="@Direzione("DataContabile")" />
+        <PropertyColumn Property="x => x.Scartato.Importo" Title="Importo (€)" InitialDirection="@Direzione("Importo")">
+            <CellTemplate>
+                <MudText Align="Align.Right" Class="importo" Color="@(context.Item.Scartato.Importo < 0 ? Color.Error : Color.Success)">
+                    @context.Item.Scartato.Importo.ToString("N2", Italiano)
+                </MudText>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Scartato.Riferimento" Title="Riferimento" InitialDirection="@Direzione("Riferimento")" />
+        <PropertyColumn Property="x => x.Scartato.DescrizioneBreve" Title="Descrizione" InitialDirection="@Direzione("DescrizioneBreve")" />
+    </Columns>
+    <ChildRowContent>
+        <MudPaper Class="pa-3" Elevation="0" Outlined="true">
+            @if (context.Item.NelDatabase is null)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Warning">
+                    Nel database non c'è più un movimento con questa chiave: potrebbe essere stato
+                    eliminato o modificato a mano dopo lo scarto.
+                </MudText>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Nel file (scartato)</th>
+                            <th>Nel database</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (campo, nelFile, nelDb) in Confronto(context.Item))
+                        {
+                            var diverso = nelFile != nelDb;
+                            <tr>
+                                <td>@campo</td>
+                                <td style="@(diverso ? StileDiverso : null)">@nelFile</td>
+                                <td style="@(diverso ? StileDiverso : null)">@nelDb</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudPaper>
+    </ChildRowContent>
+    <NoRecordsContent>
+        <MudText Class="pa-4">Nessun movimento scartato da mostrare.</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="MovimentoScartato" PageSizeOptions="@(new[] { 10, 25, 50, 100, 200, 300, 500, 1000 })"
+                          RowsPerPageString="Righe per pagina"
+                          InfoFormat="{first_item}-{last_item} di {all_items}" />
+    </PagerContent>
+</MudDataGrid>
+
+<BarraSelezione Importi="@_selezionati.Select(s => s.Scartato.Importo).ToList()" OnDeseleziona="Deseleziona" />
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+    private const string StileDiverso = "color: var(--mud-palette-error); font-weight: 600;";
+
+    [Parameter] public EventCallback TornaIndietro { get; set; }
+
+    private int _versioneGriglia;                     // cambiandolo, la griglia riparte dalla pagina 1
+    private int _righePerPagina = 25;                 // ultima dimensione di pagina scelta dall'utente
+    private OrdineGriglia? _ordine;                   // colonna su cui è ordinata la griglia (null = dalla più recente)
+
+    private SortDirection Direzione(string campo) => OrdineGriglia.Direzione(_ordine, campo);
+    private FiltriScarti _filtri = new();             // valori nei campi dei filtri
+    private FiltriScarti _filtriAttivi = new();       // filtri realmente applicati alla griglia
+    private List<string> _file = new();
+    private List<ContoCorrente> _conti = new();
+    private Dictionary<string, string> _nomiConti = new();
+
+    // Uno scarto è identificato dal suo Id: il confronto con il movimento nel database
+    // (NelDatabase) può cambiare tra una lettura e l'altra senza che cambi la riga.
+    private static readonly IEqualityComparer<MovimentoScartato> StessoId =
+        EqualityComparer<MovimentoScartato>.Create((a, b) => a?.Id == b?.Id, s => s.Id.GetHashCode());
+
+    // Righe selezionate: restano selezionate cambiando pagina o filtri, come nella griglia dei movimenti.
+    private HashSet<MovimentoScartato> _selezionati = new(StessoId);
+
+    private int _totaleRisultati;                     // righe che rispettano i filtri applicati
+    private bool _selezioneInCorso;
+
+    // Vero dopo "Seleziona tutti i risultati", finché tutte le righe del filtro applicato restano
+    // selezionate: in quel caso il pulsante diventa "Deseleziona tutto".
+    private bool _tuttiSelezionati;
+
+    protected override void OnInitialized()
+    {
+        CaricaConti();
+        _file = Database.ElencoFileScarti();
+        Importazione.ImportCompletato += OnImportCompletato;
+    }
+
+    public void Dispose()
+    {
+        Importazione.ImportCompletato -= OnImportCompletato;
+    }
+
+    // chiamata dalla griglia a ogni cambio pagina o di righe per pagina
+    private async Task<GridData<MovimentoScartato>> CaricaDati(GridState<MovimentoScartato> stato, CancellationToken token)
+    {
+        _righePerPagina = stato.PageSize;
+        var ordine = _ordine = OrdineGriglia.Da(stato.SortDefinitions);
+
+        var (righe, totale) = await Task.Run(
+            () => Database.CercaScarti(_filtriAttivi, stato.Page, stato.PageSize, ordine), token);
+
+        if (totale != _totaleRisultati)
+        {
+            _totaleRisultati = totale;
+            StateHasChanged();      // aggiorna il numero sul pulsante "Seleziona tutti i risultati"
+        }
+
+        return new GridData<MovimentoScartato> { Items = righe, TotalItems = totale };
+    }
+
+    // I campi fuori dalla chiave, gli unici che possono differire tra file e database.
+    private static IEnumerable<(string Campo, string NelFile, string NelDb)> Confronto(MovimentoScartato s)
+    {
+        var f = s.Scartato;
+        var d = s.NelDatabase!;
+        yield return ("Data valuta", f.DataValuta.ToString("dd/MM/yyyy"), d.DataValuta.ToString("dd/MM/yyyy"));
+        yield return ("Causale", f.Causale, d.Causale);
+        yield return ("Descrizione", f.DescrizioneBreve, d.DescrizioneBreve);
+        yield return ("Dettaglio", f.DescrizioneEstesa, d.DescrizioneEstesa);
+    }
+
+    private void Applica()
+    {
+        _tuttiSelezionati = false;      // con altri filtri i risultati cambiano
+        _filtriAttivi = _filtri.Copia();
+        Log.Debug($"Filtri scarti applicati: {_filtriAttivi}");
+        _versioneGriglia++;
+    }
+
+    private void Azzera()
+    {
+        Log.Debug("Filtri scarti azzerati");
+        _filtri = new FiltriScarti();
+        Applica();
+    }
+
+    private Task TornaAiMovimenti() => TornaIndietro.InvokeAsync();
+
+    private void SelezioneCambiata(HashSet<MovimentoScartato> selezionati)
+    {
+        // togliendo la spunta a una riga non sono più selezionati tutti i risultati;
+        // aggiungerne altre invece non cambia nulla
+        if (selezionati.Count < _selezionati.Count)
+            _tuttiSelezionati = false;
+
+        _selezionati = selezionati;
+        Log.Debug($"Scarti selezionati: {_selezionati.Count}");
+    }
+
+    // Aggiunge alla selezione tutte le righe dei filtri applicati, non solo quelle della pagina visibile.
+    // Le righe già selezionate con altri filtri restano selezionate.
+    private async Task SelezionaTuttiIRisultati()
+    {
+        _selezioneInCorso = true;
+        try
+        {
+            var tutti = await Task.Run(() => Database.TuttiScarti(_filtriAttivi));
+            _selezionati = new HashSet<MovimentoScartato>(_selezionati.Concat(tutti), StessoId);
+            _tuttiSelezionati = true;
+            Log.Debug($"Selezionati tutti i {tutti.Count} scarti del filtro ({_filtriAttivi}); " +
+                      $"righe selezionate in totale: {_selezionati.Count}");
+            _versioneGriglia++;     // la griglia ricreata mostra le nuove caselle spuntate
+        }
+        finally
+        {
+            _selezioneInCorso = false;
+        }
+    }
+
+    private void Deseleziona()
+    {
+        Log.Debug("Selezione degli scarti azzerata");
+        _tuttiSelezionati = false;
+        _selezionati = new HashSet<MovimentoScartato>(StessoId);
+        _versioneGriglia++;     // la griglia ricreata mostra le caselle tutte vuote
+    }
+
+    private void CaricaConti()
+    {
+        _conti = Database.ElencoConti();
+        _nomiConti = _conti.ToDictionary(c => c.Codice, c => c.Nome);
+    }
+
+    private string NomeConto(string codice) => _nomiConti.GetValueOrDefault(codice, codice);
+
+    // Testo nel campo del filtro: i nomi dei conti al posto dei codici, riassunti oltre i due.
+    private string TestoConti(IReadOnlyList<string> scelti) =>
+        scelti.Count <= 2
+            ? string.Join(", ", scelti.Select(c => NomeConto(c)))
+            : $"{scelti.Count} conti selezionati";
+
+    private void OnImportCompletato(EsitoImportazione esito)
+    {
+        if (esito.Errore is not null) return;
+
+        _ = InvokeAsync(() =>
+        {
+            _tuttiSelezionati = false;      // i nuovi scarti possono rientrare nel filtro
+            CaricaConti();
+            _file = Database.ElencoFileScarti();
+            _versioneGriglia++;
+            StateHasChanged();
+        });
+    }
+}

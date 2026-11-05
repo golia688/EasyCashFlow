@@ -1,0 +1,52 @@
+@using MudBlazor
+@using EasyCashFlow.Services
+@inject PreferenzeService Preferenze
+
+@* Home > Dashboard > Scegli periodo: quanto tempo mostra "Il conto oggi" e con quale media si confronta
+   il mese dell'ultimo movimento. Le scelte si salvano subito (PreferenzeService, nel database cifrato)
+   e valgono anche alle prossime aperture del programma. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle1"><b>Il conto oggi</b></MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            Quanto tempo mostra il grafico del saldo, e su quanto tempo si calcola la variazione.
+        </MudText>
+        <MudToggleGroup T="int" Value="Preferenze.GiorniSaldoHome" ValueChanged="Preferenze.ImpostaGiorniSaldoHome"
+                        SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" CheckMark="true">
+            @foreach (var giorni in PreferenzeService.GiorniSaldoPossibili)
+            {
+                <MudToggleItem T="int" Value="giorni" Text="@TestoGiorni(giorni)" />
+            }
+        </MudToggleGroup>
+
+        <MudText Typo="Typo.subtitle1" Class="mt-6"><b>Il mese in corso</b></MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            Con la media di quale periodo confrontare entrate, uscite e flusso netto del mese dell'ultimo movimento.
+        </MudText>
+        <MudToggleGroup T="string" Value="Preferenze.MediaHome" ValueChanged="Preferenze.ImpostaMediaHome"
+                        SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" CheckMark="true">
+            @foreach (var media in PreferenzeService.MedieHomePossibili)
+            {
+                <MudToggleItem T="string" Value="media" Text="@media" />
+            }
+        </MudToggleGroup>
+
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-4 d-block">
+            Le scelte si applicano subito e restano anche alle prossime aperture del programma.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialogo.Close()">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    public static string TestoGiorni(int giorni) => giorni switch
+    {
+        180 => "6 mesi",
+        365 => "12 mesi",
+        _ => $"{giorni} giorni"
+    };
+}

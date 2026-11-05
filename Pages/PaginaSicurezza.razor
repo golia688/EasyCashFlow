@@ -1,0 +1,214 @@
+@using MudBlazor
+@using EasyCashFlow.Services
+@inject ChiaviService Chiavi
+@inject ImpostazioniService Impostazioni
+@inject LogService Log
+@inject PreferenzeService Preferenze
+@inject AccessoService Accesso
+
+@* Impostazioni > Sicurezza (docs/07-sicurezza.md, sezione 6): cambio della password, nuovo codice di
+   recupero e blocco per inattività (BloccoService). I primi due chiedono la password attuale. Durante l'attesa (Argon2, circa mezzo secondo per
+   passaggio) il modulo della password si nasconde ma resta montato, così una password attuale
+   sbagliata non fa riscrivere anche quella nuova. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+    <MudText Typo="Typo.h4">Sicurezza</MudText>
+    <AiutoManuale Capitolo="impostazioni" />
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1" Style="max-width: 720px">
+    <MudText Typo="Typo.h6">Password</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mud-text-secondary">
+        Per cambiarla serve quella attuale. I tuoi dati restano come sono e il codice di recupero continua a valere.
+    </MudText>
+
+    @if (_attesaPassword is not null)
+    {
+        <AttesaCalcolo Testo="@_attesaPassword" />
+    }
+    <div style="@(_attesaPassword is null ? null : "display: none")">
+        <MudTextField T="string" @bind-Value="_passwordAttuale" Immediate="true" Class="mt-4"
+                      Label="Password attuale" InputType="@(_mostraAttuale ? InputType.Text : InputType.Password)"
+                      Adornment="Adornment.End" AdornmentIcon="@IconaMostra(_mostraAttuale)"
+                      OnAdornmentClick="() => _mostraAttuale = !_mostraAttuale"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <NuovaPassword @ref="_nuovaPassword" Etichetta="Password nuova" TestoPulsante="Cambia la password"
+                       Confermato="CambiaPassword" AutoFocus="false" LargoQuantoIlRiquadro="false" Margine="Margin.Dense"
+                       Messaggi="@Esito(_errorePassword, _passwordFatta ? "Password cambiata: dal prossimo avvio usa quella nuova." : null)" />
+    </div>
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1" Style="max-width: 720px">
+    <MudText Typo="Typo.h6">Codice di recupero</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mud-text-secondary">
+        Se dimentichi la password, il codice di recupero è l'unico modo per aprire i tuoi dati.
+        Se l'hai perso, o pensi che qualcuno l'abbia visto, creane uno nuovo: quello vecchio smette subito di valere.
+    </MudText>
+
+    @if (_attesaCodice is not null)
+    {
+        <AttesaCalcolo Testo="@_attesaCodice" />
+    }
+    else if (_codice is null)
+    {
+        <MudTextField T="string" @bind-Value="_passwordCodice" Immediate="true" Class="mt-4"
+                      Label="La tua password" InputType="@(_mostraCodice ? InputType.Text : InputType.Password)"
+                      Adornment="Adornment.End" AdornmentIcon="@IconaMostra(_mostraCodice)"
+                      OnAdornmentClick="() => _mostraCodice = !_mostraCodice"
+                      OnKeyUp="@(e => e.Key == "Enter" ? CreaCodice() : Task.CompletedTask)"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+        @Esito(_erroreCodice, _codiceFatto ? "Il nuovo codice di recupero è attivo: quello di prima non vale più." : null)
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4"
+                   Disabled="@string.IsNullOrEmpty(_passwordCodice)" OnClick="CreaCodice">
+            Crea un nuovo codice di recupero
+        </MudButton>
+    }
+    else
+    {
+        <MudText Typo="Typo.subtitle1" Class="mt-4"><b>Il tuo nuovo codice di recupero</b></MudText>
+        <MudText Typo="Typo.body2" Class="mt-1">
+            Lo vedi adesso e non lo vedrai più. Quello di prima non vale già più.
+        </MudText>
+        <CodiceRecupero Codice="@_codice" Confermato="ConcludiCodice" LargoQuantoIlRiquadro="false" />
+    }
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1" Style="max-width: 720px">
+    <MudText Typo="Typo.h6">Blocco per inattività</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mb-3 mud-text-secondary">
+        Se per un po' non usi il programma, si blocca e chiede di nuovo la password: chi passa davanti al computer
+        non vede i tuoi dati. Sbloccando ritrovi tutto come l'avevi lasciato.
+    </MudText>
+    <MudToggleGroup T="int" Value="Preferenze.MinutiBlocco" ValueChanged="Preferenze.ImpostaMinutiBlocco"
+                    SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" CheckMark="true">
+        @foreach (var minuti in PreferenzeService.MinutiPossibili)
+        {
+            <MudToggleItem T="int" Value="minuti" Text="@TestoMinuti(minuti)" />
+        }
+    </MudToggleGroup>
+    <div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-4"
+                   StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Lock))"
+                   OnClick="@(() => Accesso.Blocca("Blocca adesso"))">Blocca adesso</MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    // ---- password ----
+    private NuovaPassword? _nuovaPassword;
+    private string? _passwordAttuale;
+    private bool _mostraAttuale;
+    private string? _attesaPassword;     // testo sotto la barra di caricamento; null = nessuna attesa
+    private string? _errorePassword;
+    private bool _passwordFatta;
+
+    // ---- codice di recupero ----
+    private string? _passwordCodice;
+    private bool _mostraCodice;
+    private string? _attesaCodice;
+    private string? _erroreCodice;
+    private string? _codice;
+    private bool _codiceFatto;
+
+    private string IconaMostra(bool mostra) =>
+        Impostazioni.Icona(mostra ? nameof(Icons.Material.Filled.VisibilityOff) : nameof(Icons.Material.Filled.Visibility));
+
+    private static string TestoMinuti(int minuti) => minuti switch
+    {
+        0 => "Mai",
+        60 => "1 ora",
+        _ => $"{minuti} minuti"
+    };
+
+    private static RenderFragment Esito(string? errore, string? riuscito) =>
+        @<div>
+            @if (errore is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@errore</MudAlert>
+            }
+            else if (riuscito is not null)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mt-3">@riuscito</MudAlert>
+            }
+        </div>;
+
+    private async Task CambiaPassword(string nuova)
+    {
+        if (_attesaPassword is not null) return;
+        _errorePassword = null;
+        _passwordFatta = false;
+        if (string.IsNullOrEmpty(_passwordAttuale))
+        {
+            _errorePassword = "Scrivi prima la password attuale.";
+            return;
+        }
+
+        _attesaPassword = "Controllo della password attuale…";
+        try
+        {
+            var attuale = _passwordAttuale;
+            if (!await Task.Run(() => Chiavi.PasswordGiusta(attuale)))
+            {
+                Log.Avviso("Password non cambiata: password attuale sbagliata");
+                _errorePassword = "La password attuale è sbagliata.";
+                _passwordAttuale = null;
+                return;
+            }
+            _attesaPassword = "Salvataggio della password nuova…";
+            StateHasChanged();
+            await Task.Run(() => Chiavi.CambiaPassword(nuova));
+            _passwordAttuale = null;
+            _mostraAttuale = false;
+            _nuovaPassword?.Svuota();
+            _passwordFatta = true;
+        }
+        catch (Exception ex)
+        {
+            Log.Errore("Cambio della password non riuscito", ex);
+            _errorePassword = $"Non è stato possibile cambiare la password: {ex.Message}";
+        }
+        finally
+        {
+            _attesaPassword = null;
+        }
+    }
+
+    private async Task CreaCodice()
+    {
+        if (_attesaCodice is not null || string.IsNullOrEmpty(_passwordCodice)) return;
+        _attesaCodice = "Controllo della password…";
+        _erroreCodice = null;
+        _codiceFatto = false;
+        try
+        {
+            var password = _passwordCodice;
+            if (!await Task.Run(() => Chiavi.PasswordGiusta(password)))
+            {
+                Log.Avviso("Nuovo codice di recupero non creato: password sbagliata");
+                _erroreCodice = "Password sbagliata.";
+                _passwordCodice = null;
+                return;
+            }
+            _attesaCodice = "Creazione del nuovo codice di recupero…";
+            StateHasChanged();
+            _codice = await Task.Run(Chiavi.NuovoCodiceRecupero);
+            _passwordCodice = null;
+            _mostraCodice = false;
+        }
+        catch (Exception ex)
+        {
+            Log.Errore("Nuovo codice di recupero non creato", ex);
+            _erroreCodice = $"Non è stato possibile creare il nuovo codice: {ex.Message}";
+        }
+        finally
+        {
+            _attesaCodice = null;
+        }
+    }
+
+    private void ConcludiCodice()
+    {
+        _codice = null;
+        _codiceFatto = true;
+    }
+}

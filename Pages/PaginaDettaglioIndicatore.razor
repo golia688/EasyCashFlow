@@ -1,0 +1,401 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject AnalisiService Analisi
+@inject ImpostazioniService Impostazioni
+
+@* Dettaglio di un indicatore della pagina Analisi: come si calcola, i movimenti che lo compongono,
+   divisi per gruppo, e quelli del periodo che ne restano fuori con il motivo. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudTooltip Text="@TestoRitorno">
+        <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))" OnClick="() => TornaIndietro.InvokeAsync()" />
+    </MudTooltip>
+    <MudText Typo="Typo.h4">@TitoloPagina</MudText>
+    <AiutoManuale Capitolo="analisi" />
+</MudStack>
+
+@if (_dettaglio is not { } d)
+{
+    <MudAlert Severity="Severity.Info" Class="mt-4">Non ci sono ancora movimenti: importa un file CBI dalla sezione Movimenti.</MudAlert>
+    return;
+}
+
+@{
+    var k = d.Risultato.Indicatori;
+    var periodo = d.Risultato.Periodo;
+}
+
+<MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="3" Class="mt-2" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.h5" Class="@(Indicatore == Indicatore.TassoRisparmio ? null : "importo")">@Valore(k)</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+        @periodo.Nome, dal @periodo.Dal.ToString("dd/MM/yyyy") al @periodo.Al.ToString("dd/MM/yyyy")
+        @(_conti.Count > 0 ? $" · {_conti.Count} conti scelti" : "")
+    </MudText>
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Come si calcola</MudText>
+    <div class="spiegazione-dettaglio importo-blocco mt-2">
+        @if (Ricorrenti is { } ricorrenti)
+        {
+            <p>
+                Qui ci sono solo le uscite <b>@(ricorrenti ? "ricorrenti" : "variabili")</b>:
+                quelle delle causali @(ricorrenti ? "segnate" : "non segnate") come ricorrenti in
+                Impostazioni &gt; Dati &gt; Gruppi di causali. Sono @Euro(-_totaleInclusi) delle @Euro(k.Uscite)
+                di uscite del periodo.
+            </p>
+        }
+        else
+        {
+            @Spiegazione(k)
+        }
+    </div>
+</MudPaper>
+
+@if (Indicatore == Indicatore.Saldo)
+{
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">Riconciliazione del saldo</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            Il saldo cambia solo per i movimenti: partendo dal saldo iniziale e sommando i movimenti di ogni tipo
+            si deve arrivare al saldo finale.
+        </MudText>
+        @if (k.SaldoIniziale is not { } iniziale || k.SaldoFinale is not { } finale)
+        {
+            <MudText Typo="Typo.body2">
+                Non si può fare: i saldi salvati non coprono l'inizio del periodo.
+                Importa di nuovo i file CBI più vecchi per completarli.
+            </MudText>
+        }
+        else
+        {
+            var atteso = iniziale + k.Netto - k.InvestitoNetto + k.Giroconti + k.StraordinariEsclusi;
+            <MudSimpleTable Dense="true" Elevation="0" Style="max-width: 640px;">
+                <tbody>
+                    <tr><td>Saldo al @k.DataSaldoIniziale?.ToString("dd/MM/yyyy")</td><td class="importo">@Euro(iniziale)</td></tr>
+                    <tr><td>+ flusso netto (movimenti Ordinari)</td><td class="importo">@Euro(k.Netto, segno: true)</td></tr>
+                    <tr><td>− investito netto (movimenti Investimento)</td><td class="importo">@Euro(-k.InvestitoNetto, segno: true)</td></tr>
+                    <tr><td>+ giroconti</td><td class="importo">@Euro(k.Giroconti, segno: true)</td></tr>
+                    @if (k.NumeroStraordinariEsclusi > 0)
+                    {
+                        <tr><td>+ straordinari esclusi dalle analisi (@k.NumeroStraordinariEsclusi)</td><td class="importo">@Euro(k.StraordinariEsclusi, segno: true)</td></tr>
+                    }
+                    <tr class="riga-totale"><td>= saldo atteso</td><td class="importo">@Euro(atteso)</td></tr>
+                    <tr><td>Saldo al @k.DataSaldoFinale?.ToString("dd/MM/yyyy") (dalla banca)</td><td class="importo">@Euro(finale)</td></tr>
+                    <tr class="riga-totale">
+                        <td>Differenza</td>
+                        <td class="importo">
+                            <MudText Typo="Typo.body2" Color="@(finale == atteso ? Color.Success : Color.Warning)">
+                                @Euro(finale - atteso, segno: true)
+                            </MudText>
+                        </td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                @(finale == atteso
+                    ? "Nessuna differenza: tutti i movimenti del periodo sono importati."
+                    : "C'è una differenza: probabilmente mancano movimenti, per esempio un file CBI non importato per una parte del periodo.")
+            </MudText>
+        }
+    </MudPaper>
+}
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+        <div>
+            <MudText Typo="Typo.h6">Per gruppo</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Clicca un gruppo per vedere solo i suoi movimenti. I gruppi si cambiano da Impostazioni &gt; Dati &gt; Gruppi di causali.
+            </MudText>
+        </div>
+        @if (_gruppoFiltro is not null)
+        {
+            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" OnClose="() => _gruppoFiltro = null">
+                Solo: @_gruppoFiltro
+            </MudChip>
+        }
+    </MudStack>
+
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="mt-2">
+        <thead>
+            <tr>
+                <th>Gruppo</th>
+                <th>Tipo</th>
+                <th>Causali</th>
+                <th style="text-align: right;">Movimenti</th>
+                <th style="text-align: right;">Totale (€)</th>
+                @if (MostraPercentuale)
+                {
+                    <th style="text-align: right;">Quota</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var g in _gruppi)
+            {
+                <tr class="riga-gruppo @(_gruppoFiltro is null ? null : g.Gruppo == _gruppoFiltro ? "riga-scelta" : "riga-attenuata")" @onclick="() => ScegliGruppo(g.Gruppo)">
+                    <td>@g.Gruppo</td>
+                    <td>@g.Tipo</td>
+                    <td style="font-family: monospace;">@string.Join(", ", g.Causali)</td>
+                    <td style="text-align: right;">@g.Movimenti</td>
+                    <td style="text-align: right;">
+                        <MudText Typo="Typo.body2" Class="importo" Color="@(g.Totale < 0 ? Color.Error : Color.Success)">@g.Totale.ToString("N2", Italiano)</MudText>
+                    </td>
+                    @if (MostraPercentuale)
+                    {
+                        <td style="text-align: right;">@(_totaleInclusi != 0 ? (g.Totale / _totaleInclusi).ToString("P1", Italiano) : "–")</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@{
+    var inclusi = Filtra(d.Inclusi).ToList();
+    var esclusi = d.Esclusi.Where(e => _gruppoFiltro is null || e.Movimento.Gruppo == _gruppoFiltro).ToList();
+}
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Movimenti inclusi</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+        @inclusi.Count @(inclusi.Count == 1 ? "movimento" : "movimenti")@(_gruppoFiltro is null ? "" : $" del gruppo {_gruppoFiltro}"),
+        totale <span class="importo">@Euro(inclusi.Sum(m => m.Importo), segno: true)</span>
+        @if (Indicatore == Indicatore.InvestitoNetto && _gruppoFiltro is null)
+        {
+            <text> sul conto: investito netto <span class="importo">@Euro(k.InvestitoNetto, segno: true)</span>, cioè lo stesso importo con il segno opposto.</text>
+        }
+    </MudText>
+
+    @if (inclusi.Count == 0 && _gruppoFiltro is not null)
+    {
+        <MudText Typo="Typo.body2">
+            Nessun movimento di questo gruppo entra nel calcolo.
+            @(esclusi.Count > 0 ? "I suoi movimenti sono tra gli esclusi, qui sotto, con il motivo." : "")
+        </MudText>
+    }
+    else
+    {
+        <TabellaMovimenti Movimenti="inclusi" Modificato="Ricarica" />
+    }
+</MudPaper>
+
+@if (d.Esclusi.Count > 0)
+{
+    <MudExpansionPanels Class="mt-4" Elevation="1">
+        <MudExpansionPanel Expanded="@(inclusi.Count == 0 && esclusi.Count > 0)">
+            <TitleContent>
+                <MudText Typo="Typo.h6">Movimenti esclusi (@esclusi.Count)</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Movimenti del periodo che non entrano in questo indicatore, con il motivo.
+                </MudText>
+            </TitleContent>
+            <ChildContent>
+                <TabellaMovimenti Movimenti="esclusi.Select(e => e.Movimento).ToList()"
+                                  Motivi="esclusi.ToDictionary(e => e.Movimento, e => e.Motivo)" Modificato="Ricarica" />
+            </ChildContent>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+}
+
+<style>
+    .spiegazione-dettaglio p + p {
+        margin-top: 8px;
+    }
+
+    .importo {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .riga-totale td {
+        font-weight: 500;
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .riga-gruppo {
+        cursor: pointer;
+    }
+
+    /* con un gruppo scelto: la sua riga in risalto (sfondo e bordo del colore principale, grassetto),
+       le altre più tenui, così si vede subito quale gruppo stanno mostrando le liste sotto */
+    .riga-scelta td {
+        background-color: color-mix(in srgb, var(--mud-palette-primary) 20%, transparent);
+        font-weight: 600;
+    }
+
+    .riga-scelta td:first-child {
+        box-shadow: inset 4px 0 0 var(--mud-palette-primary);
+    }
+
+    .riga-attenuata td {
+        opacity: 0.55;
+    }
+
+    .riga-attenuata:hover td {
+        opacity: 1;
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    [Parameter] public Indicatore Indicatore { get; set; }
+    /// <summary>Gruppo da mostrare subito filtrato (per esempio arrivando da Gruppi di causali).</summary>
+    [Parameter] public string? Gruppo { get; set; }
+    /// <summary>Periodo da usare al posto di quello scelto in Analisi; in quel caso si usano anche
+    /// tutti i conti, perché la pagina di provenienza (Gruppi di causali) non ha scelto né l'uno né gli altri.</summary>
+    [Parameter] public string? Periodo { get; set; }
+    /// <summary>Un solo mese, al posto del periodo scelto in Analisi (clic su una colonna dei grafici per
+    /// mese); conti e straordinari restano quelli della pagina Analisi.</summary>
+    [Parameter] public PeriodoAnalisi? Mese { get; set; }
+    /// <summary>Solo le uscite ricorrenti (true) o variabili (false), dal grafico "Spese ricorrenti e variabili".</summary>
+    [Parameter] public bool? Ricorrenti { get; set; }
+    [Parameter] public string TestoRitorno { get; set; } = "Torna all'analisi";
+    [Parameter] public EventCallback TornaIndietro { get; set; }
+
+    private record RigaGruppo(string Gruppo, TipoGruppo Tipo, IReadOnlyList<string> Causali, int Movimenti, decimal Totale);
+
+    private DettaglioIndicatore? _dettaglio;
+    private List<RigaGruppo> _gruppi = [];
+    private decimal _totaleInclusi;
+    private string? _gruppoFiltro;
+    private IReadOnlyCollection<string> _conti = [];
+
+    private bool MostraPercentuale => Indicatore is Indicatore.Entrate or Indicatore.Uscite;
+
+    private string? _caricato;    // indicatore, gruppo e periodo dell'ultimo caricamento
+
+    // Si ricarica solo quando cambia cosa mostrare: la pagina principale si ridisegna anche per altri
+    // motivi (cambio di tema, importazione) e il gruppo scelto con un clic non deve andare perso.
+    protected override void OnParametersSet()
+    {
+        var chiave = $"{Indicatore}|{Gruppo}|{Periodo}|{Mese}|{Ricorrenti}";
+        if (chiave == _caricato) return;
+        _caricato = chiave;
+
+        _gruppoFiltro = Gruppo;
+        Carica();
+    }
+
+    // Dopo aver cambiato straordinario o tipo di un movimento: i numeri cambiano, il gruppo scelto resta.
+    private void Ricarica() => Carica();
+
+    private void Carica()
+    {
+        var periodo = Mese ?? Analisi.TrovaPeriodo(Periodo ?? Analisi.PeriodoScelto);
+        if (periodo is null) return;
+
+        _conti = Periodo is null ? Analisi.ContiScelti : [];
+        // gli straordinari si escludono come nella pagina Analisi; non arrivando da lì (gruppi di causali), no
+        _dettaglio = Analisi.Dettaglio(Indicatore, periodo, _conti, Periodo is null && Analisi.EscludiStraordinari);
+        if (Ricorrenti is { } ricorrenti)
+            _dettaglio = _dettaglio with
+            {
+                Inclusi = _dettaglio.Inclusi.Where(m => m.Ricorrente == ricorrenti).ToList(),
+                Esclusi = _dettaglio.Esclusi.Where(e => e.Movimento.Ricorrente == ricorrenti).ToList()
+            };
+        _totaleInclusi = _dettaglio.Inclusi.Sum(m => m.Importo);
+        _gruppi = _dettaglio.Inclusi
+            .GroupBy(m => (m.Gruppo, m.Tipo))
+            .Select(g => new RigaGruppo(g.Key.Gruppo, g.Key.Tipo,
+                g.Select(m => m.Causale).Distinct().Order().ToList(), g.Count(), g.Sum(m => m.Importo)))
+            .OrderByDescending(g => Math.Abs(g.Totale))
+            .ToList();
+    }
+
+    private void ScegliGruppo(string gruppo) => _gruppoFiltro = _gruppoFiltro == gruppo ? null : gruppo;
+
+    private IEnumerable<MovimentoAnalisi> Filtra(IEnumerable<MovimentoAnalisi> movimenti) =>
+        _gruppoFiltro is null ? movimenti : movimenti.Where(m => m.Gruppo == _gruppoFiltro);
+
+    private string TitoloPagina => Ricorrenti switch
+    {
+        true => "Uscite ricorrenti",
+        false => "Uscite variabili",
+        _ => Titolo(Indicatore)
+    };
+
+    public static string Titolo(Indicatore indicatore) => indicatore switch
+    {
+        Indicatore.Entrate => "Entrate",
+        Indicatore.Uscite => "Uscite",
+        Indicatore.FlussoNetto => "Flusso netto",
+        Indicatore.TassoRisparmio => "Tasso di risparmio",
+        Indicatore.InvestitoNetto => "Investito netto",
+        _ => "Saldo"
+    };
+
+    private string Valore(IndicatoriPeriodo k) => Indicatore switch
+    {
+        _ when Ricorrenti is not null => Euro(-_totaleInclusi),
+        Indicatore.Entrate => Euro(k.Entrate),
+        Indicatore.Uscite => Euro(k.Uscite),
+        Indicatore.FlussoNetto => Euro(k.Netto, segno: true),
+        Indicatore.TassoRisparmio => k.TassoRisparmio is { } t ? t.ToString("P1", Italiano) : "–",
+        Indicatore.InvestitoNetto => Euro(k.InvestitoNetto, segno: true),
+        _ => k.SaldoFinale is { } s ? Euro(s) : "–"
+    };
+
+    private RenderFragment Spiegazione(IndicatoriPeriodo k) => Indicatore switch
+    {
+        Indicatore.Entrate =>
+            @<div>
+                <p>Somma dei movimenti <b>in entrata</b> le cui causali hanno un gruppo di tipo <b>Ordinario</b>:
+                   stipendio, bonifici ricevuti, rendite e simili.</p>
+                <p>Restano fuori le vendite e i rimborsi di investimenti (@Euro(k.RientratoInvestimenti)), che sono
+                   soldi che rientrano e non guadagni, e i giroconti tra conti propri. Sono elencati tra i movimenti esclusi.</p>
+            </div>,
+        Indicatore.Uscite =>
+            @<div>
+                <p>Somma dei movimenti <b>in uscita</b> le cui causali hanno un gruppo di tipo <b>Ordinario</b>.</p>
+                <p>Restano fuori i versamenti negli investimenti (@Euro(k.VersatoInvestimenti)), come PAC e
+                   sottoscrizioni di fondi, che non sono spese ma soldi che cambiano posto, e i giroconti.</p>
+                @if (k.Mesi > 1)
+                {
+                    <p>Media mensile: @Euro(k.Uscite) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(k.UscitaMediaMensile).</p>
+                }
+            </div>,
+        Indicatore.FlussoNetto =>
+            @<div>
+                <p>Entrate − uscite = @Euro(k.Entrate) − @Euro(k.Uscite) = <b>@Euro(k.Netto, segno: true)</b>.</p>
+                <p>È la somma, con il segno, di tutti i movimenti di tipo <b>Ordinario</b>: quanto è rimasto
+                   (o mancato) dopo le spese, prima di spostare soldi sugli investimenti.</p>
+            </div>,
+        Indicatore.TassoRisparmio =>
+            @<div>
+                @if (k.TassoRisparmio is { } t)
+                {
+                    <p>Flusso netto / entrate = @Euro(k.Netto) / @Euro(k.Entrate) = <b>@t.ToString("P1", Italiano)</b>.</p>
+                    <p>La quota delle entrate che non è stata spesa. @(t < 0 ? "È negativa: nel periodo si è speso più di quanto è entrato, attingendo al saldo." : "")</p>
+                }
+                else
+                {
+                    <p>Non calcolabile: nel periodo non ci sono entrate.</p>
+                }
+                <p>I movimenti sono quelli del flusso netto: tutti i movimenti di tipo <b>Ordinario</b>.</p>
+            </div>,
+        Indicatore.InvestitoNetto =>
+            @<div>
+                <p>Movimenti le cui causali hanno un gruppo di tipo <b>Investimento</b>: PAC, sottoscrizioni di fondi,
+                   vendite di titoli.</p>
+                <p>Versato @Euro(k.VersatoInvestimenti) − rientrato @Euro(k.RientratoInvestimenti) =
+                   <b>@Euro(k.InvestitoNetto, segno: true)</b>.</p>
+                <p>Positivo: al netto, dal conto sono usciti soldi verso gli investimenti. Non sono spese, cambiano
+                   solo posto: per questo non entrano nelle uscite né nel tasso di risparmio.</p>
+            </div>,
+        _ =>
+            @<div>
+                <p>Saldo contabile a fine giornata, come lo comunica la banca nei file CBI. Se i conti sono più di uno,
+                   è la somma dei loro saldi.</p>
+                <p>Qui sotto la riconciliazione: dal saldo iniziale, sommando tutti i movimenti del periodo divisi per
+                   tipo, si arriva al saldo finale. Se i conti tornano, nessun movimento manca.</p>
+            </div>
+    };
+
+    private static string Euro(decimal valore, bool segno = false) =>
+        (segno && valore > 0 ? "+" : "") + valore.ToString("C2", Italiano);
+}

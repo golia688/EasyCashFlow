@@ -1,0 +1,143 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject ImpostazioniService Impostazioni
+@inject DatabaseService Database
+
+@* Griglia dei movimenti delle pagine di dettaglio delle analisi: ordinabile cliccando le intestazioni,
+   con la paginazione. Sopra, due filtri veloci (testo e intervallo di date) con il conteggio e il totale
+   dei movimenti trovati. Se riceve i Motivi, aggiunge la colonna con il motivo dell'esclusione. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudTextField T="string" @bind-Value="_testo" Placeholder="Cerca descrizione, causale, gruppo o importo"
+                  Immediate="true" DebounceInterval="200" Clearable="true"
+                  Adornment="Adornment.Start" AdornmentIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Search))"
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 320px;" />
+    <MudDateRangePicker @bind-DateRange="_date" Label="Dal / al" Clearable="true"
+                        Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 260px;" />
+    @if (CiSonoFiltri)
+    {
+        <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="Azzera">Azzera</MudButton>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            @Filtrati.Count di @Movimenti.Count movimenti, totale <span class="importo">@Filtrati.Sum(m => m.Importo).ToString("N2", Italiano) €</span>
+        </MudText>
+    }
+</MudStack>
+
+<MudDataGrid T="MovimentoAnalisi" Items="Filtrati" Dense="true" Hover="true" Striped="true"
+             SortMode="SortMode.Single" RowsPerPage="25" Elevation="0">
+    <Columns>
+        <PropertyColumn Property="m => m.Data" Title="Data" Format="dd/MM/yyyy" InitialDirection="SortDirection.Descending" />
+        <PropertyColumn Property="m => m.Gruppo" Title="Gruppo" />
+        <PropertyColumn Property="m => m.Tipo" Title="Tipo" />
+        <PropertyColumn Property="m => m.Causale" Title="Causale" />
+        <TemplateColumn T="MovimentoAnalisi" Title="Descrizione" Sortable="false">
+            <CellTemplate>
+                <MudText Typo="Typo.body2">@(context.Item.DescrizioneEstesa != "" ? context.Item.DescrizioneEstesa : context.Item.DescrizioneBreve)</MudText>
+                @if (context.Item.DescrizioneEstesa != "")
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Item.DescrizioneBreve</MudText>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="m => m.Importo" Title="Importo (€)" HeaderStyle="text-align: right;">
+            <CellTemplate>
+                <MudText Typo="Typo.body2" Align="Align.Right" Class="importo" Color="@(context.Item.Importo < 0 ? Color.Error : Color.Success)">
+                    @context.Item.Importo.ToString("N2", Italiano)
+                </MudText>
+            </CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn T="MovimentoAnalisi" Title="" Sortable="false" CellStyle="width: 1%; white-space: nowrap;">
+            <CellTemplate>
+                <MenuMovimento Straordinario="context.Item.Straordinario"
+                               TipoForzato="@(context.Item.TipoForzato ? context.Item.Tipo : null)"
+                               TipoDelGruppo="context.Item.TipoDelGruppo"
+                               CambiaStraordinario="@(v => CambiaStraordinario(context.Item, v))"
+                               CambiaTipo="@(t => CambiaTipo(context.Item, t))" />
+            </CellTemplate>
+        </TemplateColumn>
+        @if (Motivi is not null)
+        {
+            <TemplateColumn T="MovimentoAnalisi" Title="Motivo" Sortable="false">
+                <CellTemplate>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@Motivi.GetValueOrDefault(context.Item)</MudText>
+                </CellTemplate>
+            </TemplateColumn>
+        }
+    </Columns>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Nessun movimento corrisponde ai filtri.</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="MovimentoAnalisi" PageSizeOptions="[25, 50, 100]" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    [Parameter, EditorRequired] public IReadOnlyList<MovimentoAnalisi> Movimenti { get; set; } = [];
+    [Parameter] public IReadOnlyDictionary<MovimentoAnalisi, string>? Motivi { get; set; }
+    /// <summary>Dopo aver cambiato straordinario o tipo di un movimento: la pagina ricalcola i numeri.</summary>
+    [Parameter] public EventCallback Modificato { get; set; }
+
+    private async Task CambiaStraordinario(MovimentoAnalisi movimento, bool straordinario)
+    {
+        Database.ImpostaStraordinario([movimento.Chiave], straordinario);
+        await Modificato.InvokeAsync();
+    }
+
+    private async Task CambiaTipo(MovimentoAnalisi movimento, TipoGruppo? tipo)
+    {
+        Database.ImpostaTipoForzato(movimento.Chiave, tipo);
+        await Modificato.InvokeAsync();
+    }
+
+    private string? _testo;
+    private DateRange? _date;
+
+    private bool CiSonoFiltri => !string.IsNullOrWhiteSpace(_testo) || _date?.Start is not null || _date?.End is not null;
+
+    // La lista filtrata si ricalcola solo quando cambiano movimenti o filtri: passare alla griglia una
+    // lista nuova a ogni disegno le farebbe perdere la pagina in cui ci si trova.
+    private List<MovimentoAnalisi>? _filtrati;
+    private (IReadOnlyList<MovimentoAnalisi>, string?, DateTime?, DateTime?) _chiaveFiltrati;
+
+    private List<MovimentoAnalisi> Filtrati
+    {
+        get
+        {
+            var chiave = (Movimenti, _testo, _date?.Start, _date?.End);
+            if (_filtrati is null || !chiave.Equals(_chiaveFiltrati))
+            {
+                _filtrati = Filtra();
+                _chiaveFiltrati = chiave;
+            }
+            return _filtrati;
+        }
+    }
+
+    // Il testo si cerca nelle descrizioni, nella causale, nel gruppo e nell'importo scritto all'italiana
+    // ("325,40" trova un movimento di 325,40 €). Le date sono quelle contabili, estremi compresi.
+    private List<MovimentoAnalisi> Filtra() => Movimenti.Where(m =>
+    {
+        var testo = _testo?.Trim();
+        var testoOk = string.IsNullOrEmpty(testo)
+            || m.DescrizioneEstesa.Contains(testo, StringComparison.CurrentCultureIgnoreCase)
+            || m.DescrizioneBreve.Contains(testo, StringComparison.CurrentCultureIgnoreCase)
+            || m.Causale.Contains(testo, StringComparison.OrdinalIgnoreCase)
+            || m.Gruppo.Contains(testo, StringComparison.CurrentCultureIgnoreCase)
+            || m.Importo.ToString("N2", Italiano).Contains(testo);
+        var data = m.Data.ToDateTime(TimeOnly.MinValue);
+        var dateOk = (_date?.Start is not { } dal || data >= dal.Date)
+                     && (_date?.End is not { } al || data <= al.Date);
+        return testoOk && dateOk;
+    }).ToList();
+
+    private void Azzera()
+    {
+        _testo = null;
+        _date = null;
+    }
+}

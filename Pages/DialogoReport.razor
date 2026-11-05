@@ -1,0 +1,132 @@
+@using System.Diagnostics
+@using System.IO
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject AnalisiService Analisi
+@inject DatabaseService Database
+@inject ReportService Report
+@inject SelettoreFile Selettore
+@inject ImpostazioniService Impostazioni
+@inject LogService Log
+
+@* Analisi > Report > Genera report Excel: mostra cosa entra nel report (le scelte della pagina Analisi in
+   quel momento), avvisa che il file è in chiaro, chiede dove salvarlo e lo scrive (ReportService). *@
+<MudDialog>
+    <DialogContent>
+        @if (_periodo is null)
+        {
+            <MudAlert Severity="Severity.Info">Non ci sono ancora movimenti: importa un file CBI dalla sezione Movimenti.</MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">
+                Un file Excel con le analisi di adesso: il foglio <b>Analisi</b> con indicatori, tabelle e grafici,
+                il foglio <b>Movimenti</b> con tutti i movimenti usati (come tabella, con i filtri) e il foglio
+                <b>Saldo</b>. Gli indicatori sono formule sui movimenti: puoi controllarli e fare le tue analisi.
+            </MudText>
+            <div class="riepilogo-report mt-3">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Periodo</MudText>
+                <MudText Typo="Typo.body2">@_periodo.Nome, dal @_periodo.Dal.ToString("dd/MM/yyyy") al @_periodo.Al.ToString("dd/MM/yyyy")</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Conti</MudText>
+                <MudText Typo="Typo.body2">@_conti</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Straordinari</MudText>
+                <MudText Typo="Typo.body2">@(Analisi.EscludiStraordinari ? "esclusi dalle analisi" : "compresi nelle analisi")</MudText>
+            </div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Per cambiarli, chiudi questa finestra e scegli nella pagina Analisi.</MudText>
+
+            <MudAlert Severity="Severity.Warning" Class="mt-3">
+                <b>ATTENZIONE</b>: il file Excel <b>non è cifrato</b>. Chiunque lo apra vede tutti i movimenti del periodo:
+                importi, date, descrizioni, nomi. Salvalo in una cartella solo tua, non lasciarlo in cartelle condivise
+                e cancellalo quando non ti serve più.
+            </MudAlert>
+
+            @if (_attesa)
+            {
+                <AttesaCalcolo Testo="Preparazione del report…" />
+            }
+            else if (_esito is { Errore: null, Percorso: { } percorso } ok)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-3">
+                    Report salvato: <b>@Path.GetFileName(percorso)</b>, @ok.Movimenti.ToString("N0") movimenti.
+                    <MudStack Row="true" Spacing="1" Class="mt-1">
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Success" OnClick="() => Apri(percorso)">Apri il file</MudButton>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Success" OnClick="() => Apri(Path.GetDirectoryName(percorso)!)">Apri la cartella</MudButton>
+                    </MudStack>
+                </MudAlert>
+            }
+            else if (_esito is { Errore: { } errore })
+            {
+                <MudAlert Severity="Severity.Error" Class="mt-3">
+                    Il report non è stato salvato: @errore. Se il file è aperto in Excel, chiudilo e riprova.
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="() => Dialogo.Close()">Chiudi</MudButton>
+        @if (_periodo is not null)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="_attesa"
+                       StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Download))" OnClick="Genera">Scegli dove salvarlo</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .riepilogo-report {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        column-gap: 16px;
+        row-gap: 2px;
+    }
+</style>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    private PeriodoAnalisi? _periodo;
+    private string _conti = "tutti";
+    private bool _attesa;
+    private EsitoReport? _esito;
+
+    // le scelte della pagina Analisi, ricordate da AnalisiService
+    protected override void OnInitialized()
+    {
+        _periodo = Analisi.TrovaPeriodo(Analisi.PeriodoScelto);
+        var nomi = Database.ElencoConti().ToDictionary(c => c.Codice, c => c.Nome);
+        if (Analisi.ContiScelti.Count > 0)
+            _conti = string.Join(", ", Analisi.ContiScelti.Select(c => nomi.GetValueOrDefault(c, c)));
+    }
+
+    private async Task Genera()
+    {
+        if (_periodo is null) return;
+        var percorso = await Selettore.ScegliDoveSalvareExcelAsync(ReportService.NomeFile(DateTime.Now));
+        if (percorso is null) return;
+
+        _attesa = true;
+        _esito = null;
+        StateHasChanged();
+        try
+        {
+            _esito = await Report.GeneraAsync(percorso, _periodo, Analisi.ContiScelti, Analisi.EscludiStraordinari);
+        }
+        finally
+        {
+            _attesa = false;
+        }
+    }
+
+    private void Apri(string percorso)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = percorso, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Log.Errore("Apertura del report non riuscita", ex);
+        }
+    }
+}

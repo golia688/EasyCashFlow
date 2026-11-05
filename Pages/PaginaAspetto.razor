@@ -1,0 +1,247 @@
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject ImpostazioniService Impostazioni
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+    <MudText Typo="Typo.h4">Aspetto</MudText>
+    <AiutoManuale Capitolo="impostazioni" />
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Tema</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mb-3 mud-text-secondary">
+        La scelta si applica subito ed è ricordata alla prossima apertura dell'applicazione.
+    </MudText>
+
+    <MudToggleGroup T="ModoTema" Value="Impostazioni.Tema" ValueChanged="Impostazioni.ImpostaTema"
+                    SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" CheckMark="true">
+        @foreach (var (modo, testo, nomeIcona) in Opzioni)
+        {
+            <MudToggleItem T="ModoTema" Value="modo">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="px-2">
+                    <MudIcon Icon="@Impostazioni.Icona(nomeIcona)" />
+                    <span>@testo</span>
+                </MudStack>
+            </MudToggleItem>
+        }
+    </MudToggleGroup>
+
+    <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">
+        @Descrizione(Impostazioni.Tema)
+    </MudText>
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Colore principale</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mb-4 mud-text-secondary">
+        Il colore di pulsanti, selezioni, barra in alto e voce attiva del menu. Nel tema scuro
+        se ne usa la versione pastello, nel tema chiaro una tonalità più intensa, che si legge
+        bene sul fondo chiaro. I colori di entrate, uscite e avvisi restano fissi.
+    </MudText>
+
+    <MudStack Row="true" Spacing="5" Wrap="Wrap.Wrap">
+        @foreach (var colore in ColoreTema.Tavolozza)
+        {
+            var scelto = colore == Impostazioni.ColorePrincipale;
+            <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                <div class="campione @(scelto ? "scelto" : null)" role="button" tabindex="0"
+                     title="@colore.Nome" style="background-color: @Tonalita(colore);"
+                     @onclick="() => Impostazioni.ImpostaColorePrincipale(colore)">
+                    @if (scelto)
+                    {
+                        <MudIcon Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Check))" Style="@($"color: {ColoreTema.TestoSu(Tonalita(colore))};")" />
+                    }
+                </div>
+                <MudText Typo="Typo.caption" Style="@(scelto ? "font-weight: 600;" : null)">@colore.Nome</MudText>
+            </MudStack>
+        }
+    </MudStack>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.subtitle2" Class="mb-2">Anteprima</MudText>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary">Applica filtri</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary">Azzera</MudButton>
+        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">Chip</MudChip>
+        <MudCheckBox T="bool" Value="true" Color="Color.Primary" ReadOnly="true" Label="Riga selezionata" />
+        <MudSwitch T="bool" Value="true" Color="Color.Primary" ReadOnly="true" Label="Opzione attiva" />
+        <MudProgressLinear Color="Color.Primary" Value="65" Rounded="true" Size="Size.Medium" Style="width: 160px;" />
+    </MudStack>
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Stile delle icone</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mb-4 mud-text-secondary">
+        Le stesse icone in tre disegni diversi. Vale per tutta l'applicazione.
+    </MudText>
+
+    <div class="scelte">
+        @foreach (var (stile, testo) in StiliIcone)
+        {
+            <div class="scelta @(stile == Impostazioni.StileIcone ? "scelta-attiva" : null)" role="button" tabindex="0"
+                 @onclick="() => Impostazioni.ImpostaStileIcone(stile)">
+                <MudStack Row="true" Spacing="3" Justify="Justify.Center" Class="mb-2">
+                    @foreach (var nome in IconeAnteprima)
+                    {
+                        <MudIcon Icon="@Icone.Di(stile, nome)" />
+                    }
+                </MudStack>
+                <MudText Typo="Typo.body2" Align="Align.Center">@testo</MudText>
+            </div>
+        }
+    </div>
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Stile dei pulsanti</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mb-4 mud-text-secondary">
+        La forma dei pulsanti e dei menu nella barra in alto. I pulsanti con la sola icona restano tondi.
+    </MudText>
+
+    <div class="scelte">
+        @foreach (var (stile, testo, classe) in StiliPulsanti)
+        {
+            <div class="scelta @(stile == Impostazioni.StilePulsanti ? "scelta-attiva" : null)" role="button" tabindex="0"
+                 @onclick="() => Impostazioni.ImpostaStilePulsanti(stile)">
+                @* anteprime escluse dallo stile globale (Main.razor): ognuna mostra il proprio *@
+                <MudStack Row="true" Spacing="2" Justify="Justify.Center" Class="mb-2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               Class="@($"anteprima-pulsante {classe}")" Style="pointer-events: none;">Applica</MudButton>
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               Class="@($"anteprima-pulsante {classe}")" Style="pointer-events: none;">Azzera</MudButton>
+                </MudStack>
+                <MudText Typo="Typo.body2" Align="Align.Center">@testo</MudText>
+            </div>
+        }
+    </div>
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <MudText Typo="Typo.h6">Dimensione</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1 mb-3 mud-text-secondary">
+        Ingrandisce o rimpicciolisce tutta l'interfaccia, come lo zoom di un browser: testo, campi,
+        icone e griglie insieme.
+    </MudText>
+
+    <MudToggleGroup T="int" Value="Impostazioni.Zoom" ValueChanged="Impostazioni.ImpostaZoom"
+                    SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" CheckMark="true">
+        @foreach (var livello in ImpostazioniService.LivelliZoom)
+        {
+            <MudToggleItem T="int" Value="livello" Text="@($"{livello}%")" />
+        }
+    </MudToggleGroup>
+</MudPaper>
+
+<style>
+    .campione {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .campione:hover {
+        transform: scale(1.1);
+    }
+
+    .campione.scelto {
+        box-shadow: 0 0 0 3px var(--mud-palette-background), 0 0 0 5px var(--mud-palette-text-primary);
+    }
+
+    .scelte {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+    }
+
+    .scelta {
+        padding: 16px 12px 12px;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .scelta:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    /* il bordo più spesso è compensato dal padding, così la scheda non cambia dimensione */
+    .scelta.scelta-attiva {
+        border: 2px solid var(--mud-palette-primary);
+        padding: 15px 11px 11px;
+    }
+
+    .pulsante-moderno, .pulsante-arrotondato {
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        box-shadow: none !important;
+    }
+
+    .pulsante-moderno {
+        border-radius: 8px !important;
+    }
+
+    .pulsante-arrotondato {
+        border-radius: 999px !important;
+    }
+
+    .pulsante-classico {
+        text-transform: uppercase !important;
+        letter-spacing: .02857em !important;
+        border-radius: 4px !important;
+    }
+</style>
+
+@code {
+    private static readonly (ModoTema Modo, string Testo, string NomeIcona)[] Opzioni =
+    {
+        (ModoTema.Chiaro, "Chiaro", nameof(Icons.Material.Filled.LightMode)),
+        (ModoTema.Scuro, "Scuro", nameof(Icons.Material.Filled.DarkMode)),
+        (ModoTema.Sistema, "Come Windows", nameof(Icons.Material.Filled.BrightnessAuto))
+    };
+
+    private static readonly (StileIcone Stile, string Testo)[] StiliIcone =
+    {
+        (StileIcone.Piene, "Piene"),
+        (StileIcone.Contorno, "Contorno"),
+        (StileIcone.DueToni, "Due toni")
+    };
+
+    // icone dell'applicazione mostrate in ogni scheda, per confrontare le varianti
+    private static readonly string[] IconeAnteprima =
+    {
+        nameof(Icons.Material.Filled.Home),
+        nameof(Icons.Material.Filled.SwapHoriz),
+        nameof(Icons.Material.Filled.BarChart),
+        nameof(Icons.Material.Filled.Settings),
+        nameof(Icons.Material.Filled.FilterAlt)
+    };
+
+    private static readonly (StilePulsanti Stile, string Testo, string Classe)[] StiliPulsanti =
+    {
+        (StilePulsanti.Classico, "Classico", "pulsante-classico"),
+        (StilePulsanti.Moderno, "Moderno", "pulsante-moderno"),
+        (StilePulsanti.Arrotondato, "Arrotondato", "pulsante-arrotondato")
+    };
+
+    [CascadingParameter(Name = "TemaScuro")] public bool TemaScuro { get; set; }
+
+    // i campioni mostrano la tonalità del tema in uso, cioè quella che si vedrà davvero
+    private string Tonalita(ColoreTema colore) => TemaScuro ? colore.Scuro : colore.Chiaro;
+
+    private static string Descrizione(ModoTema modo) => modo switch
+    {
+        ModoTema.Chiaro => "Sfondo chiaro, adatto agli ambienti luminosi.",
+        ModoTema.Scuro => "Sfondo scuro, più riposante per gli occhi.",
+        _ => "Segue l'impostazione di Windows (Impostazioni > Personalizzazione > Colori) " +
+             "e cambia insieme a lei, anche ad applicazione aperta."
+    };
+}

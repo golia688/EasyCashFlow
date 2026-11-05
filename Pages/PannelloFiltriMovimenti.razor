@@ -1,0 +1,154 @@
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+@inject AnalisiService Analisi
+
+@* I filtri dei movimenti (conti, periodo e date, tipo, causali, importi, testo, straordinari), comuni alla
+   pagina Movimenti e al grafico personalizzato. Modifica direttamente l'oggetto Filtri della pagina; i
+   pulsanti (Applica, Azzera…) li mette la pagina in Pulsanti. Conti, causali e periodi si rileggono con
+   Ricarica, dopo un'importazione. *@
+
+<MudGrid Spacing="2">
+    <MudItem xs="12" sm="6" md="3">
+        <MudSelect T="string" Label="Conti" @bind-SelectedValues="Filtri.Conti"
+                   MultiSelection="true" SelectAll="true" SelectAllText="Tutti" Clearable="true"
+                   MultiSelectionTextFunc="TestoConti" Placeholder="Tutti i conti"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            @foreach (var c in _conti)
+            {
+                <MudSelectItem T="string" Value="@c.Codice">@c.Nome</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        @* gli stessi periodi della pagina Analisi: sceglierne uno riempie le due date, che si possono
+           poi ritoccare (il periodo diventa "Personalizzato") *@
+        <MudSelect T="PeriodoAnalisi" Label="Periodo" Value="PeriodoDelleDate()" ValueChanged="ScegliPeriodo"
+                   ToStringFunc="@(p => p?.Nome)" Placeholder="Tutti i movimenti"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            @foreach (var p in _periodi)
+            {
+                <MudSelectItem T="PeriodoAnalisi" Value="p">@p.Nome</MudSelectItem>
+            }
+            <MudSelectItem T="PeriodoAnalisi" Value="Personalizzato" Disabled="true">@Personalizzato.Nome</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudDatePicker Label="Data contabile da" @bind-Date="Filtri.DataDa"
+                       DateFormat="dd/MM/yyyy" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudDatePicker Label="Data contabile a" @bind-Date="Filtri.DataA"
+                       DateFormat="dd/MM/yyyy" Clearable="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudSelect T="TipoFiltro" Label="Tipo" @bind-Value="Filtri.Tipo"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudSelectItem T="TipoFiltro" Value="TipoFiltro.Tutti">Tutti</MudSelectItem>
+            <MudSelectItem T="TipoFiltro" Value="TipoFiltro.Entrate">Entrate</MudSelectItem>
+            <MudSelectItem T="TipoFiltro" Value="TipoFiltro.Uscite">Uscite</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudSelect T="string" Label="Causali" @bind-SelectedValues="Filtri.Causali"
+                   MultiSelection="true" SelectAll="true" SelectAllText="Tutte" Clearable="true"
+                   MultiSelectionTextFunc="TestoCausali" Placeholder="Tutte le causali"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            @foreach (var c in _causali)
+            {
+                <MudSelectItem T="string" Value="@c.Causale">@c.Descrizione - @c.Causale</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudNumericField T="decimal?" Class="importo-campo" Label="Importo da (€)" @bind-Value="Filtri.ImportoDa"
+                         HideSpinButtons="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudNumericField T="decimal?" Class="importo-campo" Label="Importo a (€)" @bind-Value="Filtri.ImportoA"
+                         HideSpinButtons="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudTextField T="string" Label="Testo nella descrizione" @bind-Value="Filtri.Testo"
+                      Immediate="true" Clearable="true"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        @* le scelte fatte con il menu ⋮ dei movimenti: per ritrovarli e cambiarle *@
+        <MudSelect T="FiltroEtichette" Label="Straordinari e tipo scelto" @bind-Value="Filtri.Etichette"
+                   Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.Tutti">Tutti i movimenti</MudSelectItem>
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.Straordinari">Solo gli straordinari</MudSelectItem>
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.NonStraordinari">Senza gli straordinari</MudSelectItem>
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.TipoScelto">Solo con il tipo scelto a mano</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+</MudGrid>
+
+@if (Pulsanti is not null)
+{
+    <MudStack Row="true" Spacing="2" Class="mt-3" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+        @Pulsanti
+    </MudStack>
+}
+
+@code {
+    [Parameter, EditorRequired] public FiltriMovimenti Filtri { get; set; } = default!;
+
+    [Parameter] public RenderFragment? Pulsanti { get; set; }
+
+    private List<ContoCorrente> _conti = [];
+    private Dictionary<string, string> _nomiConti = [];
+    private List<(string Causale, string Descrizione)> _causali = [];
+    private List<PeriodoAnalisi> _periodi = [];    // gli stessi della pagina Analisi
+
+    // voce mostrata quando le date non corrispondono a nessun periodo dell'elenco
+    private static readonly PeriodoAnalisi Personalizzato = new("Personalizzato", DateOnly.MinValue, DateOnly.MinValue);
+
+    protected override void OnInitialized() => Ricarica();
+
+    /// <summary>Rilegge conti, causali e periodi (dopo un'importazione possono essercene di nuovi).</summary>
+    public void Ricarica()
+    {
+        _conti = Database.ElencoConti();
+        _nomiConti = _conti.ToDictionary(c => c.Codice, c => c.Nome);
+        _causali = Database.ElencoCausali();
+        _periodi = Analisi.Periodi();
+        StateHasChanged();
+    }
+
+    // Il periodo non è un filtro a sé: è un modo rapido di riempire le date, quindi quello mostrato
+    // si ricava sempre dalle date nei campi.
+    private PeriodoAnalisi? PeriodoDelleDate()
+    {
+        if (Filtri.DataDa is null && Filtri.DataA is null) return null;
+        var da = Filtri.DataDa is DateTime d ? DateOnly.FromDateTime(d) : (DateOnly?)null;
+        var a = Filtri.DataA is DateTime f ? DateOnly.FromDateTime(f) : (DateOnly?)null;
+        return _periodi.FirstOrDefault(p => p.Dal == da && p.Al == a) ?? Personalizzato;
+    }
+
+    private void ScegliPeriodo(PeriodoAnalisi? periodo)
+    {
+        if (periodo is null || periodo == Personalizzato) return;
+        Filtri.DataDa = periodo.Dal.ToDateTime(TimeOnly.MinValue);
+        Filtri.DataA = periodo.Al.ToDateTime(TimeOnly.MinValue);
+    }
+
+    private string NomeConto(string codice) => _nomiConti.GetValueOrDefault(codice, codice);
+
+    // Testo nel campo dei filtri a scelta multipla: i nomi dei conti al posto dei codici,
+    // e un riassunto quando le voci scelte sono più di due.
+    private string TestoConti(IReadOnlyList<string> scelti) =>
+        Riassunto(scelti.Select(c => NomeConto(c)).ToList(), "conti selezionati");
+
+    // nel campo le causali compaiono con la descrizione, come nelle voci del menu
+    private string TestoCausali(IReadOnlyList<string> scelte) =>
+        Riassunto(scelte.Select(c => _causali.FirstOrDefault(x => x.Causale == c).Descrizione ?? c).ToList(),
+                  "causali selezionate");
+
+    private static string Riassunto(List<string> voci, string descrizione) =>
+        voci.Count <= 2 ? string.Join(", ", voci) : $"{voci.Count} {descrizione}";
+}

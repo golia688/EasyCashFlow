@@ -1,0 +1,31 @@
+@using MudBlazor
+@using EasyCashFlow.Services
+@inject ManualeService Manuale
+@implements IDisposable
+@inject ImpostazioniService Impostazioni
+@inject PreferenzeService Preferenze
+
+@* Accanto al titolo di ogni pagina: l'icona "?", che apre il manuale al capitolo che la spiega, e l'occhio,
+   che nasconde o mostra gli importi in tutto il programma (Ctrl+H fa lo stesso; Main.razor applica la
+   classe "importi-nascosti"). *@
+<MudTooltip Text="Apri il manuale su questa pagina">
+    <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.HelpOutline))" Size="Size.Small"
+                   Class="mud-text-secondary" OnClick="() => Manuale.Apri(Capitolo)" />
+</MudTooltip>
+<MudTooltip Text="@(Preferenze.ImportiNascosti ? "Mostra gli importi (Ctrl+H)" : "Nascondi gli importi (Ctrl+H)")">
+    <MudIconButton Icon="@Impostazioni.Icona(Preferenze.ImportiNascosti ? nameof(Icons.Material.Filled.VisibilityOff) : nameof(Icons.Material.Filled.Visibility))"
+                   Size="Size.Small" Class="@(Preferenze.ImportiNascosti ? null : "mud-text-secondary")"
+                   Color="@(Preferenze.ImportiNascosti ? Color.Warning : Color.Default)"
+                   OnClick="() => Preferenze.ImpostaImportiNascosti(!Preferenze.ImportiNascosti)" />
+</MudTooltip>
+
+@code {
+    /// <summary>Id del capitolo, come in Manuale/manuale.md ("## Titolo {#id}").</summary>
+    [Parameter, EditorRequired] public string Capitolo { get; set; } = "";
+
+    protected override void OnInitialized() => Preferenze.ImportiNascostiCambiati += Aggiorna;
+
+    private void Aggiorna() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Preferenze.ImportiNascostiCambiati -= Aggiorna;
+}

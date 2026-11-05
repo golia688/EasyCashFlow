@@ -1,0 +1,19 @@
+@using MudBlazor
+@using EasyCashFlow.Services
+
+@* Avviso di Analisi e Simulazione quando il periodo comprende mesi incompleti: le medie al mese li contano
+   in proporzione ai giorni (AnalisiService.Durata), ma un'entrata o una spesa grande nei giorni mancanti
+   la rende poco affidabile. *@
+
+<MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+    @(Incompleti.Count == 1 ? "Un mese del periodo è incompleto" : "Alcuni mesi del periodo sono incompleti"):
+    @string.Join(", ", Incompleti). Le medie al mese li contano in proporzione ai giorni, quindi su
+    @AnalisiService.TestoMesi(Mesi). Se un'entrata o una spesa importante cade nei giorni che mancano (per
+    esempio lo stipendio a fine mese), la media non è affidabile: per medie più sicure scegli mesi completi.
+</MudAlert>
+
+@code {
+    [Parameter, EditorRequired] public decimal Mesi { get; set; }
+
+    [Parameter, EditorRequired] public IReadOnlyList<string> Incompleti { get; set; } = [];
+}

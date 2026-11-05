@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>EasyCashFlow</title>
+  <base href="/" />
+  <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+  <!-- Schermata di avvio, visibile finché Blazor non disegna l'app (poi il contenuto di #app viene
+       sostituito). Finché il tema di MudBlazor non è caricato la pagina non ha sfondo e si vede il
+       colore di fondo della WebView, che MainWindow imposta secondo il tema scelto: niente lampo bianco.
+       Lo sfondo NON va forzato qui (per esempio "background: transparent" sul body): scavalcherebbe
+       quello del tema, e cambiando tema ad app aperta resterebbe il colore dell'avvio sotto i riquadri.
+       Testo e barra hanno colori leggibili sia sul tema chiaro sia su quello scuro. -->
+  <style>
+    html, body { margin: 0; height: 100%; }
+
+    .avvio {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-family: Roboto, Helvetica, Arial, sans-serif;
+      color: #8E8E99;
+      animation: compari 0.4s ease-out;
+    }
+
+    .avvio img { width: 72px; height: 72px; }
+
+    .avvio .nome { font-size: 1.4rem; letter-spacing: 0.02em; }
+
+    .avvio .barra {
+      width: 140px;
+      height: 3px;
+      border-radius: 2px;
+      overflow: hidden;
+      background: rgba(142, 142, 153, 0.25);
+    }
+
+    .avvio .barra::after {
+      content: "";
+      display: block;
+      width: 40%;
+      height: 100%;
+      border-radius: 2px;
+      background: #26A69A;
+      animation: scorri 1.1s ease-in-out infinite;
+    }
+
+    @keyframes scorri { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    @keyframes compari { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="avvio">
+      <img src="img/easycashflow.png" alt="" />
+      <div class="nome">EasyCashFlow</div>
+      <div class="barra"></div>
+    </div>
+  </div>
+  <script src="_framework/blazor.webview.js"></script>
+  <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+  <script src="lib/echarts/echarts.min.js"></script>
+  <script src="js/grafici.js"></script>
+  <script src="js/manuale.js"></script>
+  <script src="js/attivita.js"></script>
+</body>
+</html>

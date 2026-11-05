@@ -1,0 +1,53 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+
+@* Grafico personalizzato: clic su una colonna o su un punto. Elenca i movimenti scelti di quel mese
+   (solo le entrate, solo le uscite o tutti, secondo la serie cliccata), con il totale. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            @(Movimenti.Count == 1 ? "1 movimento" : $"{Movimenti.Count} movimenti"), totale
+            <MudText Typo="Typo.body2" Inline="true" Class="importo" Color="@(Totale < 0 ? Color.Error : Color.Success)"><b>@Euro(Totale)</b></MudText>
+        </MudText>
+        <MudDataGrid T="MovimentoCbi" Items="Movimenti" Dense="true" Hover="true" Striped="true"
+                     SortMode="SortMode.Single" RowsPerPage="25" Elevation="0">
+            <Columns>
+                <PropertyColumn Property="m => m.DataContabile" Title="Data contabile" Format="dd/MM/yyyy" />
+                <PropertyColumn Property="m => m.Importo" Title="Importo (€)" HeaderStyle="text-align: right;">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2" Align="Align.Right" Class="importo" Color="@(context.Item.Importo < 0 ? Color.Error : Color.Success)">
+                            @context.Item.Importo.ToString("N2", Italiano)
+                        </MudText>
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="m => m.Causale" Title="Causale" />
+                <PropertyColumn Property="m => m.DescrizioneBreve" Title="Descrizione" />
+                <PropertyColumn Property="m => m.DescrizioneEstesa" Title="Dettaglio" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Nessun movimento scelto in questo mese.</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudDataGridPager T="MovimentoCbi" PageSizeOptions="[25, 50, 100]" RowsPerPageString="Righe per pagina"
+                                  InfoFormat="{first_item}-{last_item} di {all_items}" />
+            </PagerContent>
+        </MudDataGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialogo.Close()">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    /// <summary>Già filtrati per mese e serie, in ordine di data.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<MovimentoCbi> Movimenti { get; set; } = [];
+
+    private decimal Totale => Movimenti.Sum(m => m.Importo);
+
+    private static string Euro(decimal valore) => (valore > 0 ? "+" : "") + valore.ToString("C2", Italiano);
+}

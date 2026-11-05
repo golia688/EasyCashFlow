@@ -1,0 +1,84 @@
+@using MudBlazor
+
+@* Il codice di recupero appena creato, mostrato una volta sola: alla creazione della password, dopo una
+   password dimenticata (PaginaAccesso) e quando se ne chiede uno nuovo (PaginaSicurezza). Non si salva
+   da nessuna parte: si annota, o si copia con Ctrl+C in un gestore di password (docs/07-sicurezza.md,
+   sezione 5). Per continuare va riscritto un gruppo, così si è sicuri che l'utente lo abbia davanti. *@
+
+<div class="codice-recupero mt-4">
+    @for (var i = 0; i < _gruppi.Length; i++)
+    {
+        <span class="@(i == GruppoDaRiscrivere ? "gruppo-scelto" : null)">@_gruppi[i]</span>
+        @if (i < _gruppi.Length - 1)
+        {
+            <span class="trattino">-</span>
+        }
+    }
+</div>
+<MudAlert Severity="Severity.Info" Dense="true" Class="mt-4">
+    <b>Annotalo adesso</b> e conservalo in un posto sicuro, lontano dal computer, oppure in un gestore di password come KeePass.
+</MudAlert>
+<MudTextField T="string" @bind-Value="_conferma" Immediate="true" Class="mt-4"
+              Label="@($"Per continuare, riscrivi il gruppo n. {GruppoDaRiscrivere + 1} del codice (quello evidenziato)")"
+              Variant="Variant.Outlined" Margin="Margin.Dense" />
+<MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="@LargoQuantoIlRiquadro" Class="mt-4"
+           Disabled="@(!GruppoRiscritto)" OnClick="Conferma">Ho annotato il codice, continua</MudButton>
+
+<style>
+    /* Selezione normale del testo (si copia con Ctrl+C). Con user-select: all il 02/11 WebView2 si è
+       chiuso di colpo mentre si selezionava il codice con il mouse (errore in EmbeddedBrowserWebView.dll):
+       non è dimostrato che fosse la causa, ma la selezione normale è la strada più collaudata. */
+    .codice-recupero {
+        font-family: Consolas, "Cascadia Mono", monospace;
+        font-size: 1.35rem;
+        letter-spacing: 0.08em;
+        text-align: center;
+        padding: 16px 8px;
+        border-radius: 8px;
+        background-color: var(--mud-palette-background-gray);
+    }
+
+    .codice-recupero .gruppo-scelto {
+        font-weight: 700;
+        color: var(--mud-palette-primary);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .codice-recupero .trattino {
+        opacity: 0.5;
+    }
+</style>
+
+@code {
+    private const int GruppoDaRiscrivere = 2;
+
+    /// <summary>Il codice nel formato XXXXX-XXXXX-…</summary>
+    [Parameter, EditorRequired] public string Codice { get; set; } = "";
+
+    /// <summary>Quando l'utente ha riscritto il gruppo e conferma di averlo annotato.</summary>
+    [Parameter] public EventCallback Confermato { get; set; }
+
+    [Parameter] public bool LargoQuantoIlRiquadro { get; set; } = true;
+
+    private string[] _gruppi = [];
+    private string? _conferma;
+
+    protected override void OnParametersSet()
+    {
+        var gruppi = Codice.Split('-');
+        if (!gruppi.SequenceEqual(_gruppi)) _conferma = null;     // codice nuovo: si riscrive da capo
+        _gruppi = gruppi;
+    }
+
+    private bool GruppoRiscritto =>
+        _gruppi.Length > GruppoDaRiscrivere &&
+        new string((_conferma ?? "").ToUpperInvariant().Where(char.IsAsciiLetterOrDigit).ToArray()) == _gruppi[GruppoDaRiscrivere];
+
+    private async Task Conferma()
+    {
+        if (!GruppoRiscritto) return;
+        _conferma = null;
+        await Confermato.InvokeAsync();
+    }
+}

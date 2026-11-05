@@ -1,0 +1,525 @@
+## Cos'è EasyCashFlow {#introduzione}
+
+EasyCashFlow ti aiuta a capire **dove vanno i tuoi soldi**.
+
+Funziona così:
+
+1. scarichi dall'home banking l'elenco dei movimenti del tuo conto corrente;
+2. lo importi in EasyCashFlow;
+3. il programma ti mostra entrate, uscite, saldo e grafici, mese per mese.
+
+Non serve internet e non serve un account: tutto resta sul tuo computer, nella cartella del programma.
+
+> **Importante:** i tuoi movimenti vengono salvati **cifrati** e si aprono solo con la tua password. Prima di cominciare, leggi [I tuoi dati](cap:dati): spiega come funziona la protezione, cosa non copre e dove mettere il programma.
+
+Se è la prima volta che lo usi, comincia dai [Primi passi](cap:primi-passi).
+
+## Primi passi {#primi-passi}
+
+**Prima di tutto: la password**
+
+Al primo avvio il programma ti chiede di scegliere una **password**: i tuoi movimenti vengono salvati **cifrati** e senza la password nessuno può leggerli, nemmeno copiando la cartella del programma. Te la chiederà a ogni avvio.
+
+- Scegli una **password robusta**: lunga (almeno 10 caratteri, meglio di più), che non usi per nient'altro e che non si possa indovinare conoscendoti (niente nomi, date di nascita, parole come "password123"). Sotto il campo vedi quanto è robusta. Se non ti viene in mente, il pulsante **Suggerisci una frase** ne propone una fatta di cinque parole a caso, robusta e facile da ricordare. Il perché della password robusta è spiegato in [I tuoi dati](cap:dati).
+- Subito dopo vedrai il **codice di recupero**: 30 caratteri, in sei gruppi. È **l'unico modo** per aprire i dati se dimentichi la password, e lo vedi una volta sola. **Annotalo** e conservalo in un posto sicuro, lontano dal computer, oppure in un gestore di password come KeePass: puoi selezionarlo e copiarlo con Ctrl+C. Il programma non lo salva da nessuna parte, apposta: un codice in un file sul computer lo troverebbe anche chi riesce ad aprire i tuoi file. Per lo stesso motivo non lasciarlo in un documento o in un appunto. Per continuare ti verrà chiesto di riscriverne un gruppo.
+
+> **Importante:** senza password e senza codice di recupero i tuoi dati non si possono più aprire. Nessuno può farlo, nemmeno chi ha scritto il programma.
+
+Poi bastano tre passi. Li trovi anche nella [Home](app:home), dove si segnano come fatti da soli.
+
+**1. Importa il primo file**
+
+Scarica dall'home banking l'export dei movimenti in formato CBI e importalo. Il capitolo [Scaricare l'export dalla banca](cap:export-banca) spiega cosa cercare.
+
+**2. Dai un nome al conto**
+
+Il conto si registra da solo, con un nome provvisorio tipo "ABI 12345 - c/c ...6789". Cambialo con un nome che riconosci, per esempio "Conto di casa". Lo trovi in [Impostazioni](app:impostazioni).
+
+**3. Controlla i gruppi di causali**
+
+Ogni movimento ha una *causale*, cioè un codice della banca che dice che tipo di operazione è (bonifico, carta, stipendio…). Il programma raggruppa le causali per fare i grafici. Le più comuni sono già sistemate, anche quelle di altre banche; se ne resta qualcuna senza gruppo, assegnagliene uno in [Gruppi di causali](app:gruppi).
+
+Fatto questo, apri le [Analisi](app:analisi).
+
+In cima a ogni pagina, accanto al titolo, ci sono due icone: il **punto di domanda** apre la spiegazione di quella pagina in questo manuale; l'**occhio** nasconde tutti gli importi, se qualcuno si avvicina allo schermo (anche con **Ctrl+H**; vedi [I tuoi dati](cap:dati)).
+
+## La Home {#home}
+
+La [Home](app:home) è la prima pagina che vedi: riassume in un colpo d'occhio come sta il conto.
+
+**Più conti**
+
+Se hai importato i movimenti di più conti, in alto a destra c'è il campo **Conti**: scegli su quali conti ragiona la Home. Vale per il saldo, per il mese e per gli ultimi movimenti; il riepilogo del database e l'ultima importazione riguardano sempre tutto. La scelta resta anche alle prossime aperture; la prima volta vale il conto predefinito scelto in [Generali](app:generali), oppure tutti.
+
+**Il conto oggi**
+
+Il saldo più recente, una piccola linea con il suo andamento e quanto è cambiato nello stesso periodo: all'inizio gli ultimi 90 giorni, ma puoi sceglierne un altro (vedi sotto). Con più conti scelti il riquadro si chiama **I conti oggi**: mostra il saldo di ciascun conto e sotto il totale, che è quello del grafico. Passa con il mouse sulla linea per vedere il saldo di un giorno preciso.
+
+**Il mese**
+
+Entrate, uscite e flusso netto del mese dell'ultimo movimento importato, ciascuno accanto alla **media mensile** di un periodo di confronto, all'inizio gli ultimi 12 mesi completi: così capisci subito se è stato un mese normale o no. Clicca il riquadro per aprire l'analisi di quel mese.
+
+**I dati nel database**
+
+Quanti movimenti, importazioni, conti, causali, gruppi e saldi ci sono. Alcuni riquadri si possono cliccare e portano alla pagina relativa: per esempio "Causali" apre i gruppi di causali.
+
+**Ultima importazione e ultimi movimenti**
+
+Il riepilogo dell'ultimo file importato, con il pulsante per importarne un altro, e gli ultimi movimenti arrivati.
+
+Se l'ultimo movimento ha più di una settimana, in alto compare un promemoria: è il momento di scaricare un export nuovo dalla banca.
+
+Se dalla Home vai ai conti o ai gruppi di causali (con i pulsanti dei Primi passi o cliccando i riquadri del database), la freccia in alto a sinistra di quelle pagine ti riporta alla Home.
+
+**Le notifiche**
+
+In alto a destra, tra l'icona del log e quella dell'aiuto (il punto interrogativo), c'è la **campanella**. Il numero sopra dice quante cose ci sono da fare o da guardare; il colore dice la più importante (rosso un errore, giallo un avviso, azzurro un'informazione). Clicca la campanella per vedere l'elenco: ogni notifica ha un pulsante che ti porta dove serve.
+
+- **Ultima importazione con avvisi** o **non riuscita**: riapre il riepilogo dell'importazione.
+- **Movimenti scartati da controllare**: porta ai movimenti scartati.
+- **Causali senza gruppo**: porta ai gruppi di causali.
+- **Dai un nome ai conti**: porta ai conti correnti.
+- **Importa un export recente**, se l'ultimo movimento ha più di una settimana.
+- **Fai un backup**, se non l'hai mai fatto o l'ultimo ha più di 30 giorni.
+
+Una notifica sparisce da sola quando la cosa è sistemata. **Nascondi** la toglie fino alla prossima apertura del programma.
+
+**Il menu Dashboard**
+
+- **Aggiorna** rilegge tutti i numeri. Di solito non serve, perché la Home si aggiorna da sola dopo ogni importazione; è utile se il programma è rimasto aperto da ieri, per ricalcolare i giorni dall'ultimo movimento e il saldo fino a oggi.
+- **Scegli periodo** apre una finestra con due scelte: quanto tempo mostra **Il conto oggi** (30 o 90 giorni, 6 o 12 mesi) e con la media di quale periodo confrontare **il mese** (ultimi 3, 6 o 12 mesi completi). Le scelte si applicano subito e restano anche alle prossime aperture del programma.
+
+## Scaricare l'export dalla banca {#export-banca}
+
+EasyCashFlow legge i file **CBI**, un formato standard delle banche italiane.
+
+Nell'home banking cerca una funzione con un nome simile a:
+
+- "Esporta movimenti" o "Scarica movimenti";
+- "Saldi e movimenti";
+- "Formato CBI" oppure "Rendicontazione CBI".
+
+Ogni banca ha menu diversi: se non la trovi, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**.
+
+Alcuni consigli:
+
+- scegli un periodo ampio la prima volta, per esempio l'ultimo anno: più dati hai, più le analisi sono utili;
+- poi basta scaricare ogni tanto gli ultimi movimenti;
+- i periodi possono sovrapporsi: i movimenti già importati **non vengono duplicati**.
+
+Il file che scarichi è un semplice file di testo (spesso ha estensione `.txt`). Non serve aprirlo.
+
+## Importare i movimenti {#importare}
+
+Per importare un file:
+
+1. vai in [Movimenti](app:movimenti);
+2. premi **Importa file CBI** (oppure usa il menu **Dati > Importa file CBI**);
+3. scegli il file scaricato dalla banca.
+
+Si apre la finestra **Importa file CBI**: mentre il programma legge il file vedi una barra che scorre, e dopo pochi secondi un riepilogo in tabella. Ecco cosa vogliono dire le righe:
+
+- **Giornate nel file**: quanti giorni copre il file, dal primo all'ultimo.
+- **Movimenti nel file**: quanti movimenti contiene.
+- **Nuovi, importati**: movimenti aggiunti adesso.
+- **Già presenti**: movimenti che avevi già importato con un altro file. È normale quando i periodi si sovrappongono: non vengono duplicati.
+- **Stessa chiave, contenuto diverso**: compare solo se ce ne sono. Sono movimenti non importati, che trovi in [I movimenti scartati](cap:scarti): il pulsante **Vedi i movimenti scartati** ti ci porta.
+- **Righe non valide**: compare solo se ce ne sono; sono righe del file che il programma non ha saputo leggere.
+- **Avvisi**: quanti, oppure "nessuno" se il file è completo e i saldi tornano.
+
+Gli **avvisi** sono sotto la tabella, raggruppati per tipo: per esempio "3 × il saldo iniziale non coincide…". Clicca su un avviso per vedere le date in cui capita. Un avviso non vuol dire che qualcosa si è rotto: il programma ti segnala una cosa strana nel file, e i movimenti letti sono stati importati comunque. L'avviso più comune riguarda le [operazioni non ancora contabilizzate](cap:domande). Altri dicono, per esempio, che i saldi di due giorni non si collegano (potrebbero mancare dei movimenti) o che il file sembra tagliato.
+
+**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
+
+Il pulsante **Apri il log** apre il file in cui il programma scrive cosa ha fatto: serve se devi segnalare un problema. **Chiudi** chiude la finestra.
+
+Se importi di nuovo un file che avevi già caricato con una versione precedente del programma, alcuni movimenti già presenti possono ricevere una **descrizione più completa**: il riepilogo te lo dice. I movimenti non vengono duplicati.
+
+L'ultima importazione è riassunta anche nella [Home](app:home).
+
+## La pagina dei movimenti {#movimenti}
+
+In [Movimenti](app:movimenti) trovi l'elenco di tutti i movimenti importati, dal più recente.
+
+**Gli importi**
+
+- in **verde** le entrate (soldi arrivati sul conto);
+- in **rosso** le uscite (soldi usciti dal conto).
+
+**Cercare un movimento**
+
+In alto ci sono i filtri: conto, date, tipo (entrate o uscite), importo, testo nella descrizione, causale e **straordinari e tipo scelto** (vedi più sotto). Compila quelli che ti servono e premi **Applica filtri**. **Azzera** li toglie tutti. Per **ordinare** l'elenco clicca l'intestazione di una colonna (data, importo, descrizione…); cliccala di nuovo per invertire l'ordine. L'ordine vale per tutti i movimenti trovati, non solo per la pagina che vedi. I filtri e l'ordine restano finché il programma è aperto: se vai a un'altra pagina (per esempio i movimenti scartati o i gruppi di causali) e torni, li ritrovi come li avevi lasciati.
+
+Il campo **Periodo** offre gli stessi periodi della pagina Analisi (ultimo mese completo, ultimi 3, 6 o 12 mesi completi, i singoli anni, tutto): sceglierne uno riempie le due date, che puoi poi ritoccare a mano. Se le date non corrispondono a nessun periodo, il campo mostra "Personalizzato".
+
+**Sommare dei movimenti**
+
+Spunta la casella a sinistra delle righe che ti interessano: in fondo alla pagina compare una barra con il numero di righe, il totale delle entrate, il totale delle uscite e la somma.
+
+Per selezionare tutti i movimenti trovati dai filtri, anche quelli nelle altre pagine, premi **Seleziona tutti i risultati**.
+
+Esempio: vuoi sapere quanto hai pagato quest'anno per la luce e il gas? Le bollette addebitate sul conto riportano il nome del fornitore nella descrizione. Scrivi il nome del fornitore in "Testo nella descrizione", scegli l'anno nel campo Periodo, premi **Applica filtri** e poi **Seleziona tutti i risultati**: la somma è in fondo.
+
+**Cosa non trovi nell'elenco**
+
+Il programma vede solo quello che passa dal conto corrente:
+
+- i pagamenti con la **carta di credito** compaiono come un unico addebito al mese, per il totale: i singoli acquisti sono nell'estratto conto della carta;
+- i pagamenti in **contanti** non compaiono: vedi solo il prelievo.
+
+**Movimenti straordinari e tipo di un singolo movimento**
+
+Ogni movimento prende il tipo dal suo gruppo di causali (vedi [I gruppi di causali](cap:gruppi)). A volte però un movimento è diverso dagli altri dello stesso gruppo: per esempio, tra tanti bonifici normali, quello per un impianto di aria condizionata è una spesa che non si ripeterà.
+
+Il pulsante **⋮** in fondo a ogni riga apre un piccolo menu:
+
+- **Segna come straordinario**: il movimento resta quello che è, ma diventa *straordinario*. Nelle [Analisi](app:analisi) puoi escludere gli straordinari con un interruttore; nella simulazione del saldo sono esclusi già all'inizio. Accanto al movimento compare l'etichetta "straordinario".
+- **Tipo di questo movimento**: scegli un tipo diverso da quello del gruppo. Per esempio un bonifico verso un tuo altro conto è un **Giroconto**, uno verso un fondo è un **Investimento**. "Come il gruppo" torna al tipo del gruppo.
+
+Per segnarne tanti insieme, selezionali con le caselle a sinistra e usa **Segna come straordinari** nella barra in fondo alla pagina.
+
+Per **ritrovarli**, per esempio per togliere l'etichetta, usa il filtro **Straordinari e tipo scelto**: "Solo gli straordinari" mostra tutti quelli che hai segnato, "Solo con il tipo scelto a mano" quelli a cui hai cambiato il tipo. Poi dal menu **⋮** togli l'etichetta, oppure selezionali e usa **Non straordinari** nella barra in fondo.
+
+Lo stesso menu c'è anche negli elenchi di movimenti che si aprono dalle analisi. Le scelte restano anche se importi di nuovo lo stesso file.
+
+## I movimenti scartati {#scarti}
+
+Quando importi un file, il programma riconosce i movimenti già presenti e non li duplica.
+
+Raramente capita che un movimento del file sembri lo stesso di uno già salvato (stessa data, stesso importo, stesso riferimento) ma abbia **qualche dettaglio diverso**, per esempio la descrizione. In questo caso il programma non sa quale sia quello giusto: **tiene quello che aveva già** e mette l'altro tra gli scartati, così puoi controllarlo.
+
+Se ce ne sono, in [Movimenti](app:movimenti) compare un'etichetta rossa, "N movimenti scartati": cliccala per aprire l'elenco. Aprendo una riga vedi i due movimenti uno accanto all'altro, con le differenze in rosso.
+
+Nella maggior parte dei casi non devi fare niente: è solo un controllo.
+
+## Le analisi {#analisi}
+
+In [Analisi](app:analisi) trovi i numeri e i grafici del tuo conto. In alto scegli il **periodo**: ultimo mese completo, ultimi 3, 6 o 12 mesi completi, un anno, oppure tutto.
+
+- I periodi **completi** sono fatti di mesi interi e finiscono con l'ultimo mese finito: se hai importato movimenti fino al 3 novembre, "Ultimo mese completo" è ottobre e "Ultimi 3 mesi completi" va da agosto a ottobre. Così le medie al mese sono sempre su mesi interi. I giorni del mese in corso li vedi con l'anno in corso, con "Tutto" o con le date a mano.
+- L'**anno in corso** comprende quello che c'è, fino all'ultimo movimento importato; gli anni passati sono completi.
+
+Il periodo riempie le due date **Data contabile da** e **Data contabile a**, che puoi cambiare a mano, come nella pagina dei movimenti: per esempio dal 1° maggio al 31 agosto. Il periodo diventa allora **Personalizzato**, e vale anche quando apri il dettaglio di un numero e nella simulazione del saldo.
+
+Le **medie al mese** (sotto entrate, uscite, flusso netto e investito netto) contano i mesi che il periodo prende per intero, più quelli **incompleti in proporzione ai giorni**. Con i periodi completi questo capita solo all'inizio dei tuoi dati, se il primo file importato comincia a metà mese, o con l'anno in corso, che si ferma all'ultimo movimento; capita invece spesso con le date scelte a mano. Per esempio, dal 1° agosto al 20 ottobre fa agosto + settembre + 20 giorni su 31 di ottobre = 2,65 mesi. Contano solo i giorni in cui ci sono movimenti importati: l'anno in corso finisce all'ultimo movimento, non al 31 dicembre. Quando c'è un mese incompleto compare un **avviso**: se un'entrata o una spesa importante cade nei giorni che mancano (per esempio lo stipendio a fine mese) la media non è affidabile, e conviene scegliere mesi completi. Con meno di un mese la media non si mostra.
+
+**I sei numeri in alto**
+
+- **Entrate**: i soldi arrivati sul conto (stipendio, bonifici ricevuti…).
+- **Uscite**: i soldi spesi.
+- **Flusso netto**: entrate meno uscite. Se è positivo hai messo da parte dei soldi, se è negativo hai speso più di quanto è entrato. Sotto vedi anche la media al mese: è il numero da cui parte la simulazione del saldo, che ragiona mese per mese. La media al mese c'è anche per entrate, uscite e investito netto.
+- **Tasso di risparmio**: quanta parte delle entrate non hai speso, in percentuale.
+- **Investito netto**: i soldi spostati verso investimenti (fondi, PAC, titoli), meno quelli rientrati dalle vendite.
+- **Saldo a fine periodo**: quanto c'era sul conto alla fine del periodo.
+
+Passa con il mouse su un numero per vedere come è calcolato. **Cliccalo** per vedere tutti i movimenti che lo compongono: è il modo migliore per capire da dove viene.
+
+L'interruttore **Escludi straordinari**, accanto al periodo, toglie da numeri e grafici i movimenti che hai segnato come straordinari (vedi [La pagina dei movimenti](cap:movimenti)). È spento all'inizio: quelle spese sono avvenute davvero. Acceso, aiuta a vedere com'è un periodo "normale". Il saldo invece resta quello vero della banca. Accanto, **Vedi gli straordinari** apre l'elenco di quelli del periodo, con il loro numero: dal menu ⋮ di ogni riga puoi togliere l'etichetta, e chiudendo l'elenco i numeri si aggiornano.
+
+Nella pagina che si apre:
+
+- la sezione **Per gruppo** divide i movimenti per gruppo: clicca un gruppo per vedere solo i suoi movimenti (la riga scelta si colora, le altre si attenuano); cliccalo di nuovo per tornare a vederli tutti;
+- sopra l'elenco dei movimenti puoi **cercare** una parola, una causale o un importo (per esempio "325,40") e scegliere un intervallo di **date**: accanto compaiono quanti movimenti hai trovato e il loro totale;
+- più in basso, chiusi, ci sono i **movimenti esclusi**: quelli del periodo che non entrano in quel numero, ciascuno con il motivo (per esempio un versamento in un fondo, che non è una spesa);
+- per il **saldo** c'è anche la **riconciliazione**: dal saldo di inizio periodo, sommando i movimenti, si deve arrivare al saldo della banca. Se c'è una differenza, probabilmente manca un file da importare.
+
+La freccia in alto a sinistra riporta alle analisi, con il periodo e i conti che avevi scelto.
+
+**Perché gli investimenti non sono uscite?**
+
+Quando metti 500 € in un fondo, quei soldi non sono spariti: hanno solo cambiato posto. Per questo il programma non li conta come spese, ma a parte, in "Investito netto". Allo stesso modo, quando vendi un titolo, i soldi che rientrano non sono un guadagno.
+
+**I grafici**
+
+- **Entrate e uscite per mese**: le barre sopra lo zero sono le entrate, quelle sotto le uscite; la linea è il flusso netto del mese.
+- **Andamento del saldo**: come è cambiato il saldo giorno per giorno.
+- **Dove vanno i soldi** e **Da dove arrivano**: le uscite e le entrate divise per gruppo.
+- **Spese ricorrenti e variabili**: le spese fisse (mutuo, bollette, tasse) e tutte le altre.
+- **Flusso netto cumulato**: quanto hai messo da parte dall'inizio dell'anno, a confronto con l'anno prima. Se la linea sale, in quel mese è entrato più di quanto è uscito; se scende, hai speso più di quanto è entrato.
+- **Movimenti più grandi**: in fondo alla pagina, i dieci movimenti più grandi del periodo, entrate e uscite.
+
+Passando con il mouse su un grafico vedi i valori precisi.
+
+Nei grafici **Dove vanno i soldi** e **Da dove arrivano** puoi anche **cliccare una barra**: si apre l'elenco dei movimenti di quel gruppo. Per esempio, clicca "Mutuo" per vedere tutte le rate del periodo.
+
+Allo stesso modo, in **Entrate e uscite per mese** e in **Spese ricorrenti e variabili** puoi **cliccare una colonna**: si apre l'elenco dei movimenti di quel mese. Cliccando la parte verde (entrate) vedi le entrate del mese, la parte rossa le uscite, un punto della linea il flusso netto; nel grafico delle spese, la parte ricorrente o quella variabile. I conti e gli straordinari restano quelli scelti nella pagina Analisi.
+
+Nella legenda sopra alcuni grafici (per esempio "Entrate · Uscite · Flusso netto") puoi cliccare una voce per nasconderla o mostrarla.
+
+**Il report Excel**
+
+Con il menu **Report > Genera report Excel** della pagina Analisi crei un file Excel con le analisi che stai guardando: stesso periodo, stessi conti, straordinari esclusi o no. La finestra ti mostra queste scelte; se vuoi cambiarle, chiudila e cambiale nella pagina. Poi premi **Scegli dove salvarlo**.
+
+Il file ha tre fogli:
+
+- **Analisi**: gli indicatori (entrate, uscite, flusso netto, tasso di risparmio, investito netto, medie al mese, saldo), le tabelle per mese e per gruppo e quattro grafici: entrate e uscite per mese, andamento del saldo, uscite per gruppo, entrate per gruppo. Indicatori e tabelle sono **formule** che leggono il foglio Movimenti: puoi vedere come sono calcolati;
+- **Movimenti**: tutti i movimenti del periodo e dei conti, come tabella con i filtri nelle intestazioni. Ci sono anche investimenti, giroconti e straordinari: le colonne **Tipo** e **Nelle analisi** dicono quali contano negli indicatori;
+- **Saldo**: il saldo di ogni giorno.
+
+Da lì in poi il file è tuo: puoi filtrare, aggiungere colonne, fare grafici e tabelle pivot. Si apre anche con Google Fogli (caricandolo su Drive o con **File > Importa**).
+
+> **Attenzione:** il file Excel **non è cifrato**. Chiunque lo apra vede tutti i movimenti del periodo. Salvalo in una cartella solo tua, non lasciarlo in cartelle condivise e cancellalo quando non ti serve più.
+
+## La simulazione del saldo {#simulazione}
+
+La simulazione risponde a una domanda: **come andrà il saldo nei prossimi mesi**, se entrate e uscite restano come nel passato? Si apre dal pulsante **Simula il saldo futuro** nelle [Analisi](app:analisi), oppure dal menu in alto **Simulazione > Simula il saldo futuro**.
+
+**1. Scegli la base**
+
+- **Periodo**: il passato su cui fare la media, come nelle analisi (per esempio gli ultimi 12 mesi completi). Se in Analisi hai scelto le date a mano, qui trovi già quel periodo ("Dal … al …"). Per i mesi incompleti vale quello che c'è scritto in [Analisi](cap:analisi): contano in proporzione ai giorni, e un avviso te lo ricorda. Se il periodo ha **meno di un mese** di movimenti (per esempio con date scelte a mano di pochi giorni) la simulazione non si fa: pochi giorni moltiplicati darebbero medie senza senso, e la pagina ti chiede di scegliere un periodo più lungo.
+- **Mesi da simulare**: 6, 12, 24 o 36.
+- **Gruppi da escludere**: le spese (o le entrate) che non si ripeteranno, per esempio dei lavori in casa già finiti. Senza di loro la media è più realistica.
+- **Escludi i movimenti straordinari**: acceso all'inizio, lascia fuori dalla media i singoli movimenti che hai segnato come straordinari, anche se il loro gruppo resta. **Vedi gli straordinari del periodo** li elenca, e lì puoi togliere l'etichetta.
+
+Sotto vedi le medie al mese: entrate, uscite, flusso netto, tasso di risparmio, investito, e il saldo da cui si parte.
+
+**2. Prova le tue ipotesi**
+
+- **Flusso netto al mese**: parte dalla media; cambialo per provare a spendere di più o di meno. Il **tasso di risparmio** si aggiorna subito: le entrate restano quelle medie.
+- **Investito netto al mese**: quanto metti ogni mese in PAC o fondi.
+- **Ripristina i valori della base** riporta tutto alle medie.
+
+**3. Leggi il risultato**
+
+Ogni mese il saldo del conto cambia di **flusso netto meno investito**: la pagina lo scrive sotto le ipotesi, per esempio "+150 € − 400 € = −250 €". Vedi:
+
+- il saldo alla fine dell'ultimo mese simulato e quanto è cambiato rispetto a oggi, diviso in quanto hai risparmiato e quanto hai versato negli investimenti;
+- il grafico: la linea piena è il saldo reale, quella tratteggiata gialla il saldo simulato; se versi negli investimenti c'è anche una linea a puntini, **conto + versato negli investimenti**, che mostra quanti soldi hai in tutto;
+- se il saldo scende sotto zero, il primo mese in cui succede.
+
+**Perché il saldo può scendere anche se risparmio?**
+
+Il **tasso di risparmio** dice quanta parte delle entrate non spendi. I soldi che versi in PAC o fondi non li spendi: li sposti dal conto agli investimenti, e restano tuoi. Se versi più di quanto risparmi, il conto scende, ma il totale dei tuoi soldi cresce lo stesso.
+
+Esempio: risparmi 150 € al mese e ne versi 400 nei PAC. Il conto scende di 250 € al mese, ma conto più investimenti salgono di 150 € al mese.
+
+**4. Cambia un mese preciso**
+
+Nella tabella **Mese per mese** puoi scrivere un flusso netto diverso per un singolo mese: una tredicesima a dicembre, l'assicurazione dell'auto a marzo, le vacanze ad agosto. Il mese si colora; la freccia accanto lo riporta al valore di tutti gli altri mesi.
+
+La simulazione è un'ipotesi, non una previsione: dice cosa succede **se** le cose vanno come hai scritto. Le scelte non vengono salvate: chiudendo la pagina si riparte dalle medie.
+
+## Il grafico personalizzato {#grafico}
+
+Le analisi ragionano per gruppi di causali, ma a volte vuoi seguire una spesa precisa che sta dentro un gruppo più grande: le bollette della luce, il carburante, le spese per un figlio. Il [grafico personalizzato](app:grafico) (menu **Grafici > Grafico personalizzato** nella pagina Analisi) mostra mese per mese entrate e uscite dei soli movimenti che scegli tu.
+
+**Come si usa**
+
+1. In alto ci sono gli stessi filtri della pagina dei movimenti. Compila quelli che ti servono: per esempio scrivi il nome del fornitore in **Testo nella descrizione**.
+2. Premi **Aggiungi al grafico**: tutti i movimenti che corrispondono ai filtri entrano nel grafico, anche quelli nelle altre pagine della griglia, e nella griglia compaiono spuntati.
+3. Controlla la griglia e **togli la spunta** ai movimenti che non c'entrano (per esempio un rimborso che contiene lo stesso nome). Puoi anche spuntarne altri a mano.
+4. Per aggiungere altri movimenti cambia i filtri e premi di nuovo **Aggiungi al grafico**: quelli di prima restano.
+
+Gli altri pulsanti:
+
+- **Cerca soltanto** mostra i risultati dei filtri senza cambiare il grafico, per guardare prima di aggiungere;
+- **Togli dal grafico** toglie tutti i movimenti che corrispondono ai filtri;
+- **Svuota il grafico** ricomincia da zero;
+- l'interruttore **Mostra solo i movimenti nel grafico** fa vedere nella griglia soltanto quelli scelti, per ricontrollarli.
+
+**Il grafico**
+
+In fondo alla pagina, il grafico si aggiorna a ogni spunta: le entrate sopra lo zero, le uscite sotto, la linea è il flusso netto del mese. Sopra ci sono il numero dei movimenti scelti e i totali di entrate, uscite e flusso netto, con la media al mese. **Clicca una colonna** (entrate o uscite) o un punto della linea per aprire l'elenco dei movimenti scelti di quel mese, con il totale: con la colonna delle uscite vedi solo le uscite, con il punto del flusso netto tutti i movimenti del mese. La media si fa dal mese del primo movimento scelto a quello dell'ultimo, compresi i mesi in cui non ce n'è nessuno: se una spesa arriva ogni due mesi, la media al mese è la metà della singola spesa.
+
+Qui contano tutti i movimenti che scegli, qualunque sia il loro gruppo o tipo: anche i versamenti negli investimenti e i giroconti, se li spunti.
+
+La scelta resta finché il programma è aperto, anche se cambi pagina; alla chiusura si perde. I movimenti importati dopo non entrano da soli: per aggiungerli, premi di nuovo **Aggiungi al grafico** con gli stessi filtri.
+
+## I gruppi di causali {#gruppi}
+
+Ogni movimento ha una **causale**: un codice di quattro cifre con cui la banca dice che tipo di operazione è. Per esempio 2700 è "Emolumenti" (lo stipendio), 4500 è "Utilizzo carta di credito".
+
+Per fare i grafici, il programma mette le causali in **gruppi**: "Stipendio", "Mutuo", "Carta di credito" e così via. Li trovi in [Gruppi di causali](app:gruppi) (menu **Impostazioni > Dati > Gruppi di causali**, oppure **Dati > Gruppi di causali** nella pagina dei movimenti: da lì la freccia in alto riporta ai movimenti).
+
+Per ogni causale scegli:
+
+- **Gruppo**: il nome che vedrai nei grafici. Puoi sceglierne uno esistente o scriverne uno nuovo.
+- **Tipo**:
+  - **Ordinario**: un'entrata o un'uscita normale. Quasi tutte le causali sono di questo tipo.
+  - **Investimento**: soldi spostati verso investimenti o rientrati da essi. Non contano né come spese né come entrate.
+  - **Giroconto**: soldi spostati tra due tuoi conti. Non contano nelle analisi.
+- **Ricorrente**: spuntalo per le spese fisse, come mutuo, bollette e tasse.
+
+Poi premi **Salva** sulla riga.
+
+**Dove finisce una causale?** La freccia in fondo alla riga apre l'analisi in cui finiscono i movimenti di quella causale (entrate, uscite o investimenti), già filtrata sul suo gruppo.
+
+**Un movimento fa eccezione?** Il tipo scelto qui vale per tutti i movimenti della causale. Se uno solo è diverso, per esempio un bonifico verso un tuo altro conto, cambialo dal menu **⋮** del movimento (vedi [La pagina dei movimenti](cap:movimenti)): lì puoi anche segnarlo come straordinario.
+
+**Causale CBI.** Sotto la descrizione della banca leggi la *causale CBI*: sono le prime due cifre della causale, un codice uguale per tutte le banche italiane, con la descrizione dello standard CBI. Per esempio 26 è "Vostra disposizione a favore di", cioè un bonifico che hai fatto tu, e 48 è "Bonifico a Vostro favore", un bonifico ricevuto. Quando arriva una causale nuova che il programma non conosce, magari di un'altra banca, il programma le propone il gruppo della sua causale CBI; puoi sempre cambiarlo. Restano senza gruppo solo le causali che possono voler dire cose diverse, come gli storni.
+
+Le causali sono in ordine alfabetico della descrizione della banca; cliccando l'intestazione di una colonna (causale, movimenti, totale, gruppo…) le ordini per quella, e cliccandola di nuovo inverti l'ordine. Quelle senza gruppo nei grafici finiscono in "Altro" finché non gliene assegni uno: per trovarle tutte, scegli **senza gruppo** nel filtro **Gruppo**.
+
+**Trovare una causale**
+
+Quando le causali sono tante, usa i filtri sopra l'elenco:
+
+- **Cerca**: scrivi il codice (per esempio "4500") o una parola della descrizione (per esempio "carta");
+- **Gruppo**: mostra solo un gruppo, oppure solo le causali **senza gruppo**;
+- **Tipo** e **Spesa**: mostra solo un tipo, oppure solo le spese ricorrenti o variabili.
+
+**Azzera** li toglie tutti. I filtri guardano le scelte già salvate: una riga che stai modificando non sparisce finché non premi **Salva**.
+
+## Conti, preferenze e sicurezza {#impostazioni}
+
+**I conti**
+
+In [Impostazioni](app:impostazioni) trovi i conti importati. Il nome che scegli compare in tutto il programma; premi **Salva** dopo averlo cambiato.
+
+**I dati**
+
+Nel menu **Impostazioni > Dati** ci sono anche **Percorso dati**, che mostra dove sono i file del programma e apre le cartelle, e **Backup**, che crea una copia di sicurezza verificata: sono spiegati in [I tuoi dati](cap:dati).
+
+**Le preferenze generali**
+
+In [Generali](app:generali) (menu **Impostazioni > Preferenze > Generali**) puoi scegliere:
+
+- la **pagina iniziale**, quella che vedi dopo aver inserito la password: Home, Movimenti o Analisi;
+- il **conto** già scelto nei filtri di Movimenti e di Analisi, utile se hai più conti e ne guardi soprattutto uno;
+- il **periodo** proposto in Analisi e nella simulazione (per esempio gli ultimi 12 mesi completi, oppure l'anno più recente);
+- per quanto tempo tenere i **log**, da una settimana a un anno: i file più vecchi si cancellano da soli.
+
+Conto e periodo sono solo il punto di partenza: nelle pagine puoi sempre cambiarli.
+
+**L'aspetto**
+
+In [Aspetto](app:aspetto) (menu **Impostazioni > Preferenze > Aspetto**) puoi scegliere:
+
+- il **tema**: chiaro, scuro, oppure come Windows;
+- il **colore principale** dei pulsanti e dei menu;
+- lo **stile delle icone** e dei **pulsanti**;
+- la **dimensione** di tutto il programma, se i testi ti sembrano troppo piccoli o troppo grandi.
+
+Ogni scelta si applica subito e viene ricordata.
+
+**La sicurezza**
+
+In [Sicurezza](app:sicurezza) (menu **Impostazioni > Preferenze > Sicurezza**) puoi:
+
+- **cambiare la password**: scrivi quella attuale e due volte quella nuova (anche qui c'è **Suggerisci una frase**). Cambia solo il file `chiave.json`: i tuoi dati restano come sono e il codice di recupero continua a valere; dal prossimo avvio userai la password nuova. Attenzione alle copie di sicurezza fatte prima: contengono il `chiave.json` vecchio e si aprono con la password vecchia (vedi [I tuoi dati](cap:dati));
+- creare un **nuovo codice di recupero**, scrivendo la tua password. Serve se hai perso il codice, se non hai fatto in tempo ad annotarlo o se pensi che qualcuno l'abbia visto. Il codice nuovo si vede una volta sola, come il primo, e quello vecchio smette subito di valere;
+- scegliere dopo quanto tempo senza usarlo il programma si **blocca**: 5, 10, 15 (la scelta iniziale), 30 o 60 minuti, oppure mai. Bloccato, mostra solo la richiesta della password; quando la scrivi ritrovi tutto come l'avevi lasciato. Con il pulsante **Blocca adesso**, sotto la scelta dei minuti, o con la voce **Blocca** (il lucchetto) in fondo alla barra a sinistra, lo blocchi subito, per esempio prima di allontanarti dal computer.
+
+## Domande frequenti {#domande}
+
+**Mentre lo uso, il programma mi chiede di nuovo la password.**
+
+È il blocco per inattività: se per un po' non muovi il mouse e non scrivi nella finestra, il programma si blocca, così chi passa davanti al computer non vede i tuoi dati. Scrivi la password e ritrovi tutto com'era. Puoi allungare il tempo o spegnere il blocco in [Sicurezza](app:sicurezza).
+
+**Ho perso il codice di recupero, ma ricordo la password.**
+
+Apri il programma con la password e vai in [Sicurezza](app:sicurezza): con la password puoi creare un codice di recupero nuovo. Quello perso smette di valere.
+
+**Ho dimenticato la password. Cosa faccio?**
+
+Nella schermata della password clicca **Ho dimenticato la password** e scrivi il **codice di recupero** che hai ricevuto quando l'hai creata (maiuscole, spazi e trattini non contano). Poi scegli una password nuova: riceverai anche un codice di recupero nuovo, perché quello usato non vale più. Conserva il nuovo come il primo.
+
+Se non hai più nemmeno il codice, i dati non si possono aprire: ricomincia da una cartella nuova e importa di nuovo i file CBI scaricati dalla banca.
+
+**Ho sbagliato la password più volte e devo aspettare.**
+
+Dopo cinque tentativi sbagliati di fila il programma ti fa aspettare qualche secondo prima di riprovare, e l'attesa cresce se continui a sbagliare. Serve a scoraggiare chi prova a indovinarla sul tuo computer.
+
+**All'avvio un messaggio dice che il database è di una versione di prova precedente.**
+
+Le versioni di prova fino alla 0.9.2 non cifravano i dati, e questa versione non apre quei database. Cancella le cartelle **dati** e **log** che stanno accanto al programma (se dimentichi i log, li cancella il programma quando crei la password), avvialo di nuovo e crea la password; poi importa di nuovo i file CBI scaricati dalla banca. Movimenti e saldi tornano tutti; vanno rifatti a mano i movimenti straordinari, i gruppi di causali che avevi cambiato, i nomi dei conti e le scelte di [Aspetto](app:aspetto).
+
+**Ho importato due volte lo stesso file. È un problema?**
+
+No. I movimenti già presenti vengono riconosciuti e non si duplicano. Nel riepilogo li vedi come "già presenti".
+
+**Cosa sono le operazioni non ancora contabilizzate?**
+
+Sono pagamenti, di solito con la carta, che la banca ha già registrato ma non ancora completato. Se scarichi l'export proprio in quei giorni, la banca ne tiene conto nel saldo ma non li mette nel file. Il programma te lo segnala con un avviso e non perde niente: quei movimenti arriveranno con l'export successivo, quando la banca li avrà completati.
+
+**Perché il saldo nelle analisi è vuoto o parte da una certa data?**
+
+Il saldo si salva ogni volta che importi un file, per le giornate di quel file. Se vuoi lo storico completo, importa di nuovo anche i file più vecchi: i movimenti risulteranno "già presenti", ma i saldi verranno aggiunti.
+
+**Un movimento finisce nel gruppo sbagliato. Come lo correggo?**
+
+Il gruppo dipende dalla causale. Vai in [Gruppi di causali](app:gruppi), cerca la causale di quel movimento e cambiale gruppo. Attenzione: la modifica vale per tutti i movimenti con quella causale.
+
+Se invece è un solo movimento a fare eccezione, non serve cambiare il gruppo: dal menu **⋮** del movimento puoi sceglierne il tipo (per esempio Giroconto) o segnarlo come straordinario. Vedi [La pagina dei movimenti](cap:movimenti).
+
+**Il programma dice che l'ultimo movimento è vecchio.**
+
+È un promemoria: è passata più di una settimana dall'ultimo movimento importato. Scarica un export più recente dalla banca e importalo.
+
+## I tuoi dati {#dati}
+
+**Dove sono**
+
+Tutto è nella cartella del programma:
+
+- **dati**: contiene il file `easycashflow.db`, con movimenti, saldi, conti e gruppi; il file `chiave.json`, con la chiave del database protetta dalla password; il file `preferenze.json`, con le scelte di [Aspetto](app:aspetto) e i giorni di conservazione dei log (le altre preferenze stanno nel database cifrato);
+- **log**: il diario di quello che fa il programma, un file per giorno, che si cancella da solo dopo 60 giorni (puoi cambiarlo in [Generali](app:generali)).
+
+**Come sono protetti**
+
+Il file `easycashflow.db` contiene **tutti i dettagli dei tuoi movimenti**: importi, date, IBAN, nomi delle persone e delle aziende a cui hai pagato o da cui hai ricevuto soldi. Dalla versione 0.9.3 è **cifrato**: aperto con un altro programma, è solo una sequenza di byte senza senso.
+
+Il meccanismo è questo:
+
+1. quando crei la password, il programma genera una **chiave** a caso, lunga 256 bit: è quella che cifra il database. Non la scegli tu e non la vedi;
+2. la chiave viene salvata nel file **`chiave.json`**, accanto al database, ma **mai in chiaro**: il file la contiene due volte, una chiusa con la tua **password** e una chiusa con il **codice di recupero**. Né la password né il codice sono salvati da qualche parte;
+3. a ogni avvio scrivi la password: il programma la usa per riaprire la chiave in `chiave.json`, e con la chiave apre il database. Il passaggio dalla password alla chiave è volutamente lento (circa mezzo secondo) e usa molta memoria: per te è un attimo, ma chi volesse provare milioni di password per indovinare la tua impiegherebbe tantissimo;
+4. con il codice di recupero si riapre la seconda copia della chiave: per questo il codice apre i dati anche se dimentichi la password.
+
+Cambiare la password o il codice di recupero vuol dire richiudere la stessa chiave con il segreto nuovo: cambia solo `chiave.json`, il database resta com'è.
+
+**Perché la chiave sta in un file accanto ai dati**
+
+EasyCashFlow è *portable*: non si installa e funziona dalla cartella in cui lo metti. Si poteva affidare la chiave a Windows, che la terrebbe legata al tuo utente; ma allora i dati si aprirebbero solo su quel computer e con quell'utente, e una copia della cartella su un altro PC sarebbe inutilizzabile. Tenendo la chiave in `chiave.json`, chiusa con la password, la cartella si porta dove vuoi e si apre ovunque con la tua password.
+
+Il prezzo di questa scelta è che chi copia la cartella `dati` ha in mano sia il database sia `chiave.json`: a separarlo dai tuoi movimenti c'è **solo la password**. Per questo deve essere **robusta**: lunga, usata solo qui, impossibile da indovinare conoscendoti. Una password corta o comune si indovina con tanti tentativi fatti con calma su una copia, anche se ognuno costa tempo.
+
+**Mentre il programma è aperto**
+
+Quando scrivi la password la chiave viene riaperta e resta **nella memoria del computer** finché il programma è aperto e sbloccato: serve per leggere e scrivere i dati. Vuol dire che:
+
+- se qualcuno si avvicina allo schermo, clicca l'**occhio** accanto al punto di domanda in cima a ogni pagina, oppure premi **Ctrl+H**: tutti gli importi diventano **••••••**, in ogni pagina, nelle finestre e nei grafici (dove restano colonne e linee, ma non i numeri); i campi in cui si scrive un importo e le spiegazioni dei calcoli si sfocano. Cliccando di nuovo l'occhio, o con Ctrl+H, tornano visibili. La scelta resta anche alla prossima apertura del programma;
+- chi si siede al computer mentre il programma è aperto vede tutto, come lo vedi tu. Per questo il programma si **blocca da solo** dopo un po' che non lo usi e puoi bloccarlo subito con la voce **Blocca** (il lucchetto) in fondo alla barra a sinistra, oppure con il pulsante **Blocca adesso** in [Sicurezza](app:sicurezza): bloccato o chiuso, la chiave viene cancellata dalla memoria e serve di nuovo la password;
+- un programma malevolo (un virus) che gira sul tuo computer mentre EasyCashFlow è aperto potrebbe leggere la chiave o quello che vedi sullo schermo. Contro questo nessuna cifratura basta: tieni il computer aggiornato e con l'antivirus attivo.
+
+**Cosa non è cifrato**
+
+- i **file CBI** che scarichi dalla banca: restano in chiaro dove li hai salvati (vedi sotto);
+- il file `preferenze.json`: contiene solo le scelte di [Aspetto](app:aspetto) e i giorni dei log, che servono prima della password e non dicono niente dei tuoi soldi;
+- i **log**: non sono cifrati, ma non contengono i dati dei tuoi movimenti (vedi più avanti).
+
+**Dove mettere il programma**
+
+EasyCashFlow è *portable*: non si installa, funziona dalla cartella in cui lo metti. Per questo la scelta della cartella è importante:
+
+- mettilo in una cartella **del tuo utente di Windows**, per esempio dentro `Documenti`, a cui gli altri utenti del computer non possono accedere;
+- usa un utente di Windows **protetto da password**;
+- **non** metterlo in cartelle condivise in rete, su un computer usato da altri con il tuo stesso utente o su una chiavetta che presti;
+- **non** metterlo in una cartella sincronizzata con un servizio cloud **condiviso** con altre persone;
+- se il computer è portatile, è meglio che il disco sia cifrato (in Windows si chiama **BitLocker** o **Crittografia del dispositivo**): così, se il computer viene rubato, i dati restano illeggibili.
+
+**Fare una copia di sicurezza**
+
+Il modo più semplice è il menu **Impostazioni > Dati > [Backup](app:backup)**: premi **Crea un backup**, scegli la cartella e il programma crea un file come `EasyCashFlow-backup-2026-11-04-1530.zip`, con il database, il file `chiave.json` e le preferenze. Subito dopo lo rilegge e controlla che si apra e contenga tutti i movimenti. La pagina ricorda anche quando hai fatto l'ultimo backup e propone la stessa cartella.
+
+Puoi anche farla a mano: chiudi il programma e copia **l'intera cartella `dati`**. In tutti e due i casi il database da solo non basta, perché senza il file `chiave.json` che gli sta accanto non si apre più, nemmeno con la password giusta.
+
+Vale la stessa attenzione di sopra: la copia è cifrata, ma contiene tutti i tuoi movimenti e si apre con la tua password, quindi mettila **fuori da questo computer**, su una chiavetta o in uno spazio cloud **personale**. Per tornare indietro: chiudi il programma, metti i file della copia (estratti dallo zip) nella cartella `dati` accanto al programma, sostituendo quelli che ci sono, e riavvialo. **Attenzione:** i dati attuali vengono sovrascritti con quelli della copia, quindi quello che hai fatto dopo il backup (movimenti importati, nomi, gruppi) va rifatto.
+
+Ricorda che una copia si apre con la password che valeva **quando l'hai fatta**: se poi cambi la password, la copia vecchia continua ad aprirsi con quella vecchia. Se hai cambiato la password perché temevi che qualcuno la conoscesse, cancella le copie fatte prima e fanne una nuova.
+
+Quando non ti serve più un file CBI scaricato dalla banca, cancellalo o mettilo nello stesso posto sicuro: contiene gli stessi dati.
+
+**Dove trovarli**
+
+Il menu **Impostazioni > Dati > [Percorso dati](app:percorso)** mostra dove sono la cartella del programma, i file della cartella `dati` con le dimensioni e i log, con un pulsante per aprire ciascuna cartella. Anche il menu **Aiuto > Informazioni su EasyCashFlow** mostra dove sono la cartella del programma, il database e i log, con un pulsante per aprire ciascuna cartella. Mostra anche la **versione** del programma e la data in cui è stato preparato: indicale se chiedi aiuto a qualcuno.
+
+**Il log**
+
+Se qualcosa non va come ti aspetti, il log aiuta a capire cosa è successo. Dall'icona del **Log** in alto a destra (il foglio, con il suggerimento "Log") puoi aprire il file di oggi o la cartella. Lascia il livello su **Normale**, a meno che non ti venga chiesto di cambiarlo per cercare un problema.
+
+Dalla versione 0.9.3 il log **non contiene più i dati dei tuoi movimenti**: restano le date, i codici delle causali e i numeri che servono a capire un problema, ma gli importi diventano per esempio `-#.###,##`, le descrizioni `[34 car. #a3f9]` (quanti caratteri e un codice che non permette di risalire al testo) e del conto e dell'IBAN si vedono solo le ultime quattro cifre. Così puoi mandare un file di log a chi ti aiuta senza consegnargli i tuoi movimenti.
+
+**Uscire**
+
+Per chiudere il programma usa **Esci** nella barra a sinistra, oppure la X della finestra: ti verrà chiesta una conferma. Non c'è niente da salvare: ogni modifica è salvata nel momento in cui la fai.

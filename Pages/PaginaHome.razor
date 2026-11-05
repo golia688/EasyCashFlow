@@ -1,0 +1,551 @@
+﻿@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject DatabaseService Database
+@inject AnalisiService Analisi
+@inject ImportazioneService Importazione
+@inject ImpostazioniService Impostazioni
+@inject PreferenzeService Preferenze
+@inject IDialogService Dialoghi
+@inject ISnackbar Snackbar
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+    <MudText Typo="Typo.h4">Home</MudText>
+    <AiutoManuale Capitolo="home" />
+    @* con più conti si sceglie su quali ragiona la Home (il saldo, il mese, gli ultimi movimenti); la
+       scelta si salva (PreferenzeService). Riepilogo del database e ultima importazione restano generali *@
+    @if (_conti.Count > 1)
+    {
+        <MudSpacer />
+        <div style="min-width: 280px;">
+            <MudSelect T="string" Label="Conti" SelectedValues="_contiScelti" SelectedValuesChanged="CambiaConti"
+                       MultiSelection="true" SelectAll="true" SelectAllText="Tutti" Clearable="true"
+                       MultiSelectionTextFunc="TestoConti" Placeholder="Tutti i conti"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var c in _conti)
+                {
+                    <MudSelectItem T="string" Value="@c.Codice">@c.Nome</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    }
+</MudStack>
+
+@* Guida dei primi passi: ogni passo si spunta da solo leggendo il database, e la guida sparisce
+   quando sono tutti fatti. Ricompare se un'importazione porta un conto o una causale nuovi. *@
+@if (!TuttoFatto)
+{
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">Primi passi</MudText>
+        <MudText Typo="Typo.body2" Class="mt-1 mb-2 mud-text-secondary">
+            Tre passi per avere movimenti e analisi pronti. Ognuno si segna come fatto da solo.
+        </MudText>
+
+        @Passo(1, "Importa il primo file CBI",
+            "Scarica dall'home banking l'export \"Saldi e movimenti\" in formato CBI e importalo. "
+            + "Puoi importare più file, anche con periodi sovrapposti: i movimenti già presenti non si duplicano.",
+            _ciSonoMovimenti, _ciSonoMovimenti ? "Movimenti importati" : null,
+            "Importa file CBI", Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile)), Importa)
+
+        @Passo(2, "Dai un nome ai conti",
+            "Ogni conto si registra da solo con un nome provvisorio, come \"ABI 12345 - c/c ...6789\". "
+            + "Dagli un nome che riconosci: compare nelle griglie e nei filtri.",
+            _ciSonoMovimenti && _contiProvvisori == 0,
+            _contiProvvisori > 0 ? $"{_contiProvvisori} {(_contiProvvisori == 1 ? "conto ha" : "conti hanno")} ancora il nome provvisorio" : null,
+            "Vai ai conti", Impostazioni.Icona(nameof(Icons.Material.Filled.AccountBalance)), () => ApriConti.InvokeAsync())
+
+        @Passo(3, "Controlla i gruppi di causali",
+            "Nelle analisi i movimenti si raggruppano per causale. Le causali più comuni hanno già un gruppo; "
+            + "quelle senza gruppo finiscono in \"Altro\" finché non gliene assegni uno.",
+            _ciSonoMovimenti && _stat.CausaliSenzaGruppo == 0,
+            _stat.CausaliSenzaGruppo > 0 ? $"{_stat.CausaliSenzaGruppo} {(_stat.CausaliSenzaGruppo == 1 ? "causale è" : "causali sono")} senza gruppo" : null,
+            "Vai ai gruppi", Impostazioni.Icona(nameof(Icons.Material.Filled.Category)), () => ApriGruppi.InvokeAsync())
+    </MudPaper>
+}
+
+@if (_ciSonoMovimenti && _stat.Intervallo is { } intervallo)
+{
+    @if (_giorniDallUltimo > GiorniPromemoria)
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4" Dense="true"
+                  Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Update))">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                <span>
+                    L'ultimo movimento è del @intervallo.Ultima.ToString("dd/MM/yyyy"), @_giorniDallUltimo giorni fa:
+                    importa un export più recente per tenere aggiornate le analisi.
+                </span>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary" OnClick="Importa">Importa</MudButton>
+            </MudStack>
+        </MudAlert>
+    }
+
+    <MudGrid Spacing="4" Class="mt-0">
+        @* il conto oggi: saldo più recente e andamento del periodo scelto (Dashboard > Scegli periodo) *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 mt-4 riquadro" Elevation="1">
+                <MudText Typo="Typo.h6">@(ContiMostrati.Count > 1 ? "I conti oggi" : "Il conto oggi")</MudText>
+                @if (_saldo.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        Nessun saldo salvato negli ultimi @TestoGiorni: importa di nuovo i file CBI per aggiungerli.
+                    </MudText>
+                }
+                else
+                {
+                    @* con più conti: il saldo di ciascuno e poi il totale, così la somma non è nascosta *@
+                    @if (_saldiPerConto.Count > 1)
+                    {
+                        <div class="saldi-conti mt-2">
+                            @foreach (var (nome, punto) in _saldiPerConto)
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@nome</MudText>
+                                <MudText Typo="Typo.body1" Align="Align.Right" Class="importo" Color="@(punto is { } p1 ? ColoreSegno(p1.Saldo) : Color.Default)">
+                                    @(punto is { } p2 ? Euro(p2.Saldo) : "–")
+                                </MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@(punto is { } p3 ? $"al {p3.Data:dd/MM/yyyy}" : "nessun saldo")</MudText>
+                            }
+                        </div>
+                        <MudDivider Class="my-1" />
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Baseline" Spacing="3" Class="mt-1" Wrap="Wrap.Wrap">
+                        <MudText Typo="Typo.h4" Class="importo" Color="@ColoreSegno(_saldo[^1].Saldo)">@Euro(_saldo[^1].Saldo)</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            @(_saldiPerConto.Count > 1 ? "totale" : "saldo") al @_saldo[^1].Data.ToString("dd/MM/yyyy")
+                        </MudText>
+                    </MudStack>
+                    @if (_variazione is { } v)
+                    {
+                        <MudText Typo="Typo.body2" Color="@(v < 0 ? Color.Error : Color.Success)">
+                            <span class="importo">@Euro(v, segno: true)</span> negli ultimi @TestoGiorni
+                        </MudText>
+                    }
+                    <Grafico Opzioni="_opzioniSaldo" Altezza="90px" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Andamento degli ultimi @TestoGiorni</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* il mese dell'ultimo movimento, a confronto con la media del periodo scelto (Dashboard > Scegli periodo) *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4 mt-4 riquadro cliccabile" Elevation="1" @onclick="ApriUltimoMese">
+                @{ var ultimaDelMese = _meseUltimo?.Al ?? intervallo.Ultima; }
+                <MudText Typo="Typo.h6">@NomeMese(ultimaDelMese)</MudText>
+                @if (ultimaDelMese.Day < DateTime.DaysInMonth(ultimaDelMese.Year, ultimaDelMese.Month))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        mese in corso, movimenti fino al @ultimaDelMese.ToString("dd/MM")
+                    </MudText>
+                }
+                @* una tabella a tre colonne, ciascuna con la sua intestazione e a destra, ben separate: il valore
+                   del mese e la media non si confondono. Entrate in verde, uscite in rosso, flusso netto secondo
+                   il segno; la media con gli stessi colori, più piccola *@
+                @if (_mese is { } m)
+                {
+                    <div class="confronto mt-3">
+                        <span></span>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary" Align="Align.Right">questo mese</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary" Align="Align.Right">
+                            media al mese, @Preferenze.MediaHome.Replace("Ultimi ", "")
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Entrate</MudText>
+                        <MudText Typo="Typo.h6" Align="Align.Right" Class="importo" Color="Color.Success">@Euro(m.Entrate)</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Right" Class="importo" Color="Color.Success">@Media(a => a.Entrate)</MudText>
+
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Uscite</MudText>
+                        <MudText Typo="Typo.h6" Align="Align.Right" Class="importo" Color="Color.Error">@Euro(m.Uscite)</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Right" Class="importo" Color="Color.Error">@Media(a => a.Uscite)</MudText>
+
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Flusso netto</MudText>
+                        <MudText Typo="Typo.h6" Align="Align.Right" Class="importo" Color="@ColoreSegno(m.Netto)">@Euro(m.Netto, segno: true)</MudText>
+                        <MudText Typo="Typo.body1" Align="Align.Right" Class="importo" Color="@(_media is { } a ? ColoreSegno(a.Netto) : Color.Default)">@Media(a => a.Netto, segno: true)</MudText>
+                    </div>
+                }
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Clicca per aprire l'analisi del mese.</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* i numeri del database *@
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6">I dati nel database</MudText>
+        <div class="numeri mt-3">
+            @Numero("Movimenti", _stat.Movimenti, $"dal {intervallo.Prima:dd/MM/yyyy} al {intervallo.Ultima:dd/MM/yyyy}", () => ApriMovimenti.InvokeAsync())
+            @Numero("Importazioni", _stat.Importazioni,
+                _stat.Importazioni == 0 ? "nessuna registrata"
+                : $"{_stat.FileImportati} {(_stat.FileImportati == 1 ? "file" : "file diversi")}, l'ultima il {_stat.UltimaImportazione!.ImportatoIl:dd/MM/yyyy}", null)
+            @Numero("Conti", _stat.Conti, _stat.Conti == 1 ? "conto corrente" : "conti correnti", () => ApriConti.InvokeAsync())
+            @Numero("Causali", _stat.Causali,
+                _stat.CausaliSenzaGruppo == 0 ? "tutte con un gruppo" : $"{_stat.CausaliSenzaGruppo} senza gruppo", () => ApriGruppi.InvokeAsync())
+            @Numero("Gruppi", _stat.Gruppi,
+                _stat.GruppiInvestimento > 0 ? $"di cui {_stat.GruppiInvestimento} di investimento" : "di causali", () => ApriGruppi.InvokeAsync())
+            @Numero("Giornate di saldo", _stat.GiornateSaldo, "saldi giornalieri salvati", null)
+            @Numero("Movimenti scartati", _stat.Scartati,
+                _stat.Scartati == 0 ? "nessuno" : "da controllare", _stat.Scartati > 0 ? () => ApriScarti.InvokeAsync() : null)
+        </div>
+    </MudPaper>
+
+    <MudGrid Spacing="4" Class="mt-0">
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4 mt-4 riquadro" Elevation="1">
+                <MudText Typo="Typo.h6">Ultima importazione</MudText>
+                @if (_stat.UltimaImportazione is not { } u)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                        Nessuna importazione registrata: comparirà qui la prossima.
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body1" Class="mt-2" Style="word-break: break-all;">@u.NomeFile</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        il @u.ImportatoIl.ToString("dd/MM/yyyy 'alle' HH:mm")
+                        @(u.Dal is { } dal && u.Al is { } al ? $" · giornate dal {dal:dd/MM/yyyy} al {al:dd/MM/yyyy}" : " · recuperata dal log")
+                    </MudText>
+                    <div class="esito mt-3">
+                        <div><MudText Typo="Typo.h6">@u.Letti</MudText><MudText Typo="Typo.caption" Class="mud-text-secondary">letti</MudText></div>
+                        <div><MudText Typo="Typo.h6" Color="Color.Success">@u.Inseriti</MudText><MudText Typo="Typo.caption" Class="mud-text-secondary">inseriti</MudText></div>
+                        <div><MudText Typo="Typo.h6">@u.GiaPresenti</MudText><MudText Typo="Typo.caption" Class="mud-text-secondary">già presenti</MudText></div>
+                        <div><MudText Typo="Typo.h6" Color="@(u.Scartati - u.GiaPresenti > 0 ? Color.Warning : Color.Default)">@(u.Scartati - u.GiaPresenti)</MudText><MudText Typo="Typo.caption" Class="mud-text-secondary">scartati</MudText></div>
+                    </div>
+                    @if (u.Avvisi > 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Warning" Class="mt-2">
+                            @u.Avvisi @(u.Avvisi == 1 ? "avviso" : "avvisi") durante l'importazione: i dettagli sono nel log.
+                        </MudText>
+                    }
+                }
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3"
+                           StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))" OnClick="Importa">Importa file CBI</MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4 mt-4 riquadro" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">Ultimi movimenti</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                               OnClick="() => ApriMovimenti.InvokeAsync()">Vedi tutti</MudButton>
+                </MudStack>
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <tbody>
+                        @foreach (var mov in _ultimi)
+                        {
+                            <tr>
+                                <td style="white-space: nowrap;">@mov.DataContabile.ToString("dd/MM/yyyy")</td>
+                                @if (ContiMostrati.Count > 1)
+                                {
+                                    <td class="mud-text-secondary" style="white-space: nowrap;">@NomeConto(mov.Conto)</td>
+                                }
+                                <td>@(mov.DescrizioneEstesa != "" ? mov.DescrizioneEstesa : mov.DescrizioneBreve)</td>
+                                <td style="text-align: right; white-space: nowrap;">
+                                    <MudText Typo="Typo.body2" Class="importo" Color="@(mov.Importo < 0 ? Color.Error : Color.Success)">@mov.Importo.ToString("N2", Italiano)</MudText>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<style>
+    .passo {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        padding: 16px 0;
+    }
+
+    .passo + .passo {
+        border-top: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .numero-passo {
+        flex: 0 0 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 500;
+        border: 2px solid var(--mud-palette-primary);
+        color: var(--mud-palette-primary);
+    }
+
+    .numero-passo.fatto {
+        background-color: var(--mud-palette-success);
+        border-color: var(--mud-palette-success);
+        color: var(--mud-palette-success-text);
+    }
+
+    .riquadro {
+        height: calc(100% - 16px);
+    }
+
+    .cliccabile {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .cliccabile:hover {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    .confronto {
+        display: grid;
+        /* le etichette prendono lo spazio libero e le due colonne degli importi stanno a destra, ciascuna
+           allineata sotto la sua intestazione e separata dall'altra da un ampio spazio */
+        grid-template-columns: 1fr max-content max-content;
+        column-gap: 64px;
+        row-gap: 6px;
+        align-items: baseline;
+        margin-bottom: 8px;
+    }
+
+    .saldi-conti {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        column-gap: 16px;
+        row-gap: 2px;
+        align-items: baseline;
+    }
+
+    .numeri {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 12px;
+    }
+
+    .numero {
+        padding: 12px;
+        border-radius: 8px;
+        background-color: var(--mud-palette-background);
+    }
+
+    .esito {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+</style>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    // oltre questi giorni dall'ultimo movimento compare il promemoria di importare un export nuovo
+    private const int GiorniPromemoria = 7;
+
+    [CascadingParameter(Name = "TemaScuro")] public bool TemaScuro { get; set; }
+    [Parameter] public EventCallback ApriConti { get; set; }
+    [Parameter] public EventCallback ApriGruppi { get; set; }
+    [Parameter] public EventCallback ApriAnalisi { get; set; }
+    [Parameter] public EventCallback ApriMovimenti { get; set; }
+    [Parameter] public EventCallback ApriScarti { get; set; }
+
+    private StatisticheDatabase _stat = default!;
+    private bool _ciSonoMovimenti;
+    private int _contiProvvisori;
+    private int _giorniDallUltimo;
+    private IndicatoriPeriodo? _mese;
+    private IndicatoriPeriodo? _media;
+    private List<PuntoSaldo> _saldo = [];
+    private decimal? _variazione;      // del saldo, sul periodo del grafico
+    private PeriodoAnalisi? _meseUltimo;
+
+    // i conti su cui ragiona la Home: nessuno = tutti
+    private List<ContoCorrente> _conti = [];
+    private IReadOnlyCollection<string> _contiScelti = [];
+    private List<(string Nome, PuntoSaldo? Saldo)> _saldiPerConto = [];
+
+    private List<ContoCorrente> ContiMostrati =>
+        _contiScelti.Count == 0 ? _conti : _conti.Where(c => _contiScelti.Contains(c.Codice)).ToList();
+    private List<MovimentoCbi> _ultimi = [];
+    private object _opzioniSaldo = new();
+    private bool? _temaDelleOpzioni;
+
+    private bool TuttoFatto => _ciSonoMovimenti && _contiProvvisori == 0 && _stat.CausaliSenzaGruppo == 0;
+
+    protected override void OnInitialized()
+    {
+        Carica();
+        Importazione.ImportCompletato += OnImportCompletato;
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_temaDelleOpzioni != TemaScuro)
+            CostruisciOpzioni();
+    }
+
+    private void Carica()
+    {
+        _stat = Database.Statistiche();
+        CaricaConti();
+        _ciSonoMovimenti = _stat.Movimenti > 0;
+        _contiProvvisori = Database.ElencoConti().Count(c => c.Nome == ContoCorrente.NomeProvvisorio(c.Codice));
+        if (_stat.Intervallo is not { } intervallo) return;
+
+        var oggi = DateOnly.FromDateTime(DateTime.Today);
+        _giorniDallUltimo = oggi.DayNumber - intervallo.Ultima.DayNumber;
+
+        // i conti scelti in cima alla pagina (nessuno = tutti). La media è quella scelta in Dashboard >
+        // Scegli periodo; senza mesi completi (dati tutti nel mese in corso) non c'è. Il mese è quello
+        // dell'ultimo movimento dei conti scelti, che possono essere aggiornati a date diverse
+        _meseUltimo = Analisi.MeseUltimoMovimento(_contiScelti);
+        _mese = _meseUltimo is { } mese ? Analisi.Calcola(mese, _contiScelti).Indicatori : null;
+        _media = Analisi.Periodi().FirstOrDefault(p => p.Nome == Preferenze.MediaHome) is { } media
+            ? Analisi.Calcola(media, _contiScelti).Indicatori
+            : null;
+
+        // fino a oggi e non all'ultimo movimento: i saldi possono arrivare a giorni senza movimenti
+        var giorni = Preferenze.GiorniSaldoHome;
+        _saldo = Analisi.Calcola(new PeriodoAnalisi($"Ultimi {giorni} giorni", Indietro(oggi, giorni).AddDays(1), oggi), _contiScelti).Saldo.ToList();
+        _saldiPerConto = ContiMostrati.Select(c => (c.Nome, Analisi.UltimoSaldo(c.Codice, oggi))).ToList();
+        _variazione = null;
+        if (_saldo.Count > 1)
+        {
+            var ultimo = _saldo[^1];
+            var prima = _saldo.LastOrDefault(p => p.Data <= Indietro(ultimo.Data, giorni));
+            if (prima is not null)
+                _variazione = ultimo.Saldo - prima.Saldo;
+        }
+
+        _ultimi = Database.UltimiMovimenti(8, _contiScelti);
+        CostruisciOpzioni();
+    }
+
+    private void CostruisciOpzioni()
+    {
+        _temaDelleOpzioni = TemaScuro;
+        _opzioniSaldo = OpzioniGrafici.SaldoMini(_saldo, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale));
+    }
+
+    private async Task Importa()
+    {
+        if (await DialogoImportazione.ApriAsync(Dialoghi))
+            await ApriScarti.InvokeAsync();
+    }
+
+    private Task ApriUltimoMese()
+    {
+        // il mese in corso non è nell'elenco dei periodi (sono a mesi completi): si apre con le sue date
+        // e con i conti scelti qui
+        if (_meseUltimo is { } mese)
+        {
+            Analisi.ScegliDate(mese.Dal, mese.Al);
+            Analisi.ContiScelti = _contiScelti;
+        }
+        return ApriAnalisi.InvokeAsync();
+    }
+
+    private void OnImportCompletato(EsitoImportazione esito) => _ = InvokeAsync(() =>
+    {
+        Carica();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Importazione.ImportCompletato -= OnImportCompletato;
+
+    // 6 e 12 mesi sono mesi di calendario, non 180 e 365 giorni
+    private static DateOnly Indietro(DateOnly data, int giorni) => giorni switch
+    {
+        180 => data.AddMonths(-6),
+        365 => data.AddMonths(-12),
+        _ => data.AddDays(-giorni)
+    };
+
+    private string TestoGiorni => DialogoPeriodoHome.TestoGiorni(Preferenze.GiorniSaldoHome);
+
+    private static Color ColoreSegno(decimal valore) => valore < 0 ? Color.Error : Color.Success;
+
+    // La scelta salvata, senza i conti che non ci sono più; mai scelta: il conto predefinito di Generali
+    // (se non c'è, tutti). Con un solo conto non c'è niente da scegliere.
+    private void CaricaConti()
+    {
+        _conti = Database.ElencoConti();
+        var salvati = Preferenze.ContiHome;
+        _contiScelti = salvati is null
+            ? Analisi.ContiPredefiniti()
+            : salvati.Where(c => _conti.Any(x => x.Codice == c)).ToList();
+        if (_conti.Count <= 1) _contiScelti = [];
+    }
+
+    private void CambiaConti(IReadOnlyCollection<string> conti)
+    {
+        // tutti spuntati = nessun filtro: un conto importato dopo entra da solo
+        _contiScelti = conti.Count == _conti.Count ? [] : conti.ToList();
+        Preferenze.ImpostaContiHome(_contiScelti);
+        Carica();
+    }
+
+    private string NomeConto(string codice) => _conti.FirstOrDefault(c => c.Codice == codice)?.Nome ?? codice;
+
+    private string TestoConti(IReadOnlyList<string> scelti) =>
+        scelti.Count <= 2 ? string.Join(", ", scelti.Select(NomeConto)) : $"{scelti.Count} conti selezionati";
+
+    // la media al mese del periodo di confronto; "–" se non c'è (nessun mese completo)
+    private string Media(Func<IndicatoriPeriodo, decimal> valore, bool segno = false) =>
+        _media is { Mesi: > 0 } a ? Euro(valore(a) / a.Mesi, segno) : "–";
+
+    /// <summary>Dashboard > Aggiorna: rilegge tutto dal database (e la data di oggi, per il promemoria e il saldo).</summary>
+    public void Aggiorna()
+    {
+        Carica();
+        StateHasChanged();
+        Snackbar.Add("Dashboard aggiornata.", Severity.Success);
+    }
+
+    /// <summary>Dashboard > Scegli periodo: le scelte si salvano nella finestra; qui si ricalcola.</summary>
+    public async Task ScegliPeriodoAsync()
+    {
+        var dialogo = await Dialoghi.ShowAsync<DialogoPeriodoHome>("Periodo della dashboard",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true, CloseButton = true });
+        await dialogo.Result;
+        Carica();
+        StateHasChanged();
+    }
+
+    private static string NomeMese(DateOnly data) =>
+        Italiano.TextInfo.ToTitleCase(data.ToString("MMMM yyyy", Italiano));
+
+    private static string Euro(decimal valore, bool segno = false) =>
+        (segno && valore > 0 ? "+" : "") + valore.ToString("C2", Italiano);
+
+    // Un numero del riquadro "I dati nel database"; se ha un'azione, cliccandolo porta alla pagina relativa.
+    private RenderFragment Numero(string titolo, int valore, string nota, Func<Task>? azione) =>
+        @<div class="numero @(azione is not null ? "cliccabile" : null)" @onclick="@(azione ?? (() => Task.CompletedTask))">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@titolo</MudText>
+            <MudText Typo="Typo.h5">@valore.ToString("N0", Italiano)</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@nota</MudText>
+        </div>;
+
+    // Un passo della guida: numero (o spunta se fatto), titolo, spiegazione, stato e pulsante.
+    private RenderFragment Passo(int numero, string titolo, string spiegazione, bool fatto, string? stato,
+                                 string testoPulsante, string icona, Func<Task> azione) =>
+        @<div class="passo">
+            <div class="numero-passo @(fatto ? "fatto" : null)">
+                @if (fatto)
+                {
+                    <MudIcon Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Check))" Size="Size.Small" />
+                }
+                else
+                {
+                    @numero
+                }
+            </div>
+            <div style="flex: 1;">
+                <MudText Typo="Typo.subtitle1">@titolo</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@spiegazione</MudText>
+                @if (stato is not null)
+                {
+                    <MudText Typo="Typo.body2" Color="@(fatto ? Color.Success : Color.Warning)" Class="mt-1">@stato</MudText>
+                }
+            </div>
+            <MudButton Variant="@(fatto ? Variant.Text : Variant.Outlined)" Color="Color.Primary" StartIcon="@icona"
+                       OnClick="azione">@testoPulsante</MudButton>
+        </div>;
+}

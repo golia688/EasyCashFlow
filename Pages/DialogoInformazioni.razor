@@ -1,0 +1,128 @@
+@using System.Diagnostics
+@using System.IO
+@using System.Reflection
+@using System.Runtime.InteropServices
+@using MudBlazor
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+@inject LogService Log
+@inject ManualeService Manuale
+@inject ImpostazioniService Impostazioni
+
+@* Aiuto > Informazioni su EasyCashFlow: nome, versione, dove sono i dati, e il richiamo alla loro protezione. *@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+            <img src="img/easycashflow.png" alt="" width="48" height="48" />
+            <div>
+                <MudText Typo="Typo.h6">EasyCashFlow</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Versione @Versione · in prova@(DataBuild is null ? "" : $" · build del {DataBuild}")
+                </MudText>
+            </div>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Analisi del cash flow del conto corrente a partire dagli export CBI della banca.
+            Funziona senza internet: i dati restano su questo computer.
+        </MudText>
+
+        <MudSimpleTable Dense="true" Elevation="0" Class="informazioni">
+            <tbody>
+                <tr>
+                    <td class="mud-text-secondary">Programma</td>
+                    <td>@AppContext.BaseDirectory.TrimEnd('\\')</td>
+                    <td>@Apri(AppContext.BaseDirectory)</td>
+                </tr>
+                <tr>
+                    <td class="mud-text-secondary">Database</td>
+                    <td>@Database.Percorso <span class="mud-text-secondary">(@Dimensione(Database.Percorso))</span></td>
+                    <td>@Apri(Path.GetDirectoryName(Database.Percorso)!)</td>
+                </tr>
+                <tr>
+                    <td class="mud-text-secondary">Log</td>
+                    <td>@Log.Cartella</td>
+                    <td>@Apri(Log.Cartella)</td>
+                </tr>
+                <tr>
+                    <td class="mud-text-secondary">Ambiente</td>
+                    <td colspan="2">@RuntimeInformation.FrameworkDescription, @RuntimeInformation.OSDescription</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4">
+            Il database è cifrato con la tua password e nei log importi, descrizioni e IBAN sono mascherati.
+            Restano in chiaro i file CBI che scarichi dalla banca.
+            <MudLink OnClick="ApriManualeDati" Typo="Typo.body2" Underline="Underline.Always">Leggi come sono protetti</MudLink>
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialogo.Close()">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .informazioni td {
+        vertical-align: middle;
+        word-break: break-all;
+    }
+
+    .informazioni td:first-child {
+        white-space: nowrap;
+        word-break: normal;
+    }
+</style>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    // la versione leggibile è "0.9.0+build.20261031.2234": qui serve solo la parte decisa a mano
+    private static readonly string Versione =
+        (typeof(DialogoInformazioni).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+         ?? "sconosciuta").Split('+')[0];
+
+    // data e ora della build, scritte automaticamente dal .csproj (attributo DataBuild)
+    private static readonly string? DataBuild =
+        typeof(DialogoInformazioni).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "DataBuild")?.Value is { } testo
+        && DateTime.TryParseExact(testo, "yyyy-MM-ddTHH:mm", System.Globalization.CultureInfo.InvariantCulture,
+                                  System.Globalization.DateTimeStyles.None, out var data)
+            ? data.ToString("dd/MM/yyyy HH:mm")
+            : null;
+
+    private static string Dimensione(string percorso)
+    {
+        var file = new FileInfo(percorso);
+        if (!file.Exists) return "non ancora creato";
+        return file.Length >= 1024 * 1024
+            ? $"{file.Length / 1024.0 / 1024.0:N1} MB"
+            : $"{file.Length / 1024.0:N0} KB";
+    }
+
+    // pulsante "apri la cartella in Esplora file"
+    private RenderFragment Apri(string cartella) =>
+        @<MudTooltip Text="Apri in Esplora file">
+            <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FolderOpen))" Size="Size.Small"
+                           OnClick="() => ApriCartella(cartella)" />
+        </MudTooltip>;
+
+    private void ApriCartella(string cartella)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = cartella, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Log.Errore($"Impossibile aprire la cartella {Mascherato.Percorso(cartella)}", ex);
+        }
+    }
+
+    private void ApriManualeDati()
+    {
+        Dialogo.Close();
+        Manuale.Apri("dati");
+    }
+}

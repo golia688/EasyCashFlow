@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+
+    <!-- Versione: si cambia solo Version, gli altri numeri ne derivano. 0.x = ancora in prova. -->
+    <Version>0.9.5</Version>
+    <AssemblyVersion>$(Version).0</AssemblyVersion>
+    <FileVersion>$(Version).0</FileVersion>
+    <!-- Data e ora della build, automatiche: distinguono due compilazioni con la stessa versione.
+         Nella versione leggibile vanno dopo il "+", come prevede il formato (Proprietà > Dettagli
+         dell'eseguibile mostra per esempio 0.9.0+build.20261031.2234); Aiuto > Informazioni le legge
+         dall'attributo DataBuild. Nota: se nessun file è cambiato, Visual Studio salta la build e la
+         data resta quella dell'ultima compilazione vera. -->
+    <DataBuild>$([System.DateTime]::Now.ToString("yyyy-MM-ddTHH:mm"))</DataBuild>
+    <InformationalVersion>$(Version)+build.$([System.DateTime]::Now.ToString("yyyyMMdd.HHmm"))</InformationalVersion>
+    <!-- senza questa riga .NET aggiunge alla versione leggibile il codice del commit, se c'è un repository git -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>EasyCashFlow</Product>
+    <Description>Analisi del cash flow del conto corrente dagli export CBI</Description>
+
+    <!-- solo le traduzioni italiane dei messaggi di sistema di WPF e .NET: senza questa riga la
+         pubblicazione include 13 cartelle di lingue (cs, de, es, ...), circa 9 MB inutili -->
+    <SatelliteResourceLanguages>it</SatelliteResourceLanguages>
+
+    <!-- icona dell'eseguibile: Esplora file e barra delle applicazioni -->
+    <ApplicationIcon>Assets\easycashflow.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
+    <PackageReference Include="Markdig" Version="1.5.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.120" />
+    <!-- SQLite con la cifratura (SQLite3 Multiple Ciphers, formato SQLCipher 4): il motore lo porta il bundle,
+         Microsoft.Data.Sqlite.Core non ne include uno. Vedi docs/07-sicurezza.md, sezione 2. -->
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.13" />
+    <PackageReference Include="SQLite3MC.PCLRaw.bundle" Version="2.6.1" />
+    <!-- Argon2id, per ricavare dalla password la chiave che protegge quella del database -->
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <PackageReference Include="MudBlazor" Version="9.11.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- il manuale utente, letto da ManualeService -->
+    <EmbeddedResource Include="Manuale\manuale.md" LogicalName="EasyCashFlow.manuale.md" />
+    <!-- [assembly: AssemblyMetadata("DataBuild", "...")], letto da DialogoInformazioni -->
+    <AssemblyMetadata Include="DataBuild" Value="$(DataBuild)" />
+    <!-- icona della finestra (barra del titolo), letta da MainWindow.xaml -->
+    <Resource Include="Assets\easycashflow.ico" />
+    <Resource Include="Assets\easycashflow.png" />
+    <!-- istruzioni per chi riceve il programma: solo nella cartella pubblicata, accanto all'eseguibile -->
+    <None Include="Distribuzione\LEGGIMI.txt" Link="LEGGIMI.txt"
+          CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
+    <None Include="Distribuzione\NOVITA.txt" Link="NOVITA.txt"
+          CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="docs\" />
+  </ItemGroup>
+
+</Project>

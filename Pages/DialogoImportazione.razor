@@ -1,0 +1,277 @@
+@using System.Text.RegularExpressions
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject ImportazioneService Importazione
+@inject DatabaseService Database
+@inject ImpostazioniService Impostazioni
+@inject LogService Log
+
+@* Importa file CBI: la finestra si apre subito, chiede il file, mostra la barra di caricamento mentre
+   importa e alla fine il riepilogo, con gli avvisi raggruppati per tipo e il pulsante per aprire il log.
+   Fino al 05/11 l'esito arrivava come notifiche (snackbar), una per avviso da chiudere a mano: con un file
+   del tester erano 183. Si apre con ApriAsync, da qualunque punto si importi. *@
+<MudDialog>
+    <DialogContent>
+        @if (_esito is null)
+        {
+            <AttesaCalcolo Testo="@(_nomeFile is null ? "Scegli il file CBI scaricato dalla banca…" : $"Importazione di {_nomeFile} in corso…")" />
+        }
+        else if (_esito.Errore is { } errore)
+        {
+            <MudAlert Severity="Severity.Error">
+                <b>@_esito.NomeFile</b>: @errore Non è stato caricato nessun movimento.
+            </MudAlert>
+            <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">
+                I dettagli sono nel log (@_esito.FileLog). Se il file è davvero un export CBI, mandalo insieme al log a chi
+                ti ha dato il programma.
+            </MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="riepilogo-importazione">
+                <tbody>
+                    <tr><td>File</td><td><b>@_esito.NomeFile</b></td></tr>
+                    <tr>
+                        <td>Giornate nel file</td>
+                        <td>
+                            @_esito.Giornate.ToString("N0")
+                            @if (_esito.Dal is { } dal && _esito.Al is { } al)
+                            {
+                                <span class="mud-text-secondary">, dal @dal.ToString("dd/MM/yyyy") al @al.ToString("dd/MM/yyyy")</span>
+                            }
+                            @if (_esito.Conti > 1)
+                            {
+                                <span class="mud-text-secondary">, @_esito.Conti conti</span>
+                            }
+                        </td>
+                    </tr>
+                    <tr><td>Movimenti nel file</td><td>@_esito.Letti.ToString("N0")</td></tr>
+                    <tr>
+                        <td>Nuovi, importati</td>
+                        <td><span style="color: var(--mud-palette-success); font-weight: 600;">@_esito.Inseriti.ToString("N0")</span></td>
+                    </tr>
+                    <tr>
+                        <td>Già presenti</td>
+                        <td>
+                            @_esito.GiaPresenti.ToString("N0")
+                            <span class="mud-text-secondary">
+                                @(_esito.GiaPresenti > 0 ? "(importati con un file precedente: non vengono duplicati)" : "")
+                            </span>
+                            @if (_esito.DescrizioniAggiornate > 0)
+                            {
+                                <div class="mud-text-secondary">
+                                    di cui @_esito.DescrizioniAggiornate.ToString("N0") con la descrizione estesa aggiornata, ora più completa
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                    @if (_esito.ContenutoDiverso > 0)
+                    {
+                        <tr>
+                            <td>Stessa chiave, contenuto diverso</td>
+                            <td>
+                                <span style="color: var(--mud-palette-error); font-weight: 600;">@_esito.ContenutoDiverso.ToString("N0")</span>
+                                <span class="mud-text-secondary">
+                                    non importati: hanno data, importo e riferimento di un movimento già salvato, ma il resto è diverso
+                                </span>
+                                <div>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error"
+                                               OnClick="() => Dialogo.Close(DialogResult.Ok(true))">Vedi i movimenti scartati</MudButton>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (_esito.RigheNonValide > 0)
+                    {
+                        <tr>
+                            <td>Righe non valide</td>
+                            <td>
+                                <span style="color: var(--mud-palette-error); font-weight: 600;">@_esito.RigheNonValide.ToString("N0")</span>
+                                <span class="mud-text-secondary">righe del file che non si sono potute leggere: i dettagli sono nel log</span>
+                            </td>
+                        </tr>
+                    }
+                    <tr>
+                        <td>Avvisi</td>
+                        <td>
+                            @if (_esito.Avvisi.Count == 0)
+                            {
+                                <span style="color: var(--mud-palette-success);">nessuno: il file è completo e i saldi tornano</span>
+                            }
+                            else
+                            {
+                                <span style="color: var(--mud-palette-warning); font-weight: 600;">@_esito.Avvisi.Count.ToString("N0")</span>
+                                <span class="mud-text-secondary">(sotto, raggruppati per tipo)</span>
+                            }
+                        </td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+
+            @if (_gruppi.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Avvisi sul file</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+                    Non vuol dire che l'importazione non è riuscita: il programma ti segnala cose strane nel file.
+                    I movimenti letti sono stati importati comunque.
+                </MudText>
+                <MudExpansionPanels MultiExpansion="true" Elevation="0" Outlined="true" Dense="true">
+                    @foreach (var gruppo in _gruppi)
+                    {
+                        <MudExpansionPanel>
+                            <TitleContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.WarningAmber))" Color="Color.Warning" Size="Size.Small" />
+                                    <MudText Typo="Typo.body2">
+                                        @if (gruppo.Dettagli.Count > 0)
+                                        {
+                                            <b>@gruppo.Dettagli.Count ×</b>
+                                        }
+                                        @gruppo.Testo
+                                    </MudText>
+                                </MudStack>
+                            </TitleContent>
+                            <ChildContent>
+                                @if (gruppo.Dettagli.Count == 0)
+                                {
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@gruppo.Testo</MudText>
+                                }
+                                else
+                                {
+                                    <div class="dettagli-avviso">
+                                        @foreach (var dettaglio in gruppo.Dettagli)
+                                        {
+                                            <MudText Typo="Typo.body2">@dettaglio</MudText>
+                                        }
+                                    </div>
+                                }
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_esito is not null)
+        {
+            <MudButton Variant="Variant.Text" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Description))"
+                       OnClick="Log.ApriFileCorrente">Apri il log</MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialogo.Close()">Chiudi</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .riepilogo-importazione td:first-child {
+        width: 34%;
+        color: var(--mud-palette-text-secondary);
+        vertical-align: top;
+    }
+
+    .dettagli-avviso {
+        max-height: 220px;
+        overflow-y: auto;
+        columns: 2;
+    }
+</style>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    /// <summary>Un riepilogo già fatto da mostrare di nuovo (dalla campanella delle notifiche): niente import.</summary>
+    [Parameter] public EsitoImportazione? Esito { get; set; }
+
+    private string? _nomeFile;
+    private EsitoImportazione? _esito;
+    private List<GruppoAvvisi> _gruppi = [];
+
+    // Testo comune a tutti gli avvisi di un tipo; Dettagli dice dove capitano ("conto, data"). Un avviso
+    // sull'intero file (EF, ritrasmissione) non ha dettagli.
+    private record GruppoAvvisi(string Testo, List<string> Dettagli);
+
+    /// <summary>Apre la finestra e importa. Vero se l'utente ha scelto di vedere i movimenti scartati: la
+    /// pagina che l'ha aperta ci porta.</summary>
+    public static Task<bool> ApriAsync(IDialogService dialoghi) => Mostra(dialoghi, "Importa file CBI", null);
+
+    /// <summary>Mostra di nuovo il riepilogo di un'importazione già fatta. Vero come per ApriAsync.</summary>
+    public static Task<bool> MostraRiepilogoAsync(IDialogService dialoghi, EsitoImportazione esito) =>
+        Mostra(dialoghi, "Ultima importazione", esito);
+
+    private static async Task<bool> Mostra(IDialogService dialoghi, string titolo, EsitoImportazione? esito)
+    {
+        var parametri = new DialogParameters<DialogoImportazione> { { d => d.Esito, esito } };
+        var finestra = await dialoghi.ShowAsync<DialogoImportazione>(titolo, parametri, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            BackdropClick = false,      // si chiude solo con Chiudi, a importazione finita
+            CloseOnEscapeKey = false
+        });
+        var risultato = await finestra.Result;
+        return risultato is { Canceled: false, Data: true };
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Esito is null) return;
+        _esito = Esito;
+        _gruppi = Raggruppa(Esito.Avvisi);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Esito is not null) return;
+
+        var esito = await Importazione.ImportaDaFileAsync(nome =>
+        {
+            _nomeFile = nome;
+            StateHasChanged();
+        });
+
+        // nessun file scelto (o un'importazione già in corso): la finestra non serve
+        if (esito is null)
+        {
+            Dialogo.Close(DialogResult.Cancel());
+            return;
+        }
+
+        _esito = esito;
+        _gruppi = Raggruppa(esito.Avvisi);
+        StateHasChanged();
+    }
+
+    // "Conto 0123…, 07/10/2026: il saldo iniziale non coincide … (06/10/2026): …" -> un gruppo per testo,
+    // con il nome del conto e la data come dettaglio; la data tra parentesi cambia da riga a riga e non conta
+    private static readonly Regex AvvisoDiUnaGiornata = new(@"^Conto (?<conto>\S+), (?<data>\d\d/\d\d/\d{4}): (?<testo>.+)$");
+    private static readonly Regex DataTraParentesi = new(@"\s*\(\d\d/\d\d/\d{4}\)");
+
+    private List<GruppoAvvisi> Raggruppa(IReadOnlyList<string> avvisi)
+    {
+        var nomi = Database.ElencoConti().ToDictionary(c => c.Codice, c => c.Nome);
+        var gruppi = new List<GruppoAvvisi>();
+
+        foreach (var avviso in avvisi)
+        {
+            var m = AvvisoDiUnaGiornata.Match(avviso);
+            if (!m.Success)
+            {
+                gruppi.Add(new GruppoAvvisi(avviso, []));
+                continue;
+            }
+
+            var testo = DataTraParentesi.Replace(m.Groups["testo"].Value, "");
+            testo = char.ToUpper(testo[0]) + testo[1..];
+            var conto = nomi.GetValueOrDefault(m.Groups["conto"].Value, m.Groups["conto"].Value);
+            var dettaglio = nomi.Count > 1 ? $"{m.Groups["data"].Value}, {conto}" : m.Groups["data"].Value;
+
+            if (gruppi.FirstOrDefault(g => g.Testo == testo && g.Dettagli.Count > 0) is { } gruppo)
+                gruppo.Dettagli.Add(dettaglio);
+            else
+                gruppi.Add(new GruppoAvvisi(testo, [dettaglio]));
+        }
+        return gruppi;
+    }
+}

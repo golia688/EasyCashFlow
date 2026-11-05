@@ -1,0 +1,51 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@* Un grafico ECharts. Le opzioni sono un oggetto qualsiasi (di solito anonimo), serializzato in JSON
+   e passato a wwwroot/js/grafici.js. Si ridisegna quando riceve un oggetto Opzioni diverso.
+   Con ClicElemento, un clic su un elemento di una serie con cursor "pointer" passa il nome della
+   sua categoria (per esempio il gruppo di una barra); con ClicSerie, il nome della serie e la posizione
+   dell'elemento nei dati (per esempio "Uscite" e il mese della colonna). *@
+<div @ref="_elemento" style="width: 100%; height: @Altezza;"></div>
+
+@code {
+    [Parameter, EditorRequired] public object Opzioni { get; set; } = default!;
+    [Parameter] public string Altezza { get; set; } = "320px";
+    [Parameter] public EventCallback<string> ClicElemento { get; set; }
+    [Parameter] public EventCallback<(string Serie, int Indice)> ClicSerie { get; set; }
+
+    private ElementReference _elemento;
+    private object? _disegnate;
+    private DotNetObjectReference<Grafico>? _riferimento;
+
+    protected override async Task OnAfterRenderAsync(bool primoRender)
+    {
+        if (ReferenceEquals(Opzioni, _disegnate)) return;
+        _disegnate = Opzioni;
+
+        if (ClicElemento.HasDelegate || ClicSerie.HasDelegate)
+            _riferimento ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("grafici.disegna", _elemento, Opzioni, _riferimento);
+    }
+
+    [JSInvokable]
+    public async Task Clic(string nome, string serie, int indice)
+    {
+        if (ClicElemento.HasDelegate) await ClicElemento.InvokeAsync(nome);
+        if (ClicSerie.HasDelegate) await ClicSerie.InvokeAsync((serie, indice));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("grafici.distruggi", _elemento);
+        }
+        catch (JSDisconnectedException)
+        {
+            // l'applicazione si sta chiudendo: la pagina non c'è più
+        }
+        _riferimento?.Dispose();
+    }
+}

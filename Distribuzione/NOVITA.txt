@@ -1,0 +1,454 @@
+===============================================================================
+  EASYCASHFLOW - NOVITA'
+  Il numero di versione e' in Aiuto > Informazioni.
+===============================================================================
+
+
+-------------------------------------------------------------------------------
+ VERSIONE 0.9.5 (5 novembre 2026)
+-------------------------------------------------------------------------------
+
+ 1. NUOVO: LA FINESTRA DI IMPORTAZIONE
+ -------------------------------------
+
+ "Importa file CBI" apre una finestra: scegli il file, una barra mostra
+ che il programma sta lavorando e alla fine compare un riepilogo in
+ tabella, con le giornate del file, i movimenti nuovi, quelli gia'
+ presenti, gli eventuali scartati e gli avvisi.
+
+ - Gli avvisi sono raggruppati per tipo ("3 x il saldo iniziale non
+   coincide..."): clicca su un avviso per vedere le date. Prima ogni
+   avviso era una notifica gialla da chiudere a mano.
+
+ - "Apri il log" apre il file da mandare se c'e' un problema.
+
+ - Le notifiche rimaste (per esempio "salvato") compaiono e spariscono
+   in fretta, al massimo tre insieme.
+
+
+ 2. LETTURA DEI FILE CBI PIU' PRECISA
+ ------------------------------------
+
+ Il programma ora legge i file secondo la specifica ufficiale del CBI.
+
+ - Spariscono gli avvisi "il saldo iniziale non coincide con il saldo
+   finale del giorno precedente" che comparivano quasi ogni giorno con i
+   file che elencano le giornate dalla piu' recente alla piu' vecchia.
+
+ - I bonifici ricevuti mostrano chi li ha fatti: nella descrizione
+   estesa ci sono ordinante, data dell'ordine e indirizzo. Prima di
+   alcuni movimenti restava solo l'ultima riga della descrizione.
+
+ - Il programma controlla che il file sia completo (numero di giornate e
+   di righe dichiarato in fondo al file) e lo dice se non lo e'.
+
+
+ 3. CAUSALI DI TUTTE LE BANCHE
+ -----------------------------
+
+ Le prime due cifre di ogni causale sono la "causale CBI", uguale per
+ tutte le banche italiane.
+
+ - In Impostazioni > Dati > Gruppi di causali, sotto la descrizione della
+   banca, vedi la causale CBI con la sua descrizione ufficiale.
+
+ - Una causale nuova, anche di un'altra banca, riceve da sola il gruppo
+   della sua causale CBI (bonifici, carte, utenze, giroconti...). Puoi
+   sempre cambiarlo. I gruppi che hai gia' scelto non vengono toccati.
+
+
+ 4. NUOVO: LE NOTIFICHE
+ ----------------------
+
+ In alto a destra c'e' una campanella. Il numero dice quante cose ci sono
+ da fare o da guardare: movimenti scartati, causali senza gruppo, conti
+ senza nome, un export da importare, un backup da fare, l'ultima
+ importazione con avvisi. Clicca la campanella: ogni notifica ha un
+ pulsante che ti porta dove serve, e sparisce da sola quando e' sistemata.
+
+ Le voci Log e Aiuto in alto sono diventate icone (passa sopra con il
+ mouse per leggerne il nome), e il lucchetto "Blocca" e' in fondo alla
+ barra a sinistra.
+
+
+ 5. CORREZIONI
+ -------------
+
+ - La finestra di Windows per scegliere il file, il report Excel o la
+   cartella del backup poteva bloccare il programma: corretto.
+
+ - Se scegli un file che non e' un export CBI (un PDF, un Excel, un altro
+   tipo di file CBI) o un file rovinato, il programma lo dice chiaramente
+   e non salva niente. Prima a volte mostrava un errore incomprensibile.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE DALLA VERSIONE 0.9.4
+-------------------------------------------------------------------------------
+
+I tuoi dati restano: la 0.9.5 usa la stessa cartella "dati" e la stessa
+password.
+
+ 1. Chiudi EasyCashFlow.
+
+ 2. Per sicurezza fai un backup: Impostazioni > Dati > Backup.
+
+ 3. Estrai il nuovo .zip nella STESSA cartella del programma e conferma di
+    sostituire i file. Il .zip non contiene le cartelle "dati" e "log",
+    quindi i tuoi movimenti, la password e le impostazioni restano.
+
+ 4. Avvia EasyCashFlow, scrivi la password e controlla in
+    Aiuto > Informazioni che la versione sia la 0.9.5.
+
+ 5. Consigliato: importa di nuovo i file CBI che avevi gia' importato.
+    Non si duplica niente: i movimenti risultano "gia' presenti" e quelli
+    con la descrizione incompleta vengono aggiornati (il riepilogo dice
+    quanti).
+
+ 6. Al primo avvio le causali ancora senza gruppo ricevono quello della
+    loro causale CBI: dai un'occhiata ai gruppi di causali.
+
+
+-------------------------------------------------------------------------------
+ VERSIONE 0.9.4 (4 novembre 2026)
+-------------------------------------------------------------------------------
+
+ 1. NUOVO: NASCONDERE GLI IMPORTI
+ --------------------------------
+
+ Se qualcuno si avvicina allo schermo, puoi nascondere tutti gli importi
+ con un clic.
+
+ - In cima a ogni pagina, accanto al "?", c'e' un occhio. Cliccandolo
+   (oppure premendo Ctrl+H, da qualunque pagina) gli importi diventano
+   ******, in tutte le pagine e nelle finestre. L'occhio diventa barrato
+   e giallo, per ricordarti che sono nascosti.
+
+ - I campi in cui si scrive un importo (per esempio i filtri "Importo da"
+   e "Importo a") e le spiegazioni dei calcoli si sfocano.
+
+ - Nei grafici restano colonne e linee, ma spariscono i numeri: si vede
+   l'andamento, non quanto.
+
+ - Percentuali, date, numero dei movimenti e descrizioni restano visibili.
+
+ - Si riaprono allo stesso modo. La scelta resta anche al prossimo avvio:
+   se chiudi il programma con gli importi nascosti, li ritrovi nascosti.
+
+
+ 2. NUOVO: COLONNE ORDINABILI
+ ----------------------------
+
+ Nei Movimenti, nei movimenti scartati, nel grafico personalizzato e nei
+ gruppi di causali clicca l'intestazione di una colonna (data, importo,
+ descrizione...) per ordinare l'elenco; cliccala di nuovo per invertire
+ l'ordine. L'ordine vale per tutti i movimenti trovati, non solo per la
+ pagina che vedi, e resta insieme ai filtri.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE DALLA VERSIONE 0.9.3
+-------------------------------------------------------------------------------
+
+I tuoi dati restano: la 0.9.4 usa la stessa cartella "dati" e la stessa
+password.
+
+ 1. Chiudi EasyCashFlow.
+
+ 2. Per sicurezza fai un backup: Impostazioni > Dati > Backup.
+
+ 3. Estrai il nuovo .zip nella STESSA cartella del programma e conferma di
+    sostituire i file. Il .zip non contiene le cartelle "dati" e "log",
+    quindi i tuoi movimenti, la password e le impostazioni restano.
+
+ 4. Avvia EasyCashFlow, scrivi la password e controlla in
+    Aiuto > Informazioni che la versione sia la 0.9.4.
+
+
+-------------------------------------------------------------------------------
+ VERSIONE 0.9.3 (4 novembre 2026)
+-------------------------------------------------------------------------------
+
+ >>> LEGGI PRIMA "COME AGGIORNARE DALLA VERSIONE 0.9.2", PIU' SOTTO: <<<
+ >>> I DATI DELLA 0.9.2 NON SI POSSONO RIUSARE, VANNO REIMPORTATI.   <<<
+
+
+ 1. NUOVO: I TUOI DATI SONO CIFRATI
+ ----------------------------------
+
+ Il database con i tuoi movimenti ora e' cifrato: senza la password chi
+ copia la cartella del programma non legge niente.
+
+ - Al primo avvio scegli una password, che il programma ti chiedera' a
+   ogni avvio. Sceglila robusta: lunga, usata solo qui, difficile da
+   indovinare. "Suggerisci una frase" ne propone una.
+
+ - Subito dopo ricevi un CODICE DI RECUPERO: e' l'unico modo per aprire i
+   dati se dimentichi la password. Annotalo o mettilo in un gestore di
+   password: il programma non lo salva da nessuna parte.
+
+ - Il log non contiene piu' importi, descrizioni e IBAN: puoi mandarlo a
+   chi ti aiuta senza consegnargli i tuoi movimenti.
+
+ - Il programma si blocca da solo dopo 15 minuti senza usarlo, e chiede
+   di nuovo la password. Puoi bloccarlo subito con il lucchetto "Blocca"
+   nella barra a sinistra.
+
+ - Nuova pagina Impostazioni > Preferenze > Sicurezza: cambiare la
+   password, creare un nuovo codice di recupero (se l'hai perso), scegliere
+   dopo quanto si blocca.
+
+ Il manuale spiega tutto nel capitolo "I tuoi dati".
+
+
+ 2. NUOVO: BACKUP E PERCORSO DEI DATI
+ ------------------------------------
+
+ - Impostazioni > Dati > Backup: crea un file .zip con i tuoi dati, nella
+   cartella che scegli, e controlla subito che si apra.
+
+ - Impostazioni > Dati > Percorso dati: mostra dove sono i file del
+   programma, quanto pesano, e apre le cartelle.
+
+
+ 3. NUOVO: REPORT EXCEL E GRAFICO PERSONALIZZATO
+ -----------------------------------------------
+
+ - Analisi > Report > Genera report Excel: un file Excel con le analisi
+   che stai guardando. Un foglio con indicatori, tabelle e grafici (le
+   formule leggono i movimenti, cosi' vedi come sono calcolati), uno con
+   tutti i movimenti, con i filtri, e uno con il saldo giorno per giorno.
+   Il file NON e' cifrato: il programma te lo ricorda prima di salvarlo.
+
+ - Analisi > Grafici > Grafico personalizzato: scegli tu i movimenti (per
+   esempio tutte le bollette di un fornitore) e vedi entrate e uscite mese
+   per mese, con totali e medie. Cliccando una colonna vedi i movimenti di
+   quel mese.
+
+
+ 4. ANALISI PIU' PRECISE
+ -----------------------
+
+ - I periodi ora sono a MESI COMPLETI: "Ultimo mese completo", "Ultimi 3,
+   6, 12 mesi completi". Con movimenti fino al 3 novembre, l'ultimo mese
+   completo e' ottobre. Prima, nei primi giorni del mese, "Ultimo mese"
+   erano pochi giorni e le medie non avevano senso.
+
+ - Accanto al periodo ci sono le date "Data contabile da" e "a": puoi
+   scegliere un periodo qualsiasi, che vale anche nella simulazione.
+
+ - Sotto entrate, uscite, flusso netto e investito netto c'e' la media al
+   mese. I mesi incompleti contano in proporzione ai giorni, e un avviso
+   ti dice quando ce n'e' uno.
+
+ - Simulazione del saldo: con meno di un mese di movimenti non simula
+   piu' (sarebbero pochi giorni moltiplicati) e spiega perche'. Il saldo
+   simulato ora e' giallo, per distinguerlo da quello reale.
+
+
+ 5. HOME, MOVIMENTI E IMPOSTAZIONI
+ ---------------------------------
+
+ - Home: se hai piu' conti, in alto scegli su quali ragiona (saldo, mese,
+   ultimi movimenti); con piu' conti vedi il saldo di ciascuno e il
+   totale. Il menu Dashboard ha "Aggiorna" e "Scegli periodo" (quanto
+   tempo mostra il saldo, con quale media confrontare il mese): le
+   scelte restano.
+
+ - Movimenti: i filtri restano anche se vai in un'altra pagina e torni.
+   Tolte le voci di menu che non facevano niente (Modifica, Esporta,
+   Categorie); "Importa" si chiama "Importa file CBI"; nuova scorciatoia
+   Dati > Gruppi di causali.
+
+ - Gruppi di causali in ordine alfabetico della descrizione della banca.
+
+ - Nuova pagina Impostazioni > Preferenze > Generali: la pagina che si
+   apre dopo la password, il conto e il periodo proposti nei filtri, per
+   quanto tempo tenere i log.
+
+ - Dalla Home, dalle pagine dei conti e dei gruppi la freccia in alto
+   riporta alla Home.
+
+ - Manuale aggiornato con tutte le novita'.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE DALLA VERSIONE 0.9.2
+-------------------------------------------------------------------------------
+
+La 0.9.2 salvava i dati senza cifratura, e la 0.9.3 non apre quel
+database: non si possono convertire. Si riparte da zero e si reimportano
+i file CBI. Movimenti e saldi tornano tutti.
+
+Prima di cominciare, nella 0.9.2 ANNOTA quello che hai cambiato a mano,
+perche' andra' rifatto:
+ - i nomi dei conti;
+ - i gruppi di causali che hai modificato;
+ - i movimenti segnati come straordinari o con un tipo scelto a mano
+   (nei Movimenti, filtro "Straordinari e tipo scelto");
+ - le scelte di Aspetto.
+
+Poi:
+
+ 1. Chiudi EasyCashFlow.
+
+ 2. Tieni a portata di mano i file CBI che avevi importato (se non li hai
+    piu', riscaricali dall'home banking).
+
+ 3. Nella cartella del programma CANCELLA le cartelle "dati" e "log".
+    Se vuoi, prima copia "dati" in un altro posto: ma ricorda che e' in
+    chiaro, quindi poi cancella anche la copia.
+
+ 4. Estrai il nuovo .zip nella stessa cartella e conferma di sostituire
+    i file.
+
+ 5. Avvia EasyCashFlow: ti chiede di creare la password. Annota il codice
+    di recupero.
+
+ 6. Importa di nuovo i file CBI (anche tutti insieme, uno dopo l'altro:
+    i movimenti gia' presenti non si duplicano).
+
+ 7. Rifai i nomi dei conti, i gruppi, gli straordinari e l'aspetto.
+
+ 8. Controlla in Aiuto > Informazioni che la versione sia la 0.9.3.
+
+Se avvii la 0.9.3 senza cancellare "dati", un messaggio te lo ricorda e
+il programma si chiude: non perdi niente.
+
+
+-------------------------------------------------------------------------------
+ VERSIONE 0.9.2 (2 novembre 2026)
+-------------------------------------------------------------------------------
+
+ 1. NUOVO: LA SIMULAZIONE DEL SALDO
+ ----------------------------------
+
+ Risponde alla domanda: come andra' il saldo nei prossimi mesi, se entrate
+ e uscite restano come nel passato?
+ Si apre dal pulsante "Simula il saldo futuro" nella pagina Analisi, oppure
+ dal menu in alto Simulazione > Simula il saldo futuro.
+
+ - La base: scegli il periodo passato su cui fare la media (per esempio gli
+   ultimi 12 mesi) e quanti mesi simulare: 6, 12, 24 o 36.
+   Puoi togliere dalla media i gruppi di spese che non si ripeteranno, per
+   esempio dei lavori in casa gia' finiti.
+
+ - Le ipotesi: il flusso netto e l'investito netto al mese partono dalla
+   media, ma puoi cambiarli per provare a spendere di piu' o di meno.
+   Il tasso di risparmio si aggiorna subito.
+   Nella tabella "Mese per mese" puoi anche cambiare un solo mese: una
+   tredicesima a dicembre, le vacanze ad agosto, l'assicurazione a marzo.
+
+ - Il risultato: il saldo alla fine del periodo simulato, quanto cambia
+   rispetto a oggi e il grafico con il saldo reale (linea piena) e quello
+   simulato (tratteggiato). Se il saldo scende sotto zero, la pagina dice
+   in quale mese.
+
+ - Se versi soldi in PAC o fondi, il conto puo' scendere anche mentre
+   risparmi: quei soldi non li spendi, li sposti. La pagina lo spiega con
+   un esempio e mostra anche la linea "conto + versato negli investimenti",
+   cioe' quanti soldi hai in tutto.
+
+ La simulazione e' un'ipotesi, non una previsione, e le scelte non vengono
+ salvate: chiudendo la pagina si riparte dalle medie.
+
+
+ 2. NUOVO: MOVIMENTI STRAORDINARI
+ --------------------------------
+
+ Ogni movimento prende il tipo dal suo gruppo di causali. Ma a volte un
+ movimento e' diverso dagli altri: tra tanti bonifici normali, quello per
+ l'impianto di aria condizionata e' una spesa che non si ripetera'.
+ Ora puoi dirlo al programma.
+
+ - Il pulsante con i tre puntini a fine riga, nella pagina Movimenti, apre
+   un piccolo menu:
+     * "Segna come straordinario": il movimento prende l'etichetta
+       "straordinario";
+     * "Tipo di questo movimento": scegli un tipo diverso da quello del
+       gruppo, per esempio Giroconto per un bonifico verso un tuo altro
+       conto, o Investimento per un versamento in un fondo.
+
+ - Per segnarne tanti insieme: selezionali con le caselle a sinistra e usa
+   "Segna come straordinari" nella barra in fondo alla pagina.
+
+ - Lo stesso menu c'e' anche negli elenchi di movimenti delle analisi.
+
+ - Per ritrovarli: nei Movimenti il filtro "Straordinari e tipo scelto"
+   mostra solo quelli che hai segnato, o solo quelli a cui hai cambiato
+   il tipo.
+
+ - Le scelte restano anche se importi di nuovo lo stesso file.
+
+
+ 3. NUOVO: ESCLUDERE GLI STRAORDINARI DALLE ANALISI
+ --------------------------------------------------
+
+ - Nella pagina Analisi, accanto al periodo, l'interruttore "Escludi
+   straordinari" toglie da numeri e grafici i movimenti che hai segnato.
+   All'inizio e' spento, perche' quelle spese sono avvenute davvero:
+   acceso, aiuta a vedere com'e' un periodo "normale".
+   Il saldo invece resta sempre quello vero della banca.
+
+ - Accanto, "Vedi gli straordinari (N)" apre l'elenco di quelli del
+   periodo: da li' puoi anche togliere l'etichetta.
+
+ - Nella simulazione gli straordinari sono esclusi gia' all'inizio, perche'
+   non si ripeteranno: un interruttore permette di includerli.
+
+
+ 4. NUOVO: CLIC SULLE COLONNE DEI GRAFICI
+ ----------------------------------------
+
+ Nella pagina Analisi, i grafici "Entrate e uscite per mese" e "Spese
+ ricorrenti e variabili" ora si possono cliccare. Si apre l'elenco dei
+ movimenti di quel mese:
+
+   - parte verde della colonna  -> le entrate del mese;
+   - parte rossa                -> le uscite del mese;
+   - punto della linea          -> il flusso netto del mese;
+   - parte "Ricorrenti" o "Variabili" -> solo quelle uscite del mese.
+
+ Come gia' per le barre di "Dove vanno i soldi" e "Da dove arrivano", la
+ pagina che si apre divide i movimenti per gruppo, permette di cercarli e
+ mostra anche quelli esclusi con il motivo. La freccia in alto riporta
+ all'analisi com'era.
+ Quando un elemento si puo' cliccare, il puntatore del mouse diventa una
+ manina.
+
+
+ 5. ALTRE MIGLIORIE
+ ------------------
+
+ - Movimenti: nuovo filtro "Periodo", con gli stessi periodi delle analisi
+   (ultimo mese, ultimi 3, 6 o 12 mesi, un anno, tutto). Sceglierne uno
+   riempie le due date.
+
+ - Tema chiaro: corrette alcune zone scure, rimaste dall'avvio, in cui le
+   scritte non si leggevano.
+
+ - Manuale (Aiuto > Manuale) aggiornato con tutte le novita', compreso il
+   nuovo capitolo "La simulazione del saldo".
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE DALLA VERSIONE 0.9.1
+-------------------------------------------------------------------------------
+
+I tuoi dati sono nella cartella "dati" del programma: la nuova versione li
+usa cosi' come sono e li aggiorna da sola al primo avvio.
+
+ 1. Chiudi EasyCashFlow.
+
+ 2. Per sicurezza fai una copia della cartella "dati" (vedi LEGGIMI.txt,
+    punto 5).
+
+ 3. Estrai il nuovo .zip nella STESSA cartella del programma e conferma di
+    sostituire i file. Il .zip non contiene le cartelle "dati" e "log",
+    quindi i tuoi movimenti e le tue impostazioni restano.
+
+ 4. Avvia EasyCashFlow e controlla in Aiuto > Informazioni che la versione
+    sia la 0.9.2.
+
+Dopo l'aggiornamento non tornare alla 0.9.1 con gli stessi dati: le
+etichette dei movimenti straordinari non verrebbero riconosciute.

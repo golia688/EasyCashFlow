@@ -1,0 +1,29 @@
+# Cosa git non deve versionare (docs/08-versionamento.md).
+
+# Compilazione: si ricrea da Visual Studio o con dotnet build
+bin/
+obj/
+
+# File di Visual Studio dell'utente (finestre aperte, scelte personali)
+.vs/
+*.user
+*.suo
+*.rsuser
+
+# Dati personali: il database, la chiave, le preferenze e i log del programma stanno in bin\...\dati e
+# bin\...\log, già esclusi; queste righe li escludono anche se finissero altrove per errore
+dati/
+log/
+*.db
+*.db-journal
+chiave.json
+preferenze.json
+*.log
+
+# Export della banca (file CBI veri) e archivi: mai nel repository, contengono i movimenti
+*.cbi
+*exportCBI*
+*.zip
+
+# Script di servizio
+__pycache__/

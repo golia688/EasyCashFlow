@@ -1,0 +1,48 @@
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject ImpostazioniService Impostazioni
+
+@* Etichette e menu di un singolo movimento: "straordinario" e il tipo scelto al posto di quello del
+   gruppo. Usato nella griglia Movimenti e nelle tabelle di dettaglio delle analisi. *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.FlexEnd">
+    @if (Straordinario)
+    {
+        <MudTooltip Text="Movimento straordinario: non si ripeterà. Si può escludere da analisi e simulazione.">
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">straordinario</MudChip>
+        </MudTooltip>
+    }
+    @if (TipoForzato is { } tipo)
+    {
+        <MudTooltip Text="@($"Tipo scelto per questo movimento; il suo gruppo è {TipoDelGruppo}")">
+            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@tipo</MudChip>
+        </MudTooltip>
+    }
+    <MudMenu Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.MoreVert))" Size="Size.Small" Dense="true"
+             AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" title="Straordinario e tipo del movimento">
+        <MudMenuItem Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Flag))"
+                     OnClick="() => CambiaStraordinario.InvokeAsync(!Straordinario)">
+            @(Straordinario ? "Non è straordinario" : "Segna come straordinario")
+        </MudMenuItem>
+        <MudDivider />
+        <MudMenuItem Disabled="true"><MudText Typo="Typo.caption">Tipo di questo movimento</MudText></MudMenuItem>
+        <MudMenuItem Icon="@Spunta(TipoForzato is null)" OnClick="() => CambiaTipo.InvokeAsync(null)">
+            Come il gruppo (@TipoDelGruppo)
+        </MudMenuItem>
+        @foreach (var t in Enum.GetValues<TipoGruppo>())
+        {
+            <MudMenuItem Icon="@Spunta(TipoForzato == t)" OnClick="() => CambiaTipo.InvokeAsync(t)">@t</MudMenuItem>
+        }
+    </MudMenu>
+</MudStack>
+
+@code {
+    [Parameter] public bool Straordinario { get; set; }
+    [Parameter] public TipoGruppo? TipoForzato { get; set; }
+    [Parameter] public TipoGruppo TipoDelGruppo { get; set; }
+    [Parameter] public EventCallback<bool> CambiaStraordinario { get; set; }
+    [Parameter] public EventCallback<TipoGruppo?> CambiaTipo { get; set; }
+
+    // la voce scelta ha la spunta
+    private string? Spunta(bool scelta) => scelta ? Impostazioni.Icona(nameof(Icons.Material.Filled.Check)) : null;
+}

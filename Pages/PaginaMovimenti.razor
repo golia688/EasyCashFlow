@@ -1,0 +1,285 @@
+﻿@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@implements IDisposable
+@inject DatabaseService Database
+@inject ImportazioneService Importazione
+@inject LogService Log
+@inject ImpostazioniService Impostazioni
+@inject AnalisiService Analisi
+@inject StatoMovimenti Stato
+@inject IDialogService Dialoghi
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+    <MudText Typo="Typo.h4">Movimenti</MudText>
+    <AiutoManuale Capitolo="movimenti" />
+    @if (_numeroScarti > 0)
+    {
+        <MudChip T="string" Color="Color.Error" Variant="Variant.Filled"
+                 Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ReportProblem))" OnClick="ApriTabellaScarti">
+            @(_numeroScarti == 1 ? "1 movimento scartato" : $"{_numeroScarti} movimenti scartati")
+        </MudChip>
+    }
+</MudStack>
+
+<MudPaper Class="pa-4 mt-4" Elevation="1">
+    <PannelloFiltriMovimenti @ref="_pannello" Filtri="_filtri">
+        <Pulsanti>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FilterAlt))" OnClick="Applica">Applica filtri</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="Azzera">Azzera</MudButton>
+            @if (_tuttiSelezionati)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Deselect))"
+                           OnClick="Deseleziona">Deseleziona tutto</MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.LibraryAddCheck))"
+                           Disabled="@(_totaleRisultati == 0 || _selezioneInCorso)" OnClick="SelezionaTuttiIRisultati">
+                    Seleziona tutti i risultati (@_totaleRisultati)
+                </MudButton>
+            }
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))"
+                       OnClick="Importa">Importa file CBI</MudButton>
+        </Pulsanti>
+    </PannelloFiltriMovimenti>
+</MudPaper>
+
+<MudDataGrid @ref="_griglia" @key="_versioneGriglia" T="MovimentoCbi" ServerData="CaricaDati"
+             RowsPerPage="_righePerPagina"
+             MultiSelection="true" SelectOnRowClick="false"
+             SelectedItems="_selezionati" SelectedItemsChanged="SelezioneCambiata"
+             SortMode="SortMode.Single" Dense="true" Hover="true" Striped="true" Class="mt-4">
+    <Columns>
+        <SelectColumn T="MovimentoCbi" />
+        @* colonne ordinabili cliccando l'intestazione: l'ordine lo fa la query (OrdineGriglia), su tutti i
+           risultati del filtro, e resta con i filtri (StatoMovimenti) *@
+        <PropertyColumn Property="x => x.Conto" Title="Conto" InitialDirection="@Direzione("Conto")">
+            <CellTemplate>@NomeConto(context.Item.Conto)</CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.DataContabile" Title="Data contabile" Format="dd/MM/yyyy" InitialDirection="@Direzione("DataContabile")" />
+        <PropertyColumn Property="x => x.DataValuta" Title="Data valuta" Format="dd/MM/yyyy" InitialDirection="@Direzione("DataValuta")" />
+        <PropertyColumn Property="x => x.Importo" Title="Importo (€)" InitialDirection="@Direzione("Importo")">
+            <CellTemplate>
+                <MudText Align="Align.Right" Class="importo" Color="@(context.Item.Importo < 0 ? Color.Error : Color.Success)">
+                    @context.Item.Importo.ToString("N2", Italiano)
+                </MudText>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Causale" Title="Causale" InitialDirection="@Direzione("Causale")" />
+        <PropertyColumn Property="x => x.DescrizioneBreve" Title="Descrizione" InitialDirection="@Direzione("DescrizioneBreve")" />
+        <PropertyColumn Property="x => x.DescrizioneEstesa" Title="Dettaglio" InitialDirection="@Direzione("DescrizioneEstesa")" />
+        <TemplateColumn Title="" Sortable="false" CellStyle="width: 1%; white-space: nowrap;">
+            <CellTemplate>
+                <MenuMovimento Straordinario="context.Item.Straordinario" TipoForzato="context.Item.TipoForzato"
+                               TipoDelGruppo="@_tipiDelGruppo.GetValueOrDefault(context.Item.Causale)"
+                               CambiaStraordinario="@(v => CambiaStraordinario(context.Item, v))"
+                               CambiaTipo="@(t => CambiaTipo(context.Item, t))" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <NoRecordsContent>
+        <MudText Class="pa-4">
+            Nessun movimento da mostrare. Importa un file con il pulsante "Importa file CBI"
+            oppure dal menu Dati > Importa.
+        </MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudDataGridPager T="MovimentoCbi" PageSizeOptions="@(new[] { 10, 25, 50, 100, 200, 300, 500, 1000 })"
+                          RowsPerPageString="Righe per pagina"
+                          InfoFormat="{first_item}-{last_item} di {all_items}" />
+    </PagerContent>
+</MudDataGrid>
+
+<BarraSelezione Importi="@_selezionati.Select(m => m.Importo).ToList()" OnDeseleziona="Deseleziona"
+                OnStraordinari="StraordinariSelezionati" />
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    private int _versioneGriglia;                     // cambiandolo, la griglia riparte dalla pagina 1
+    // filtri e righe per pagina vivono in StatoMovimenti: tornando dagli scarti o dai gruppi di causali
+    // (o da qualunque altra pagina) sono ancora quelli di prima
+    private int _righePerPagina { get => Stato.RighePerPagina; set => Stato.RighePerPagina = value; }
+    private FiltriMovimenti _filtri { get => Stato.Filtri!; set => Stato.Filtri = value; }               // valori nei campi
+    private FiltriMovimenti _filtriAttivi { get => Stato.FiltriAttivi!; set => Stato.FiltriAttivi = value; }   // applicati alla griglia
+    private int _numeroScarti;                        // righe nella tabella MovimentiScartati
+    private List<ContoCorrente> _conti = new();
+    private PannelloFiltriMovimenti? _pannello;        // i filtri (componente comune con il grafico personalizzato)
+    private Dictionary<string, string> _nomiConti = new();
+
+    // Righe selezionate. Restano selezionate cambiando pagina o filtri (anche se non visibili),
+    // perché la griglia ricreata con @key riceve di nuovo questo insieme. MovimentoCbi è un record:
+    // la stessa riga riletta dal database risulta uguale e quindi ancora selezionata.
+    private HashSet<MovimentoCbi> _selezionati = new();
+
+    private int _totaleRisultati;                     // righe che rispettano i filtri applicati
+    private bool _selezioneInCorso;
+
+    // Vero dopo "Seleziona tutti i risultati", finché tutte le righe del filtro applicato restano
+    // selezionate: in quel caso il pulsante diventa "Deseleziona tutto".
+    private bool _tuttiSelezionati;
+
+    [Parameter] public EventCallback ApriScarti { get; set; }
+
+    private MudDataGrid<MovimentoCbi>? _griglia;
+
+    // tipo del gruppo di ogni causale, per il menu del movimento ("Come il gruppo (Ordinario)")
+    private Dictionary<string, TipoGruppo> _tipiDelGruppo = new();
+
+    protected override void OnInitialized()
+    {
+        CaricaConti();
+        _tipiDelGruppo = Database.ElencoGruppiCausali().Where(g => g.Gruppo is not null)
+                                 .ToDictionary(g => g.Causale, g => g.Tipo);
+        _numeroScarti = Database.ContaScarti();
+        // la prima volta: il conto predefinito (Impostazioni > Preferenze > Generali) è già scelto; Azzera
+        // mostra tutti i conti. Le volte dopo restano i filtri di prima
+        if (Stato.Filtri is null)
+        {
+            _filtri = new FiltriMovimenti { Conti = Analisi.ContiPredefiniti() };
+            _filtriAttivi = _filtri.Copia();
+        }
+        Importazione.ImportCompletato += OnImportCompletato;
+    }
+
+    public void Dispose()
+    {
+        Importazione.ImportCompletato -= OnImportCompletato;
+    }
+
+    // chiamata dalla griglia a ogni cambio pagina o di righe per pagina
+    private async Task<GridData<MovimentoCbi>> CaricaDati(GridState<MovimentoCbi> stato, CancellationToken token)
+    {
+        _righePerPagina = stato.PageSize;
+        var ordine = Stato.Ordine = OrdineGriglia.Da(stato.SortDefinitions);
+
+        var (righe, totale) = await Task.Run(
+            () => Database.CercaMovimenti(_filtriAttivi, stato.Page, stato.PageSize, ordine), token);
+
+        if (totale != _totaleRisultati)
+        {
+            _totaleRisultati = totale;
+            StateHasChanged();      // aggiorna il numero sul pulsante "Seleziona tutti i risultati"
+        }
+
+        return new GridData<MovimentoCbi> { Items = righe, TotalItems = totale };
+    }
+
+    private void Applica()
+    {
+        _tuttiSelezionati = false;      // con altri filtri i risultati cambiano
+        _filtriAttivi = _filtri.Copia();
+        Log.Debug($"Filtri applicati: {_filtriAttivi}");
+        _versioneGriglia++;
+    }
+
+    private void Azzera()
+    {
+        Log.Debug("Filtri azzerati");
+        _filtri = new FiltriMovimenti();
+        Applica();
+    }
+
+    private async Task Importa()
+    {
+        if (await DialogoImportazione.ApriAsync(Dialoghi))
+            await ApriScarti.InvokeAsync();
+    }
+
+    private Task ApriTabellaScarti() => ApriScarti.InvokeAsync();
+
+    private void SelezioneCambiata(HashSet<MovimentoCbi> selezionati)
+    {
+        // togliendo la spunta a una riga non sono più selezionati tutti i risultati;
+        // aggiungerne altre invece non cambia nulla
+        if (selezionati.Count < _selezionati.Count)
+            _tuttiSelezionati = false;
+
+        _selezionati = selezionati;
+        Log.Debug($"Movimenti selezionati: {_selezionati.Count}");
+    }
+
+    // Aggiunge alla selezione tutte le righe dei filtri applicati, non solo quelle della pagina visibile.
+    // Le righe già selezionate con altri filtri restano selezionate.
+    private async Task SelezionaTuttiIRisultati()
+    {
+        _selezioneInCorso = true;
+        try
+        {
+            var tutti = await Task.Run(() => Database.TuttiMovimenti(_filtriAttivi));
+            _selezionati = new HashSet<MovimentoCbi>(_selezionati.Concat(tutti));
+            _tuttiSelezionati = true;
+            Log.Debug($"Selezionati tutti i {tutti.Count} risultati del filtro ({_filtriAttivi}); " +
+                      $"righe selezionate in totale: {_selezionati.Count}");
+            _versioneGriglia++;     // la griglia ricreata mostra le nuove caselle spuntate
+        }
+        finally
+        {
+            _selezioneInCorso = false;
+        }
+    }
+
+    private void Deseleziona()
+    {
+        Log.Debug("Selezione azzerata");
+        _tuttiSelezionati = false;
+        _selezionati = new HashSet<MovimentoCbi>();
+        _versioneGriglia++;     // la griglia ricreata mostra le caselle tutte vuote
+    }
+
+    // Straordinario e tipo di un singolo movimento. La griglia si ricarica restando sulla stessa pagina;
+    // la selezione resta, perché un movimento si riconosce dalla chiave primaria.
+    private async Task CambiaStraordinario(MovimentoCbi movimento, bool straordinario)
+    {
+        Database.ImpostaStraordinario([movimento.Chiave], straordinario);
+        if (_griglia is not null) await _griglia.ReloadServerData();
+    }
+
+    private async Task CambiaTipo(MovimentoCbi movimento, TipoGruppo? tipo)
+    {
+        Database.ImpostaTipoForzato(movimento.Chiave, tipo);
+        if (_griglia is not null) await _griglia.ReloadServerData();
+    }
+
+    // dalla barra di selezione: tutte le righe selezionate insieme
+    private async Task StraordinariSelezionati(bool straordinario)
+    {
+        Database.ImpostaStraordinario(_selezionati.Select(m => m.Chiave), straordinario);
+        if (_griglia is not null) await _griglia.ReloadServerData();
+    }
+
+    private void CaricaConti()
+    {
+        _conti = Database.ElencoConti();
+        _nomiConti = _conti.ToDictionary(c => c.Codice, c => c.Nome);
+    }
+
+    private string NomeConto(string codice) => _nomiConti.GetValueOrDefault(codice, codice);
+
+    private SortDirection Direzione(string campo) => OrdineGriglia.Direzione(Stato.Ordine, campo);
+
+    private void OnImportCompletato(EsitoImportazione esito)
+    {
+        if (esito.Errore is not null) return;
+
+        _ = InvokeAsync(() =>
+        {
+            // gli scarti possono aumentare anche quando nessun movimento è nuovo
+            _numeroScarti = Database.ContaScarti();
+            CaricaConti();
+            _pannello?.Ricarica();      // conti, causali e periodi nuovi (l'ultimo movimento può essere cambiato)
+
+            if (esito.Inseriti > 0)
+            {
+                _tuttiSelezionati = false;      // i nuovi movimenti possono rientrare nel filtro
+                _versioneGriglia++;
+            }
+
+            StateHasChanged();
+        });
+    }
+}

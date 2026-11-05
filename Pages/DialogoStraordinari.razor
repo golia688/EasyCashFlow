@@ -1,0 +1,64 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+
+@* Elenco dei movimenti segnati come straordinari in un periodo, aperto da Analisi e Simulazione.
+   Dal menu ⋮ di ogni riga si toglie l'etichetta o si cambia il tipo; chiudendo, la pagina ricalcola. *@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Movimenti straordinari</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            @Periodo.Nome, dal @Periodo.Dal.ToString("dd/MM/yyyy") al @Periodo.Al.ToString("dd/MM/yyyy")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_straordinari.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="my-4">
+                Nel periodo non ci sono movimenti segnati come straordinari. Si segnano dal menu ⋮ di un movimento,
+                nella pagina Movimenti o negli elenchi che si aprono dalle analisi.
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                @_straordinari.Count @(_straordinari.Count == 1 ? "movimento" : "movimenti"),
+                totale <span class="importo">@_straordinari.Sum(m => m.Importo).ToString("N2", Italiano) €</span>.
+                Per togliere l'etichetta usa il menu ⋮ in fondo alla riga.
+            </MudText>
+            <TabellaMovimenti Movimenti="_straordinari" Modificato="Ricarica" />
+        }
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+            Per vedere gli straordinari di tutti i periodi: pagina Movimenti, filtro "Straordinari e tipo scelto".
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialogo.Close(DialogResult.Ok(_modificato))">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+    [Parameter] public PeriodoAnalisi Periodo { get; set; } = default!;
+    [Parameter] public IReadOnlyCollection<string> Conti { get; set; } = [];
+
+    private List<MovimentoAnalisi> _straordinari = [];
+    private bool _modificato;
+
+    protected override void OnInitialized() => Carica();
+
+    private void Carica() =>
+        _straordinari = Database.MovimentiPerAnalisi(Periodo.Dal, Periodo.Al, Conti)
+                                .Where(m => m.Straordinario).OrderByDescending(m => m.Data).ToList();
+
+    // un movimento non più straordinario sparisce dall'elenco; la pagina ricalcolerà alla chiusura
+    private void Ricarica()
+    {
+        _modificato = true;
+        Carica();
+    }
+}
