@@ -1,6 +1,6 @@
 # 08 - Versionamento del codice con git
 
-Dal 05/11 il progetto è sotto **git**, per ora solo in locale (nessun collegamento a GitHub). Sarà pubblicato su GitHub come repository **pubblico**, con l'utente `golia688`: per questo nei file non ci sono dati veri dell'utente e i commit non portano né il suo nome né la sua email (sezioni 2 e 4). Questo documento spiega cosa è git, come è stato configurato il repository e come si lavora da Visual Studio.
+Dal 05/11 il progetto è sotto **git**; dal 06/11 è pubblicato su GitHub come repository **pubblico**: [github.com/golia688/EasyCashFlow](https://github.com/golia688/EasyCashFlow), con l'utente `golia688`. Il collegamento si chiama `origin` e il ramo locale `main` segue `origin/main`: per questo nei file non ci sono dati veri dell'utente e i commit non portano né il suo nome né la sua email (sezioni 2 e 4). Questo documento spiega cosa è git, come è stato configurato il repository e come si lavora da Visual Studio.
 
 ## 1. Cos'è, in breve
 
@@ -63,9 +63,9 @@ Un commit per ogni cosa fatta e provata: la storia resta leggibile e si può tor
 
 Da riga di comando (Terminale di Visual Studio o PowerShell, nella cartella del progetto) i comandi equivalenti sono `git status`, `git diff`, `git add -A`, `git commit -m "messaggio"`, `git log --oneline`.
 
-## 6. Più avanti: GitHub
+## 6. GitHub
 
-Quando si pubblicherà:
+Pubblicato il 06/11 da Visual Studio (*Git > Push > GitHub*, che ha creato il repository e mandato i quattro commit). Da allora, dopo ogni commit, **Push** (la freccia in su nella finestra Modifiche Git, o *Git > Push*) manda i commit su GitHub; **Pull** scarica quelli fatti altrove. Come è stato fatto:
 
 1. su GitHub, in **Settings > Emails**: spuntare *Keep my email addresses private* e *Block command line pushes that expose my email*. Così un commit fatto per sbaglio con l'email vera viene rifiutato invece di finire online;
 2. *New repository*, nome `EasyCashFlow`, **Public**, senza README né `.gitignore` (ci sono già);
