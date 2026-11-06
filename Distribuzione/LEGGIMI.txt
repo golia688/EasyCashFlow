@@ -160,8 +160,7 @@ A mano: chiudi il programma e copia TUTTA la cartella "dati". Il database
 da solo non basta: senza chiave.json non si apre piu', nemmeno con la
 password giusta.
 
- - La copia e' cifrata come i dati, ma mettila FUORI da questo computer:
-   su una chiavetta o in uno spazio cloud personale.
+ - La copia e' cifrata come i dati.
  - ATTENZIONE: la copia si apre con la password che valeva quando l'hai
    fatta. Se poi cambi la password, la copia continua ad aprirsi con
    quella vecchia.
