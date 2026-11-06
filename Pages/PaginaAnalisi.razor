@@ -85,15 +85,22 @@
         @Scheda(Indicatore.Entrate, "Entrate", Euro(k.Entrate), null, MediaAlMese(k.Entrate, k),
             @<div>
                 <p>Somma dei movimenti in entrata di tipo <b>Ordinario</b>.</p>
-                <p>Non comprende le vendite e i rimborsi di investimenti (@Euro(k.RientratoInvestimenti)),
-                   che sono soldi che rientrano, non guadagni, né i giroconti.</p>
+                @if (_ciSonoInvestimenti)
+                {
+                    <p>Non comprende le vendite e i rimborsi di investimenti (@Euro(k.RientratoInvestimenti)),
+                       che sono soldi che rientrano, non guadagni, né i giroconti.</p>
+                }
+                else
+                {
+                    <p>Non comprende i giroconti.</p>
+                }
                 <p>Media mensile: @Euro(k.Entrate) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(AlMese(k.Entrate, k)).</p>
             </div>)
 
         @Scheda(Indicatore.Uscite, "Uscite", Euro(k.Uscite), null, MediaAlMese(k.Uscite, k),
             @<div>
                 <p>Somma dei movimenti in uscita di tipo <b>Ordinario</b>.</p>
-                <p>Non comprende i versamenti negli investimenti (@Euro(k.VersatoInvestimenti)) né i giroconti.</p>
+                <p>Non comprende @(_ciSonoInvestimenti ? $"i versamenti negli investimenti ({Euro(k.VersatoInvestimenti)}) né " : "")i giroconti.</p>
                 <p>Media mensile: @Euro(k.Uscite) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(k.UscitaMediaMensile).</p>
             </div>)
 
@@ -101,7 +108,7 @@
             MediaAlMese(k.Netto, k, segno: true),
             @<div>
                 <p>Entrate meno uscite: @Euro(k.Entrate) − @Euro(k.Uscite) = <b>@Euro(k.Netto, segno: true)</b></p>
-                <p>Quanto è rimasto (o mancato) dopo le spese, prima di spostare soldi sugli investimenti.</p>
+                <p>Quanto è rimasto (o mancato) dopo le spese@(_ciSonoInvestimenti ? ", prima di spostare soldi sugli investimenti" : "").</p>
                 <p>Media mensile: @Euro(k.Netto, segno: true) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(AlMese(k.Netto, k), segno: true),
                    lo stesso flusso netto medio da cui parte la simulazione del saldo.</p>
             </div>)
@@ -122,16 +129,22 @@
                 }
             </div>)
 
-        @Scheda(Indicatore.InvestitoNetto, "Investito netto", Euro(k.InvestitoNetto, segno: true), null,
-            MediaAlMese(k.InvestitoNetto, k, segno: true),
-            @<div>
-                <p>Movimenti di tipo <b>Investimento</b> (PAC, sottoscrizioni, vendite di titoli):</p>
-                <p>versato @Euro(k.VersatoInvestimenti) − vendite e rimborsi @Euro(k.RientratoInvestimenti) = <b>@Euro(k.InvestitoNetto, segno: true)</b></p>
-                <p>Media mensile: @Euro(k.InvestitoNetto, segno: true) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(AlMese(k.InvestitoNetto, k), segno: true),
-                   l'investito medio da cui parte la simulazione del saldo.</p>
-                <p>Positivo: al netto, dal conto sono usciti soldi verso gli investimenti. Non sono spese,
-                   cambiano solo posto: per questo non entrano nelle uscite né nel tasso di risparmio.</p>
-            </div>)
+        @* Senza nessun movimento di tipo Investimento (in nessun periodo, sui conti scelti) la scheda sarebbe
+           sempre zero: non si mostra (dal 06/11). Con investimenti resta anche nei periodi senza, dove lo zero
+           è un'informazione. *@
+        @if (_ciSonoInvestimenti)
+        {
+            @Scheda(Indicatore.InvestitoNetto, "Investito netto", Euro(k.InvestitoNetto, segno: true), null,
+                MediaAlMese(k.InvestitoNetto, k, segno: true),
+                @<div>
+                    <p>Movimenti di tipo <b>Investimento</b> (PAC, sottoscrizioni, vendite di titoli):</p>
+                    <p>versato @Euro(k.VersatoInvestimenti) − vendite e rimborsi @Euro(k.RientratoInvestimenti) = <b>@Euro(k.InvestitoNetto, segno: true)</b></p>
+                    <p>Media mensile: @Euro(k.InvestitoNetto, segno: true) / @AnalisiService.TestoMesi(k.Mesi) = @Euro(AlMese(k.InvestitoNetto, k), segno: true),
+                       l'investito medio da cui parte la simulazione del saldo.</p>
+                    <p>Positivo: al netto, dal conto sono usciti soldi verso gli investimenti. Non sono spese,
+                       cambiano solo posto: per questo non entrano nelle uscite né nel tasso di risparmio.</p>
+                </div>)
+        }
 
         @Scheda(Indicatore.Saldo, "Saldo a fine periodo", k.SaldoFinale is { } s ? Euro(s) : "–", null,
             k.VariazioneSaldo is { } v ? $"{Euro(v, segno: true)} dal {k.DataSaldoIniziale:dd/MM/yyyy}"
@@ -154,8 +167,8 @@
                     <p>Saldo al @k.DataSaldoIniziale?.ToString("dd/MM/yyyy"): @Euro(k.SaldoIniziale!.Value)<br />
                        Saldo al @k.DataSaldoFinale?.ToString("dd/MM/yyyy"): @Euro(k.SaldoFinale.Value)<br />
                        Variazione: <b>@Euro(variazione, segno: true)</b></p>
-                    <p>Verifica: flusso netto − investito netto @(k.Giroconti != 0 ? "+ giroconti " : "")=
-                       @Euro(k.Netto) − @Euro(k.InvestitoNetto)@(k.Giroconti != 0 ? $" {Euro(k.Giroconti, segno: true)}" : "") = @Euro(atteso - k.StraordinariEsclusi, segno: true)</p>
+                    <p>Verifica: flusso netto @(_ciSonoInvestimenti ? "− investito netto " : "")@(k.Giroconti != 0 ? "+ giroconti " : "")=
+                       @Euro(k.Netto)@(_ciSonoInvestimenti ? $" − {Euro(k.InvestitoNetto)}" : "")@(k.Giroconti != 0 ? $" {Euro(k.Giroconti, segno: true)}" : "") = @Euro(atteso - k.StraordinariEsclusi, segno: true)</p>
                     @if (k.NumeroStraordinariEsclusi > 0)
                     {
                         <p>più i @k.NumeroStraordinariEsclusi movimenti straordinari esclusi (@Euro(k.StraordinariEsclusi, segno: true)),
@@ -380,6 +393,7 @@
     }
 
     private int _numeroStraordinari;
+    private bool _ciSonoInvestimenti = true;
 
     // l'elenco degli straordinari del periodo, dove si può anche togliere l'etichetta; poi si ricalcola
     private async Task ApriStraordinari()
@@ -414,6 +428,8 @@
         if (_periodo is null) return;
         _risultato = Analisi.Calcola(_periodo, _contiScelti, Analisi.EscludiStraordinari);
         _numeroStraordinari = Analisi.ContaStraordinari(_periodo, _contiScelti);
+        // su tutti i periodi dei conti scelti; se il periodo ne ha comunque (non dovrebbe), la scheda si vede
+        _ciSonoInvestimenti = Database.CiSonoInvestimenti(_contiScelti) || _risultato.Indicatori.InvestitoNetto != 0;
         CostruisciOpzioni();
     }
 

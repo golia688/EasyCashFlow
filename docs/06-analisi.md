@@ -10,7 +10,7 @@ Accanto ci sono l'interruttore **Escludi straordinari** con il pulsante "Vedi gl
 
 | # | Elemento | Cosa mostra |
 |---|---|---|
-| 1 | Indicatori | Entrate, uscite, flusso netto e investito netto (tutti con la media mensile), tasso di risparmio, saldo a fine periodo con la variazione. Sopra, l'avviso dei mesi incompleti se il periodo ne ha |
+| 1 | Indicatori | Entrate, uscite, flusso netto e investito netto (tutti con la media mensile), tasso di risparmio, saldo a fine periodo con la variazione. Sopra, l'avviso dei mesi incompleti se il periodo ne ha. Investito netto solo se ci sono investimenti (sotto) |
 | 2 | Entrate e uscite per mese | Entrate sopra lo zero, uscite sotto, flusso netto del mese come linea; clic su colonne e punti |
 | 3 | Andamento del saldo | Saldo contabile a fine giornata |
 | 4 | Dove vanno i soldi | Uscite per gruppo di causali, dalla più grande; clic sulle barre |
@@ -18,6 +18,8 @@ Accanto ci sono l'interruttore **Escludi straordinari** con il pulsante "Vedi gl
 | 6 | Spese ricorrenti e variabili | Per mese, uscite fisse e variabili impilate; clic sulle colonne |
 | 7 | Flusso netto cumulato | Mese per mese dall'inizio dell'anno, con l'anno precedente per confronto |
 | 8 | Movimenti più grandi | I dieci movimenti di importo maggiore nel periodo |
+
+**Investito netto solo con investimenti** (dal 06/11): se tra i movimenti dei conti scelti, in qualunque periodo, non ce n'è nessuno di tipo Investimento (quello del gruppo o quello scelto per il movimento, `DatabaseService.CiSonoInvestimenti`), la scheda non si mostra: sarebbe sempre zero. Nelle spiegazioni delle altre schede spariscono i riferimenti agli investimenti ("non comprende i versamenti negli investimenti (0,00 €)"), e la verifica del saldo diventa "flusso netto (+ giroconti)". Il controllo è su tutti i periodi e non su quello scelto, così con investimenti la scheda non compare e scompare cambiando periodo, e lo zero di un mese senza versamenti resta un'informazione. Simulazione e report Excel restano come sono.
 
 ### Pagine di dettaglio degli indicatori
 
@@ -85,6 +87,26 @@ I file importati prima di questa tabella non hanno lasciato saldi. Per avere lo 
 Tabella `GruppiCausali` (causale, gruppo, tipo, ricorrente). Al primo avvio viene riempita con una mappatura predefinita delle causali osservate negli export (`InserisciGruppiPredefiniti` in `DatabaseService`). Le voci già presenti non vengono mai sovrascritte, così le modifiche future dell'utente restano. Una causale senza gruppo finisce in **"Altro"**, di tipo Ordinario e variabile.
 
 **Gruppi di ripiego** (dal 05/11): la mappatura predefinita ha 28 causali a 4 cifre, quelle della BCC. Le prime due cifre di ogni causale sono la **causale CBI**, uguale per tutte le banche; le altre due la causale interna della banca ([05-formato-cbi.md](05-formato-cbi.md), sezione 7). Una causale dei movimenti che non ha ancora un gruppo riceve quello proposto per la sua causale CBI (`CausaliCbi.GruppoDiRipiego`, 42 causali CBI su 108: 48 → Bonifici ricevuti, 34 e 79 → Giroconti di tipo Giroconto, 83 → Investimenti…), all'avvio e dopo ogni importazione (`DatabaseService.AssegnaGruppiDiRipiego`). Così anche le causali di un'altra banca partono con un gruppo. Le causali CBI che possono essere cose diverse (storni, rettifiche, la 31 che la BCC usa per gli SDD) non hanno un ripiego e restano senza gruppo. Il gruppo resta per causale a 4 cifre perché la causale interna distingue cose che la causale CBI mette insieme: 3122 (SDD di utenze) e 3126 (PAC, un investimento) sono entrambe CBI 31.
+
+**Esportazione e importazione** (dal 06/11): i pulsanti **Esporta** e **Importa** della pagina dei gruppi salvano in un file e riprendono tutta la tabella `GruppiCausali`, così su un'installazione nuova i gruppi non si rifanno a mano. Il file (`FileGruppiCausali`) è JSON, non cifrato perché non ha né movimenti né importi:
+
+```json
+{
+  "formato": "EasyCashFlow.GruppiCausali",
+  "versione": 1,
+  "esportatoIl": "2026-11-06T18:30:00",
+  "gruppi": [
+    { "causale": "2611", "gruppo": "Bonifici effettuati", "tipo": "Ordinario", "ricorrente": false,
+      "descrizioneBanca": "Bonifico tramite Internet Banking" }
+  ]
+}
+```
+
+- Si esportano **tutte** le righe della tabella, anche le predefinite e quelle di causali senza movimenti, con la descrizione della banca se ci sono movimenti (solo per chi legge il file: all'importazione si ignora).
+- All'importazione (`DatabaseService.ImportaGruppiCausali`, in una transazione) una causale del file prende gruppo, tipo e ricorrenza del file; quelle che il file non ha restano come sono. Prima di scrivere, la pagina mostra quante causali si aggiungono, quante cambiano e quante sono uguali, e chiede conferma.
+- Controlli: il formato e la versione del file (un file di un'altra versione più recente si rifiuta); per ogni riga la causale di 4 caratteri, il gruppo non vuoto (al massimo 60 caratteri) e il tipo tra Ordinario, Investimento e Giroconto. Una riga sbagliata si scarta da sola, e la conferma dice quante e perché.
+- Su un database nuovo i gruppi importati prima dei movimenti valgono appena arrivano i movimenti: né i gruppi predefiniti (`ON CONFLICT DO NOTHING`) né quelli di ripiego (solo per le causali senza riga) li sovrascrivono.
+- Prova (programma `provagruppi`, con i sorgenti veri e database cifrati nuovi): esportazione di 29 causali, importazione su un database nuovo (1 nuova, 1 cambiata, 27 uguali), reimportazione senza cambiamenti, ripiego che non tocca i gruppi importati, righe sbagliate scartate una a una, file di un altro formato, non JSON o di una versione futura rifiutati.
 
 I gruppi si modificano da **Impostazioni > Dati > Gruppi di causali** (`PaginaGruppiCausali.razor`). C'è una riga per ogni causale presente nei movimenti, con:
 - la descrizione della banca e, sotto, la causale CBI con la sua descrizione secondo lo standard (dal 05/11), il numero di movimenti e il totale;

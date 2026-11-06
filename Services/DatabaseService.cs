@@ -471,6 +471,23 @@ public class DatabaseService
         return elenco;
     }
 
+    /// <summary>Vero se tra tutti i movimenti (di qualunque periodo) dei conti indicati ce n'è almeno uno di
+    /// tipo Investimento, quello del gruppo o quello scelto per il movimento. Conti vuoto = tutti i conti.
+    /// Senza investimenti la pagina Analisi non mostra la scheda "Investito netto" (dal 06/11/2026).</summary>
+    public bool CiSonoInvestimenti(IReadOnlyCollection<string> conti)
+    {
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        var filtroConti = conti.Count > 0 ? "AND " + CondizioneIn(comando, "m.Conto", "$conto", conti) : "";
+        comando.CommandText = $"""
+            SELECT EXISTS (
+                SELECT 1 FROM Movimenti m
+                LEFT JOIN GruppiCausali g ON g.Causale = m.Causale
+                WHERE COALESCE(m.TipoForzato, g.Tipo, 'Ordinario') = 'Investimento' {filtroConti})
+            """;
+        return Convert.ToInt64(comando.ExecuteScalar()) == 1;
+    }
+
     /// <summary>I saldi salvati fino alla data indicata (compresa), in ordine di data.
     /// Conti vuoto = tutti i conti.</summary>
     public List<SaldoGiornaliero> SaldiFinoAl(DateOnly al, IReadOnlyCollection<string> conti)
@@ -637,6 +654,79 @@ public class DatabaseService
         comando.Parameters.AddWithValue("$ricorrente", ricorrente ? 1 : 0);
         comando.ExecuteNonQuery();
         _log.Info($"Causale {causale}: gruppo {Mascherato.Nome("gruppo", gruppo)}, tipo {tipo}, {(ricorrente ? "ricorrente" : "variabile")}");
+    }
+
+    /// <summary>Tutta la tabella GruppiCausali, per l'esportazione: anche le causali che non hanno (ancora)
+    /// movimenti, come le predefinite, con la descrizione della banca se ci sono movimenti.</summary>
+    public List<GruppoEsportato> TuttiGruppiCausali()
+    {
+        var elenco = new List<GruppoEsportato>();
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        comando.CommandText = """
+            SELECT g.Causale, g.Gruppo, g.Tipo, g.Ricorrente,
+                   (SELECT MIN(m.DescrizioneBreve) FROM Movimenti m WHERE m.Causale = g.Causale)
+            FROM GruppiCausali g
+            ORDER BY g.Causale
+            """;
+        using var lettore = comando.ExecuteReader();
+        while (lettore.Read())
+            elenco.Add(new GruppoEsportato(
+                Causale: lettore.GetString(0),
+                Gruppo: lettore.GetString(1),
+                Tipo: Enum.TryParse<TipoGruppo>(lettore.GetString(2), out var tipo) ? tipo : TipoGruppo.Ordinario,
+                Ricorrente: lettore.GetInt64(3) == 1,
+                DescrizioneBanca: lettore.IsDBNull(4) ? null : lettore.GetString(4).Trim().TrimEnd('-', ' ')));
+        return elenco;
+    }
+
+    /// <summary>Scrive i gruppi letti da un file esportato, in un'unica transazione: una causale già presente
+    /// prende gruppo, tipo e ricorrenza del file, le altre causali della tabella restano come sono.
+    /// Restituisce quante causali erano nuove, quante sono cambiate e quante erano già uguali.</summary>
+    public (int Nuove, int Cambiate, int Uguali) ImportaGruppiCausali(IReadOnlyList<GruppoEsportato> gruppi)
+    {
+        var attuali = TuttiGruppiCausali().ToDictionary(g => g.Causale);
+        int nuove = 0, cambiate = 0, uguali = 0;
+
+        using var connessione = Apri();
+        using var transazione = connessione.BeginTransaction();
+        using var comando = connessione.CreateCommand();
+        comando.Transaction = transazione;
+        comando.CommandText = """
+            INSERT INTO GruppiCausali (Causale, Gruppo, Tipo, Ricorrente)
+            VALUES ($causale, $gruppo, $tipo, $ricorrente)
+            ON CONFLICT (Causale) DO UPDATE SET
+                Gruppo = excluded.Gruppo, Tipo = excluded.Tipo, Ricorrente = excluded.Ricorrente
+            """;
+        var pCausale = comando.Parameters.Add("$causale", SqliteType.Text);
+        var pGruppo = comando.Parameters.Add("$gruppo", SqliteType.Text);
+        var pTipo = comando.Parameters.Add("$tipo", SqliteType.Text);
+        var pRicorrente = comando.Parameters.Add("$ricorrente", SqliteType.Integer);
+
+        foreach (var g in gruppi)
+        {
+            if (attuali.TryGetValue(g.Causale, out var attuale))
+            {
+                if (attuale.Gruppo == g.Gruppo && attuale.Tipo == g.Tipo && attuale.Ricorrente == g.Ricorrente)
+                {
+                    uguali++;
+                    continue;
+                }
+                cambiate++;
+            }
+            else
+                nuove++;
+
+            pCausale.Value = g.Causale;
+            pGruppo.Value = g.Gruppo;
+            pTipo.Value = g.Tipo.ToString();
+            pRicorrente.Value = g.Ricorrente ? 1 : 0;
+            comando.ExecuteNonQuery();
+        }
+        transazione.Commit();
+
+        _log.Info($"Gruppi di causali importati da file: {nuove} nuove, {cambiate} cambiate, {uguali} già uguali");
+        return (nuove, cambiate, uguali);
     }
 
     private static int InserisciConto(SqliteConnection connessione, SqliteTransaction transazione, ContoCorrente c)

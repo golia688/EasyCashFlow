@@ -71,7 +71,19 @@
  barra a sinistra.
 
 
- 5. CORREZIONI
+ 5. GRUPPI DI CAUSALI IN UN FILE
+ -------------------------------
+
+ Nella pagina Impostazioni > Dati > Gruppi di causali ci sono i pulsanti
+ "Esporta" e "Importa": salvi in un file i gruppi che hai scelto e li
+ riprendi su un'installazione nuova, senza rifarli a mano. Il file non
+ contiene movimenti ne' importi.
+
+ In Analisi la scheda "Investito netto" compare solo se hai degli
+ investimenti.
+
+
+ 6. CORREZIONI
  -------------
 
  - La finestra di Windows per scegliere il file, il report Excel o la

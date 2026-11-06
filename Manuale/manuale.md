@@ -220,7 +220,7 @@ Le **medie al mese** (sotto entrate, uscite, flusso netto e investito netto) con
 - **Uscite**: i soldi spesi.
 - **Flusso netto**: entrate meno uscite. Se è positivo hai messo da parte dei soldi, se è negativo hai speso più di quanto è entrato. Sotto vedi anche la media al mese: è il numero da cui parte la simulazione del saldo, che ragiona mese per mese. La media al mese c'è anche per entrate, uscite e investito netto.
 - **Tasso di risparmio**: quanta parte delle entrate non hai speso, in percentuale.
-- **Investito netto**: i soldi spostati verso investimenti (fondi, PAC, titoli), meno quelli rientrati dalle vendite.
+- **Investito netto**: i soldi spostati verso investimenti (fondi, PAC, titoli), meno quelli rientrati dalle vendite. Se nei conti scelti non c'è nessun movimento di investimento, in nessun periodo, questa scheda non compare: sarebbe sempre zero. Compare da sola appena un movimento (o una causale, nei [Gruppi di causali](app:gruppi)) è di tipo Investimento.
 - **Saldo a fine periodo**: quanto c'era sul conto alla fine del periodo.
 
 Passa con il mouse su un numero per vedere come è calcolato. **Cliccalo** per vedere tutti i movimenti che lo compongono: è il modo migliore per capire da dove viene.
@@ -352,6 +352,13 @@ Per ogni causale scegli:
 - **Ricorrente**: spuntalo per le spese fisse, come mutuo, bollette e tasse.
 
 Poi premi **Salva** sulla riga.
+
+**Salvare i gruppi in un file e riprenderli.** In alto a destra nella pagina ci sono due pulsanti:
+
+- **Esporta** salva in un file i gruppi di tutte le causali: il gruppo, il tipo e se è ricorrente, comprese le scelte che hai fatto tu. Il file (`EasyCashFlow-gruppi-causali-` e la data, `.json`) non contiene movimenti né importi.
+- **Importa** riprende i gruppi da un file esportato prima. Prima di cambiare qualcosa ti dice quante causali si aggiungono, quante prendono un gruppo diverso e quante sono già uguali, e aspetta la tua conferma. Le causali che il file non ha restano come sono.
+
+Serve quando riparti da zero, per esempio con il programma in una cartella nuova o su un altro computer: importi il file dei gruppi, anche prima dei movimenti, e non devi riassegnare a mano i gruppi delle causali. Quando poi importi i file CBI, le causali prendono subito i tuoi gruppi.
 
 **Dove finisce una causale?** La freccia in fondo alla riga apre l'analisi in cui finiscono i movimenti di quella causale (entrate, uscite o investimenti), già filtrata sul suo gruppo.
 

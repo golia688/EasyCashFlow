@@ -39,6 +39,31 @@ public class SelettoreFile
         return dialogo.ShowDialog(Application.Current.MainWindow) == true ? dialogo.FileName : null;
     });
 
+    /// <summary>Dove salvare l'esportazione dei gruppi di causali; null se l'utente annulla.</summary>
+    public Task<string?> ScegliDoveSalvareGruppiAsync(string nomeProposto) => Apri(() =>
+    {
+        var dialogo = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Esporta i gruppi di causali",
+            FileName = nomeProposto,
+            DefaultExt = ".json",
+            Filter = "Gruppi di causali (*.json)|*.json",
+            OverwritePrompt = true
+        };
+        return dialogo.ShowDialog(Application.Current.MainWindow) == true ? dialogo.FileName : null;
+    });
+
+    /// <summary>Un file di gruppi di causali esportato prima; null se l'utente annulla.</summary>
+    public Task<string?> ScegliFileGruppiAsync() => Apri(() =>
+    {
+        var dialogo = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Importa i gruppi di causali",
+            Filter = "Gruppi di causali (*.json)|*.json|Tutti i file (*.*)|*.*"
+        };
+        return dialogo.ShowDialog(Application.Current.MainWindow) == true ? dialogo.FileName : null;
+    });
+
     /// <summary>Una cartella (per il backup); null se l'utente annulla.</summary>
     public Task<string?> ScegliCartellaAsync(string titolo, string? iniziale) => Apri(() =>
     {

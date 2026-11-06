@@ -5,6 +5,9 @@
 @inject DatabaseService Database
 @inject ISnackbar Snackbar
 @inject ImpostazioniService Impostazioni
+@inject SelettoreFile Selettore
+@inject IDialogService Dialoghi
+@inject LogService Log
 
 @* la freccia c'è solo se la pagina si è aperta dalla Home o dal menu Dati di Movimenti (Main.razor) *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
@@ -16,6 +19,16 @@
     }
     <MudText Typo="Typo.h4">Gruppi di causali</MudText>
     <AiutoManuale Capitolo="gruppi" />
+    <MudSpacer />
+    @* i gruppi in un file, per ritrovarli su un'installazione nuova o su un altro computer (dal 06/11) *@
+    <MudTooltip Text="Salva in un file i gruppi di tutte le causali">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FileDownload))"
+                   OnClick="Esporta">Esporta</MudButton>
+    </MudTooltip>
+    <MudTooltip Text="Riprendi i gruppi da un file esportato prima">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FileUpload))"
+                   OnClick="Importa">Importa</MudButton>
+    </MudTooltip>
 </MudStack>
 
 <MudPaper Class="pa-4 mt-4" Elevation="1">
@@ -30,8 +43,10 @@
         <li><b>Ricorrente</b>: spesa fissa, come mutuo, utenze e imposte; le altre sono variabili.</li>
     </ul>
     <MudText Typo="Typo.body2" Class="mud-text-secondary">
-        Le causali senza gruppo sono in cima: nelle analisi finiscono in "Altro".
+        Le causali senza gruppo (le trovi con il filtro Gruppo) nelle analisi finiscono in "Altro".
         Le modifiche valgono dalla prossima apertura della pagina Analisi.
+        Con <b>Esporta</b> salvi i gruppi in un file, e con <b>Importa</b> li ritrovi su un'installazione nuova
+        di EasyCashFlow, anche prima di importare i movimenti.
     </MudText>
 </MudPaper>
 
@@ -303,6 +318,81 @@
         Task.FromResult(string.IsNullOrWhiteSpace(testo)
             ? _gruppi.AsEnumerable()
             : _gruppi.Where(g => g.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase)));
+
+    private async Task Esporta()
+    {
+        var percorso = await Selettore.ScegliDoveSalvareGruppiAsync(FileGruppiCausali.NomeFile(DateTime.Now));
+        if (percorso is null) return;
+        try
+        {
+            var gruppi = Database.TuttiGruppiCausali();
+            FileGruppiCausali.Scrivi(percorso, gruppi);
+            Log.Info($"Gruppi di causali esportati: {gruppi.Count} causali in {System.IO.Path.GetFileName(percorso)}");
+            Snackbar.Add($"Esportati i gruppi di {gruppi.Count} causali in {System.IO.Path.GetFileName(percorso)}.", Severity.Success);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log.Errore("Esportazione dei gruppi di causali non riuscita", ex);
+            Snackbar.Add($"Il file non è stato salvato: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // Legge il file, mostra cosa cambierebbe e scrive solo dopo la conferma. Le causali del file sostituiscono
+    // gruppo, tipo e ricorrenza di quelle uguali; le causali che il file non ha restano come sono.
+    private async Task Importa()
+    {
+        var percorso = await Selettore.ScegliFileGruppiAsync();
+        if (percorso is null) return;
+
+        FileGruppiLetto letto;
+        try
+        {
+            letto = FileGruppiCausali.Leggi(percorso);
+        }
+        catch (Exception ex) when (ex is System.IO.InvalidDataException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log.Errore($"Importazione dei gruppi di causali da {System.IO.Path.GetFileName(percorso)} non riuscita", ex);
+            Snackbar.Add(ex is System.IO.InvalidDataException ? ex.Message : $"Il file non si può leggere: {ex.Message}",
+                         Severity.Error, o => o.RequireInteraction = true);
+            return;
+        }
+
+        if (letto.Gruppi.Count == 0)
+        {
+            Snackbar.Add("Il file non contiene nessun gruppo di causale valido: non è cambiato niente.", Severity.Warning);
+            return;
+        }
+
+        var attuali = Database.TuttiGruppiCausali().ToDictionary(g => g.Causale);
+        var nuove = letto.Gruppi.Count(g => !attuali.ContainsKey(g.Causale));
+        var cambiate = letto.Gruppi.Count(g => attuali.TryGetValue(g.Causale, out var a)
+                                                && (a.Gruppo != g.Gruppo || a.Tipo != g.Tipo || a.Ricorrente != g.Ricorrente));
+        var uguali = letto.Gruppi.Count - nuove - cambiate;
+
+        if (nuove + cambiate == 0)
+        {
+            Snackbar.Add($"Le {letto.Gruppi.Count} causali del file hanno già gli stessi gruppi: non c'è niente da cambiare.", Severity.Info);
+            return;
+        }
+
+        var messaggio = new MarkupString(
+            $"<p>Il file <b>{System.Net.WebUtility.HtmlEncode(System.IO.Path.GetFileName(percorso))}</b>" +
+            (letto.EsportatoIl is { } quando ? $", esportato il {quando:dd/MM/yyyy} alle {quando:HH:mm}," : "") +
+            $" contiene i gruppi di {letto.Gruppi.Count} causali:</p><ul style=\"margin: 8px 0 8px 24px\">" +
+            (nuove > 0 ? $"<li>{nuove} che qui non hanno ancora un gruppo: si aggiungono;</li>" : "") +
+            (cambiate > 0 ? $"<li><b>{cambiate} con un gruppo diverso da quello attuale: prendono quello del file</b>;</li>" : "") +
+            (uguali > 0 ? $"<li>{uguali} già uguali.</li>" : "") +
+            "</ul><p>Le causali che il file non ha restano come sono.</p>" +
+            (letto.Scartate > 0 ? $"<p>{letto.Scartate} righe del file non sono valide e si ignorano (per esempio: {System.Net.WebUtility.HtmlEncode(letto.PrimoScarto!)}).</p>" : ""));
+
+        var conferma = await Dialoghi.ShowMessageBoxAsync("Importa i gruppi di causali", messaggio,
+            yesText: "Importa", cancelText: "Annulla");
+        if (conferma != true) return;
+
+        var esito = Database.ImportaGruppiCausali(letto.Gruppi);
+        Carica();
+        Snackbar.Add($"Gruppi importati: {esito.Nuove} causali aggiunte, {esito.Cambiate} cambiate.", Severity.Success);
+    }
 
     private void Salva(Riga riga)
     {
