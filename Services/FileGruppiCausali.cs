@@ -8,8 +8,8 @@ namespace EasyCashFlow.Services;
 /// <summary>Un gruppo di causale come sta nel file di esportazione.</summary>
 public record GruppoEsportato(string Causale, string Gruppo, TipoGruppo Tipo, bool Ricorrente, string? DescrizioneBanca = null);
 
-/// <summary>Cosa c'è in un file letto: i gruppi validi e quante righe sono state scartate (con il motivo della prima).</summary>
-public record FileGruppiLetto(IReadOnlyList<GruppoEsportato> Gruppi, int Scartate, string? PrimoScarto, DateTime? EsportatoIl);
+/// <summary>Cosa c'è in un file letto: i gruppi validi e il motivo di ogni riga scartata.</summary>
+public record FileGruppiLetto(IReadOnlyList<GruppoEsportato> Gruppi, IReadOnlyList<string> Scarti, DateTime? EsportatoIl);
 
 /// <summary>
 /// L'esportazione e l'importazione dei gruppi di causali (dal 06/11/2026), per non doverli rifare a mano su
@@ -21,7 +21,7 @@ public record FileGruppiLetto(IReadOnlyList<GruppoEsportato> Gruppi, int Scartat
 ///
 /// Contiene solo codici delle causali, nomi dei gruppi e la descrizione della banca (un testo generico come
 /// "Bonifico tramite Internet Banking"): nessun movimento né importo, quindi non è cifrato. La descrizione
-/// serve a chi legge il file e all'importazione si ignora.
+/// serve a chi legge il file e, all'importazione, alla finestra di conferma: nel database non si scrive.
 /// </summary>
 public static class FileGruppiCausali
 {
@@ -74,21 +74,17 @@ public static class FileGruppiCausali
             throw new InvalidDataException($"Il file è stato esportato da una versione più recente di EasyCashFlow (formato {contenuto.Versione}): aggiorna il programma.");
 
         var validi = new Dictionary<string, GruppoEsportato>();
-        int scartate = 0;
-        string? primoScarto = null;
-
-        void Scarta(string motivo)
-        {
-            scartate++;
-            primoScarto ??= motivo;
-        }
+        var scarti = new List<string>();
+        void Scarta(string motivo) => scarti.Add(motivo);
 
         foreach (var g in contenuto.Gruppi ?? [])
         {
             // la causale CBI sono 4 caratteri (record 62, posizioni 42-45): 2 della causale CBI, 2 della banca
             var causale = g?.Causale?.Trim() ?? "";
             var gruppo = g?.Gruppo?.Trim() ?? "";
-            if (g is null || causale.Length != 4 || !causale.All(char.IsAsciiLetterOrDigit))
+            if (g is null)
+                Scarta("riga vuota");
+            else if (causale.Length != 4 || !causale.All(char.IsAsciiLetterOrDigit))
                 Scarta($"causale \"{causale}\" non valida");
             else if (gruppo == "" || gruppo.Length > LunghezzaMassimaGruppo)
                 Scarta($"causale {causale}: nome del gruppo vuoto o più lungo di {LunghezzaMassimaGruppo} caratteri");
@@ -96,9 +92,10 @@ public static class FileGruppiCausali
                      || int.TryParse(g.Tipo, out _))
                 Scarta($"causale {causale}: tipo \"{g.Tipo}\" non riconosciuto");
             else
-                validi[causale] = new GruppoEsportato(causale, gruppo, tipo, g.Ricorrente);   // un doppione vale l'ultimo
+                validi[causale] = new GruppoEsportato(causale, gruppo, tipo, g.Ricorrente,    // un doppione vale l'ultimo
+                                                      string.IsNullOrWhiteSpace(g.DescrizioneBanca) ? null : g.DescrizioneBanca.Trim());
         }
 
-        return new FileGruppiLetto(validi.Values.ToList(), scartate, primoScarto, contenuto.EsportatoIl);
+        return new FileGruppiLetto(validi.Values.ToList(), scarti, contenuto.EsportatoIl);
     }
 }

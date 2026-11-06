@@ -1,0 +1,144 @@
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+
+@* Gruppi di causali > Importa: prima di scrivere mostra esattamente cosa cambia, causale per causale
+   (dal 06/11: prima diceva solo quante causali cambiavano). Il valore attuale e quello del file stanno
+   affiancati, e nelle causali che cambiano è evidenziato solo quello che è diverso. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2">
+            Il file <b>@NomeFile</b>@(EsportatoIl is { } quando ? $", esportato il {quando:dd/MM/yyyy} alle {quando:HH:mm}," : "")
+            contiene i gruppi di @(Cambiano.Count + Nuove.Count + Uguali) causali. Ecco cosa cambia importandolo;
+            le causali che il file non ha restano come sono.
+        </MudText>
+
+        <div class="elenco-differenze mt-3">
+            @if (Cambiano.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1">
+                    Cambiano (@Cambiano.Count): prendono il gruppo del file
+                </MudText>
+                <MudSimpleTable Dense="true" Elevation="0" Class="tabella-differenze">
+                    <thead>
+                        <tr><th>Causale</th><th>Descrizione della banca</th><th>Gruppo</th><th>Tipo</th><th>Spesa</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (attuale, nuovo) in Cambiano)
+                        {
+                            <tr>
+                                <td class="codice">@attuale.Causale</td>
+                                <td>@(attuale.DescrizioneBanca ?? nuovo.DescrizioneBanca ?? "–")</td>
+                                <td>@Differenza(attuale.Gruppo, nuovo.Gruppo)</td>
+                                <td>@Differenza(attuale.Tipo.ToString(), nuovo.Tipo.ToString())</td>
+                                <td>@Differenza(Spesa(attuale.Ricorrente), Spesa(nuovo.Ricorrente))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            @if (Nuove.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">
+                    Si aggiungono (@Nuove.Count): qui non hanno ancora un gruppo
+                </MudText>
+                <MudSimpleTable Dense="true" Elevation="0" Class="tabella-differenze">
+                    <thead>
+                        <tr><th>Causale</th><th>Descrizione della banca</th><th>Gruppo</th><th>Tipo</th><th>Spesa</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var nuova in Nuove)
+                        {
+                            <tr>
+                                <td class="codice">@nuova.Causale</td>
+                                <td>@(nuova.DescrizioneBanca ?? "–")</td>
+                                <td>@nuova.Gruppo</td>
+                                <td>@nuova.Tipo</td>
+                                <td>@Spesa(nuova.Ricorrente)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+
+            @if (Uguali > 0)
+            {
+                <MudText Typo="Typo.body2" Class="mt-4 mud-text-secondary">
+                    @Uguali @(Uguali == 1 ? "causale ha" : "causali hanno") già lo stesso gruppo: non cambiano.
+                </MudText>
+            }
+
+            @if (Scarti.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Righe del file non valide (@Scarti.Count): si ignorano</MudText>
+                <ul class="mud-typography-body2 ml-6">
+                    @foreach (var motivo in Scarti)
+                    {
+                        <li>@motivo</li>
+                    }
+                </ul>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="() => Dialogo.Cancel()">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => Dialogo.Close(DialogResult.Ok(true))">
+            Importa @(Cambiano.Count + Nuove.Count) @(Cambiano.Count + Nuove.Count == 1 ? "causale" : "causali")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .elenco-differenze {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .tabella-differenze td.codice {
+        font-family: monospace;
+    }
+
+    .tabella-differenze .vecchio {
+        text-decoration: line-through;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .tabella-differenze .nuovo {
+        font-weight: 600;
+        color: var(--mud-palette-warning);
+    }
+</style>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter] public string NomeFile { get; set; } = "";
+    [Parameter] public DateTime? EsportatoIl { get; set; }
+    /// <summary>Le causali con un gruppo diverso: com'è adesso e com'è nel file.</summary>
+    [Parameter] public IReadOnlyList<(GruppoEsportato Attuale, GruppoEsportato Nuovo)> Cambiano { get; set; } = [];
+    [Parameter] public IReadOnlyList<GruppoEsportato> Nuove { get; set; } = [];
+    [Parameter] public int Uguali { get; set; }
+    [Parameter] public IReadOnlyList<string> Scarti { get; set; } = [];
+
+    private static string Spesa(bool ricorrente) => ricorrente ? "ricorrente" : "variabile";
+
+    // uguale: il valore com'è; diverso: quello attuale barrato e quello del file evidenziato
+    private static RenderFragment Differenza(string attuale, string nuovo) => builder =>
+    {
+        if (attuale == nuovo)
+        {
+            builder.AddContent(0, attuale);
+            return;
+        }
+        builder.OpenElement(1, "span");
+        builder.AddAttribute(2, "class", "vecchio");
+        builder.AddContent(3, attuale);
+        builder.CloseElement();
+        builder.AddContent(4, " → ");
+        builder.OpenElement(5, "span");
+        builder.AddAttribute(6, "class", "nuovo");
+        builder.AddContent(7, nuovo);
+        builder.CloseElement();
+    };
+}

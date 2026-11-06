@@ -363,31 +363,38 @@
             return;
         }
 
+        // causale per causale: com'è adesso e com'è nel file
         var attuali = Database.TuttiGruppiCausali().ToDictionary(g => g.Causale);
-        var nuove = letto.Gruppi.Count(g => !attuali.ContainsKey(g.Causale));
-        var cambiate = letto.Gruppi.Count(g => attuali.TryGetValue(g.Causale, out var a)
-                                                && (a.Gruppo != g.Gruppo || a.Tipo != g.Tipo || a.Ricorrente != g.Ricorrente));
-        var uguali = letto.Gruppi.Count - nuove - cambiate;
-
-        if (nuove + cambiate == 0)
+        var cambiano = new List<(GruppoEsportato Attuale, GruppoEsportato Nuovo)>();
+        var nuove = new List<GruppoEsportato>();
+        foreach (var g in letto.Gruppi.OrderBy(g => g.Causale, StringComparer.Ordinal))
         {
-            Snackbar.Add($"Le {letto.Gruppi.Count} causali del file hanno già gli stessi gruppi: non c'è niente da cambiare.", Severity.Info);
+            if (!attuali.TryGetValue(g.Causale, out var a))
+                nuove.Add(g);
+            else if (a.Gruppo != g.Gruppo || a.Tipo != g.Tipo || a.Ricorrente != g.Ricorrente)
+                cambiano.Add((a, g));
+        }
+        var uguali = letto.Gruppi.Count - nuove.Count - cambiano.Count;
+
+        if (nuove.Count + cambiano.Count == 0)
+        {
+            Snackbar.Add($"Le {letto.Gruppi.Count} causali del file hanno già gli stessi gruppi: non c'è niente da cambiare." +
+                         (letto.Scarti.Count > 0 ? $" {letto.Scarti.Count} righe del file non erano valide." : ""), Severity.Info);
             return;
         }
 
-        var messaggio = new MarkupString(
-            $"<p>Il file <b>{System.Net.WebUtility.HtmlEncode(System.IO.Path.GetFileName(percorso))}</b>" +
-            (letto.EsportatoIl is { } quando ? $", esportato il {quando:dd/MM/yyyy} alle {quando:HH:mm}," : "") +
-            $" contiene i gruppi di {letto.Gruppi.Count} causali:</p><ul style=\"margin: 8px 0 8px 24px\">" +
-            (nuove > 0 ? $"<li>{nuove} che qui non hanno ancora un gruppo: si aggiungono;</li>" : "") +
-            (cambiate > 0 ? $"<li><b>{cambiate} con un gruppo diverso da quello attuale: prendono quello del file</b>;</li>" : "") +
-            (uguali > 0 ? $"<li>{uguali} già uguali.</li>" : "") +
-            "</ul><p>Le causali che il file non ha restano come sono.</p>" +
-            (letto.Scartate > 0 ? $"<p>{letto.Scartate} righe del file non sono valide e si ignorano (per esempio: {System.Net.WebUtility.HtmlEncode(letto.PrimoScarto!)}).</p>" : ""));
-
-        var conferma = await Dialoghi.ShowMessageBoxAsync("Importa i gruppi di causali", messaggio,
-            yesText: "Importa", cancelText: "Annulla");
-        if (conferma != true) return;
+        var parametri = new DialogParameters<DialogoImportaGruppi>
+        {
+            { d => d.NomeFile, System.IO.Path.GetFileName(percorso) },
+            { d => d.EsportatoIl, letto.EsportatoIl },
+            { d => d.Cambiano, cambiano },
+            { d => d.Nuove, nuove },
+            { d => d.Uguali, uguali },
+            { d => d.Scarti, letto.Scarti }
+        };
+        var finestra = await Dialoghi.ShowAsync<DialogoImportaGruppi>("Importa i gruppi di causali", parametri,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true });
+        if (await finestra.Result is not { Canceled: false }) return;
 
         var esito = Database.ImportaGruppiCausali(letto.Gruppi);
         Carica();

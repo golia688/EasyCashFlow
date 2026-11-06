@@ -356,7 +356,7 @@ Poi premi **Salva** sulla riga.
 **Salvare i gruppi in un file e riprenderli.** In alto a destra nella pagina ci sono due pulsanti:
 
 - **Esporta** salva in un file i gruppi di tutte le causali: il gruppo, il tipo e se è ricorrente, comprese le scelte che hai fatto tu. Il file (`EasyCashFlow-gruppi-causali-` e la data, `.json`) non contiene movimenti né importi.
-- **Importa** riprende i gruppi da un file esportato prima. Prima di cambiare qualcosa ti dice quante causali si aggiungono, quante prendono un gruppo diverso e quante sono già uguali, e aspetta la tua conferma. Le causali che il file non ha restano come sono.
+- **Importa** riprende i gruppi da un file esportato prima. Prima di cambiare qualcosa ti mostra, causale per causale, cosa succede: quelle che **cambiano**, con il gruppo, il tipo o la spesa di adesso barrati e quelli del file evidenziati accanto; quelle che **si aggiungono**, con il loro gruppo; quante sono già uguali; le righe del file non valide, con il motivo. Poi aspetta la tua conferma. Le causali che il file non ha restano come sono.
 
 Serve quando riparti da zero, per esempio con il programma in una cartella nuova o su un altro computer: importi il file dei gruppi, anche prima dei movimenti, e non devi riassegnare a mano i gruppi delle causali. Quando poi importi i file CBI, le causali prendono subito i tuoi gruppi.
 
