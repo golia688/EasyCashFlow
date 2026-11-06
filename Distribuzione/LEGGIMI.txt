@@ -63,8 +63,8 @@ Il programma non si installa: funziona dalla cartella in cui lo metti.
 
  2. Quasi certamente Windows mostra una finestra blu:
         "Windows ha protetto il PC"
-    E' normale: il programma non ha una firma digitale a pagamento, come
-    succede per i programmi fatti in proprio. Clicca:
+    E' normale: il programma non ha una firma digitale a pagamento.
+    Clicca:
         "Ulteriori informazioni"  e poi  "Esegui comunque"
     Lo chiede solo la prima volta.
 
