@@ -21,7 +21,7 @@ Funziona **senza internet e senza account**: è portable (si avvia da una cartel
 
 ## Cosa serve
 
-Per **usarlo**: Windows 10 o 11 a 64 bit, con Microsoft Edge WebView2 Runtime (già presente su Windows 11). La versione pubblicata include .NET: non serve installare altro. Le istruzioni per chi lo riceve sono in [`Distribuzione/LEGGIMI.txt`](Distribuzione/LEGGIMI.txt), le novità di ogni versione in [`Distribuzione/NOVITA.txt`](Distribuzione/NOVITA.txt).
+Per **usarlo**: Windows 10 o 11 a 64 bit, con Microsoft Edge WebView2 Runtime (già presente su Windows 11). La versione pubblicata include .NET: non serve installare altro. Le istruzioni per installarlo sono in [`Distribuzione/LEGGIMI.txt`](Distribuzione/LEGGIMI.txt), le novità di ogni versione in [`Distribuzione/NOVITA.txt`](Distribuzione/NOVITA.txt).
 
 Per **compilarlo**: .NET 10 SDK e Visual Studio con i carichi di lavoro "Sviluppo di applicazioni desktop .NET" e "Sviluppo ASP.NET e Web" (per i file Razor).
 
