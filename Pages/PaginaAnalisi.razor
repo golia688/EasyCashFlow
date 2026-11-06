@@ -50,7 +50,8 @@
     {
         <MudSelect T="string" Label="Conti" SelectedValues="_contiScelti" SelectedValuesChanged="CambiaConti"
                    MultiSelection="true" SelectAll="true" SelectAllText="Tutti" Clearable="true"
-                   Placeholder="Tutti i conti" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 260px;">
+                   MultiSelectionTextFunc="TestoConti" Placeholder="Tutti i conti"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 260px;">
             @foreach (var c in _conti)
             {
                 <MudSelectItem T="string" Value="@c.Codice">@c.Nome</MudSelectItem>
@@ -311,6 +312,11 @@
     private List<PeriodoAnalisi> _periodi = [];
     private PeriodoAnalisi? _periodo;
     private List<ContoCorrente> _conti = [];
+
+    // nel campo i nomi dei conti scelti, non i codici (come in Home e Movimenti); oltre due, quanti sono
+    private string NomeConto(string codice) => _conti.FirstOrDefault(c => c.Codice == codice)?.Nome ?? codice;
+    private string TestoConti(IReadOnlyList<string> scelti) =>
+        scelti.Count <= 2 ? string.Join(", ", scelti.Select(NomeConto)) : $"{scelti.Count} conti selezionati";
     private IReadOnlyCollection<string> _contiScelti = [];
     private RisultatoAnalisi? _risultato;
 
