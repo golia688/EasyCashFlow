@@ -11,7 +11,7 @@
              OpenChanged="AlCambioApertura">
         <ActivatorContent>
             <MudBadge Content="Notifiche.Elenco.Count" Visible="Notifiche.Elenco.Count > 0" Overlap="true" Dot="false"
-                      Color="ColoreBadge" Bordered="true">
+                      Color="ColoreBadge" Bordered="true" Class="badge-campanella">
                 <MudIconButton Icon="@Impostazioni.Icona(Notifiche.Elenco.Count > 0 ? nameof(Icons.Material.Filled.Notifications) : nameof(Icons.Material.Filled.NotificationsNone))"
                                Color="Color.Inherit" aria-label="Notifiche" />
             </MudBadge>
@@ -52,6 +52,14 @@
 </MudTooltip>
 
 <style>
+    /* MudBlazor mette il numero 8 px sopra il pulsante, che nella barra in alto parte dal bordo della
+       finestra: il numero usciva tagliato. Così sta sull'angolo in alto a destra della campanella. La regola
+       ripete le quattro classi di quella di MudBlazor, altrimenti vince la sua (più specifica). */
+    .badge-campanella .mud-badge.mud-badge-top.right.mud-badge-overlap {
+        top: 4px;
+        bottom: auto;
+    }
+
     .elenco-notifiche {
         width: 380px;
         max-height: 70vh;
