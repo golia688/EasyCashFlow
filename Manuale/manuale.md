@@ -112,7 +112,7 @@ Nell'home banking cerca una funzione con un nome simile a:
 - "Saldi e movimenti";
 - "Formato CBI" oppure "Rendicontazione CBI".
 
-Ogni banca ha menu diversi: se non la trovi, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**.
+Per esempio **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, permette di esportare i movimenti del conto in formato CBI. Ogni banca ha menu diversi: se non trovi la funzione, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**.
 
 Alcuni consigli:
 

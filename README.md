@@ -1,8 +1,10 @@
 # EasyCashFlow
 
-**Analisi del cash flow dei tuoi conti correnti, anche di banche diverse, a partire dagli export CBI.**
+**Analisi del cash flow dei tuoi conti correnti, anche di banche diverse, a partire dai movimenti che esporti dall'home banking della tua banca.**
 
-EasyCashFlow è un programma per Windows che legge l'elenco dei movimenti scaricato dall'home banking nel formato **CBI "saldi e movimenti"**, lo standard di rendicontazione delle banche italiane, e mostra entrate, uscite, saldo e grafici, mese per mese.
+EasyCashFlow è un programma per Windows che legge i movimenti dei tuoi conti e mostra entrate, uscite, saldo e grafici, mese per mese.
+
+I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **movimenti del conto** e li **esporti nel formato CBI**. Di solito c'è una voce come "Esporta movimenti" o "Saldi e movimenti", in cui si sceglie il formato CBI; per esempio **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, lo permette. Il CBI ("saldi e movimenti") è il formato standard con cui le banche italiane rendicontano i movimenti dei conti: il file che scarichi è un semplice file di testo, e lo importi in EasyCashFlow.
 
 Siccome il formato CBI è uguale per tutte le banche, EasyCashFlow è anche un **aggregatore**: si importano i movimenti di più conti, anche in banche diverse, e li si analizza uno alla volta o tutti insieme, come se fossero un conto solo.
 
