@@ -5,7 +5,9 @@
 @implements IDisposable
 
 @* La campanella nella barra in alto (dal 05/11): il numero delle notifiche e, cliccando, l'elenco con un
-   pulsante per ognuna. Le notifiche le raccoglie NotificheService; il pulsante lo esegue Main.razor. *@
+   pulsante per ognuna. Le notifiche le raccoglie NotificheService; il pulsante lo esegue Main.razor.
+   Con ActivatorContent, in MudBlazor 9 il menu si apre solo se il pulsante chiama context.ToggleAsync: senza,
+   il clic sulla campanella non faceva niente (trovato il 07/11). *@
 <MudTooltip Text="@(Notifiche.Elenco.Count == 0 ? "Notifiche: nessuna" : $"Notifiche: {Notifiche.Elenco.Count}")">
     <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" ListClass="pa-0" PopoverClass="menu-notifiche"
              OpenChanged="AlCambioApertura">
@@ -13,7 +15,7 @@
             <MudBadge Content="Notifiche.Elenco.Count" Visible="Notifiche.Elenco.Count > 0" Overlap="true" Dot="false"
                       Color="ColoreBadge" Bordered="true" Class="badge-campanella">
                 <MudIconButton Icon="@Impostazioni.Icona(Notifiche.Elenco.Count > 0 ? nameof(Icons.Material.Filled.Notifications) : nameof(Icons.Material.Filled.NotificationsNone))"
-                               Color="Color.Inherit" aria-label="Notifiche" />
+                               Color="Color.Inherit" aria-label="Notifiche" OnClick="@(e => context.ToggleAsync(e))" />
             </MudBadge>
         </ActivatorContent>
         <ChildContent>
