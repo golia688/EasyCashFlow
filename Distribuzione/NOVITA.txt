@@ -5,6 +5,54 @@
 
 
 -------------------------------------------------------------------------------
+ VERSIONE 1.0.1 (7 novembre 2026)
+-------------------------------------------------------------------------------
+
+ 1. NUOVO: ELIMINARE UN CONTO
+ ----------------------------
+
+ Prima i conti si potevano aggiungere ma non togliere. Ora in
+ Impostazioni > Dati > Conti correnti il cestino nella riga di un conto
+ lo elimina con tutti i suoi dati: movimenti, saldi giornalieri,
+ movimenti scartati e le scelte fatte sui singoli movimenti.
+
+ - Prima di eliminare, una finestra mostra quanti movimenti ha il conto
+   e di quale periodo. Per confermare devi scrivere il nome del conto.
+
+ - Non si puo' annullare: se pensi che i dati ti possano servire, fai
+   prima un backup (Impostazioni > Dati > Backup).
+
+ - Restano i gruppi di causali, che valgono per tutti i conti. Se
+   importi di nuovo un file di quel conto, il conto ricompare con il
+   nome provvisorio.
+
+
+ 2. CORREZIONI
+ -------------
+
+ - Il clic sulla campanella delle notifiche non apriva l'elenco:
+   corretto.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE DALLA VERSIONE 1.0.0
+-------------------------------------------------------------------------------
+
+I tuoi dati restano: la 1.0.1 usa la stessa cartella "dati" e la stessa
+password. Se vieni da una versione precedente, segui prima anche le
+istruzioni della 1.0.0, piu' sotto.
+
+ 1. Chiudi EasyCashFlow.
+
+ 2. Estrai il nuovo .zip nella STESSA cartella del programma e conferma di
+    sostituire i file. Il .zip non contiene le cartelle "dati" e "log",
+    quindi i tuoi movimenti, la password e le impostazioni restano.
+
+ 3. Avvia EasyCashFlow, scrivi la password e controlla in
+    Aiuto > Informazioni che la versione sia la 1.0.1.
+
+
+-------------------------------------------------------------------------------
  VERSIONE 1.0.0 (7 novembre 2026)
 -------------------------------------------------------------------------------
 

@@ -80,7 +80,7 @@ Nello stesso file c'è la schermata di avvio nativa (`schermataAvvio`). `MainWin
 | `OutputType` `WinExe` | Applicazione Windows con interfaccia grafica, senza console |
 | `TargetFramework` `net10.0-windows10.0.19041.0` | .NET 10 più la versione minima di Windows, necessaria a WebView2 |
 | `UseWPF` | Abilita WPF |
-| `Version` | La versione (1.0.0 dal 07/11, la prima definitiva); la data della build si aggiunge da sola (`DataBuild`) |
+| `Version` | La versione (1.0.1 dal 07/11; la 1.0.0, dello stesso giorno, è la prima definitiva); la data della build si aggiunge da sola (`DataBuild`) |
 | `ApplicationIcon` | L'icona dell'eseguibile |
 | `SatelliteResourceLanguages` `it` | Solo le traduzioni italiane dei messaggi di sistema nella pubblicazione |
 | `EmbeddedResource` `Manuale\manuale.md` | Il manuale dentro l'eseguibile |
