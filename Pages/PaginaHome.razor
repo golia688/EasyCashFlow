@@ -20,7 +20,7 @@
     {
         <MudSpacer />
         <div style="min-width: 280px;">
-            <MudSelect T="string" Label="Conti" SelectedValues="_contiScelti" SelectedValuesChanged="CambiaConti"
+            <MudSelect T="string" Label="Conti" SelectedValues="_contiSpuntati" SelectedValuesChanged="CambiaConti"
                        MultiSelection="true" SelectAll="true" SelectAllText="Tutti" Clearable="true"
                        MultiSelectionTextFunc="TestoConti" Placeholder="Tutti i conti"
                        Variant="Variant.Outlined" Margin="Margin.Dense">
@@ -136,6 +136,14 @@
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                         mese in corso, movimenti fino al @ultimaDelMese.ToString("dd/MM")
+                    </MudText>
+                }
+                @if (_dateDiverse)
+                {
+                    @* i conti scelti sono aggiornati a date diverse: il mese si ferma dove ci sono i movimenti di tutti *@
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                        i conti sono aggiornati a date diverse: il mese arriva fino al @ultimaDelMese.ToString("dd/MM"),
+                        il giorno a cui sono aggiornati tutti
                     </MudText>
                 }
                 @* una tabella a tre colonne, ciascuna con la sua intestazione e a destra, ben separate: il valore
@@ -351,6 +359,7 @@
     private int _contiProvvisori;
     private int _giorniDallUltimo;
     private IndicatoriPeriodo? _mese;
+    private bool _dateDiverse;
     private IndicatoriPeriodo? _media;
     private List<PuntoSaldo> _saldo = [];
     private decimal? _variazione;      // del saldo, sul periodo del grafico
@@ -396,6 +405,7 @@
         // Scegli periodo; senza mesi completi (dati tutti nel mese in corso) non c'è. Il mese è quello
         // dell'ultimo movimento dei conti scelti, che possono essere aggiornati a date diverse
         _meseUltimo = Analisi.MeseUltimoMovimento(_contiScelti);
+        _dateDiverse = ContiMostrati.Count > 1 && Analisi.ContiAggiornatiADateDiverse(_contiScelti);
         _mese = _meseUltimo is { } mese ? Analisi.Calcola(mese, _contiScelti).Indicatori : null;
         _media = Analisi.Periodi().FirstOrDefault(p => p.Nome == Preferenze.MediaHome) is { } media
             ? Analisi.Calcola(media, _contiScelti).Indicatori
@@ -472,11 +482,20 @@
             ? Analisi.ContiPredefiniti()
             : salvati.Where(c => _conti.Any(x => x.Codice == c)).ToList();
         if (_conti.Count <= 1) _contiScelti = [];
+        // ricaricando (dopo un'importazione) le caselle restano come le aveva lasciate l'utente
+        if (!_contiScelti.SequenceEqual(_contiSpuntati.Count == _conti.Count ? [] : _contiSpuntati))
+            _contiSpuntati = _contiScelti.ToList();
     }
+
+    // Le caselle del menu restano come le spunta l'utente, come nel filtro di Movimenti: spuntando "Tutti"
+    // si vedono tutte spuntate. Fino al 07/11 "tutti spuntati" diventava subito "nessuno", e il menu
+    // mostrava tutte le caselle vuote. Per il calcolo e per la preferenza salvata, invece, tutti spuntati =
+    // nessun filtro: un conto importato dopo entra da solo.
+    private IReadOnlyCollection<string> _contiSpuntati = [];
 
     private void CambiaConti(IReadOnlyCollection<string> conti)
     {
-        // tutti spuntati = nessun filtro: un conto importato dopo entra da solo
+        _contiSpuntati = conti.ToList();
         _contiScelti = conti.Count == _conti.Count ? [] : conti.ToList();
         Preferenze.ImpostaContiHome(_contiScelti);
         Carica();

@@ -70,6 +70,8 @@ Il saldo più recente, una piccola linea con il suo andamento e quanto è cambia
 
 Entrate, uscite e flusso netto del mese dell'ultimo movimento importato, ciascuno accanto alla **media mensile** di un periodo di confronto, all'inizio gli ultimi 12 mesi completi: così capisci subito se è stato un mese normale o no. Clicca il riquadro per aprire l'analisi di quel mese.
 
+Con più conti, ognuno è aggiornato fino al giorno del suo ultimo export: per esempio uno fino al 31 ottobre e l'altro fino al 5 novembre. Allora il mese arriva fino al giorno a cui sono aggiornati **tutti** i conti scelti (nell'esempio, ottobre), così il totale comprende davvero i movimenti di ciascuno; il riquadro lo scrive sotto il titolo. Scegliendo un conto solo vedi il mese fino al suo ultimo giorno.
+
 **I dati nel database**
 
 Quanti movimenti, importazioni, conti, causali, gruppi e saldi ci sono. Alcuni riquadri si possono cliccare e portano alla pagina relativa: per esempio "Causali" apre i gruppi di causali.

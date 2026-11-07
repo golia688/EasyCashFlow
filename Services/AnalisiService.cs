@@ -81,12 +81,24 @@ public class AnalisiService
     public int ContaStraordinari(PeriodoAnalisi periodo, IReadOnlyCollection<string> conti) =>
         _database.MovimentiPerAnalisi(periodo.Dal, periodo.Al, conti).Count(m => m.Straordinario);
 
-    /// <summary>Dal primo del mese dell'ultimo movimento all'ultimo movimento (la Home lo confronta con la
-    /// media dei 12 mesi completi), dei conti indicati o di tutti. Null senza movimenti.</summary>
+    /// <summary>Il mese che la Home confronta con la media, dei conti indicati o di tutti: dal primo del mese
+    /// fino al giorno a cui sono aggiornati <b>tutti</b> quei conti, cioè l'ultima giornata importata del conto
+    /// aggiornato meno di recente (la giornata del saldo, anche senza movimenti). I conti si aggiornano con export separati: con un conto fermo al 31/10 e
+    /// uno al 05/11, novembre avrebbe i movimenti di un conto solo, e il totale dei conti sarebbe uguale a
+    /// quel conto (segnalato il 07/11/2026). Con un conto solo è il mese del suo ultimo movimento.
+    /// Null senza movimenti.</summary>
     public PeriodoAnalisi? MeseUltimoMovimento(IReadOnlyCollection<string>? conti = null) =>
-        _database.IntervalloMovimenti(conti) is { } date
-            ? new("Mese dell'ultimo movimento", new DateOnly(date.Ultima.Year, date.Ultima.Month, 1), date.Ultima)
+        _database.AggiornatoFinoAPerConto(conti) is { Count: > 0 } ultimi
+            ? MeseFinoA(ultimi.Values.Min())
             : null;
+
+    private static PeriodoAnalisi MeseFinoA(DateOnly ultima) =>
+        new("Mese dell'ultimo movimento", new DateOnly(ultima.Year, ultima.Month, 1), ultima);
+
+    /// <summary>Vero se i conti indicati (o tutti) sono aggiornati fino a giorni diversi: la Home lo dice,
+    /// perché il mese mostrato si ferma al conto aggiornato meno di recente.</summary>
+    public bool ContiAggiornatiADateDiverse(IReadOnlyCollection<string>? conti = null) =>
+        _database.AggiornatoFinoAPerConto(conti).Values.Distinct().Count() > 1;
 
     /// <summary>L'ultimo saldo salvato di un conto fino a quella data (per la Home, un conto per riga).</summary>
     public PuntoSaldo? UltimoSaldo(string conto, DateOnly finoAl) =>

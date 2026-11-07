@@ -525,6 +525,29 @@ public class DatabaseService
         return (LeggiData(lettore.GetString(0)), LeggiData(lettore.GetString(1)));
     }
 
+    /// <summary>Fino a che giorno è aggiornato ogni conto (di tutti o solo di quelli indicati): l'ultima giornata
+    /// importata, quella del saldo, che il file CBI ha anche nei giorni senza movimenti; senza saldi, l'ultimo
+    /// movimento. I conti si aggiornano con export separati, quindi possono arrivare a date diverse.</summary>
+    public Dictionary<string, DateOnly> AggiornatoFinoAPerConto(IReadOnlyCollection<string>? conti = null)
+    {
+        var elenco = new Dictionary<string, DateOnly>();
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        var filtroConti = conti is { Count: > 0 } ? "WHERE " + CondizioneIn(comando, "Conto", "$conto", conti) : "";
+        comando.CommandText = $"""
+            SELECT Conto, MAX(Giorno) FROM (
+                SELECT Conto, DataContabile AS Giorno FROM Movimenti
+                UNION ALL
+                SELECT Conto, Data FROM SaldiGiornalieri)
+            {filtroConti}
+            GROUP BY Conto
+            """;
+        using var lettore = comando.ExecuteReader();
+        while (lettore.Read())
+            elenco[lettore.GetString(0)] = LeggiData(lettore.GetString(1));
+        return elenco;
+    }
+
     /// <summary>Registra un'importazione appena fatta.</summary>
     public void RegistraImportazione(EsitoImportazione esito, DateOnly? dal, DateOnly? al)
     {
