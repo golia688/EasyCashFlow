@@ -386,6 +386,8 @@ Quando le causali sono tante, usa i filtri sopra l'elenco:
 
 In [Impostazioni](app:impostazioni) trovi i conti importati, di qualunque banca: per ognuno IBAN, codice della banca (ABI) e divisa, letti dal file. Il nome che scegli compare in tutto il programma; premi **Salva** dopo averlo cambiato. Con un nome chiaro per ogni conto ("Conto di casa", "Conto online") la scelta dei conti nelle pagine si legge al volo.
 
+Un conto che non ti interessa più si elimina con il **cestino** in fondo alla sua riga, insieme a tutti i suoi dati: movimenti, saldi giornalieri, movimenti scartati e le scelte fatte sui singoli movimenti (straordinari e tipo). Prima di eliminare, la finestra di conferma mostra quanti movimenti ha il conto e di quale periodo, e per confermare devi scrivere il nome del conto. **Non si può annullare**: se pensi che i dati ti possano servire, fai prima un [backup](app:backup). Restano i gruppi di causali, che valgono per tutti i conti. Se poi importi di nuovo un file di quel conto, il conto ricompare con il nome provvisorio, come la prima volta.
+
 Quando i conti sono più di uno, nella Home, nei movimenti e nelle analisi compare la scelta dei **conti** (la simulazione e il report Excel usano quelli delle analisi): nessuno scelto vuol dire tutti, cioè il quadro complessivo. Se ne guardi soprattutto uno, puoi farlo proporre già scelto (in Generali, qui sotto).
 
 **I dati**
@@ -463,6 +465,10 @@ Il saldo si salva ogni volta che importi un file, per le giornate di quel file. 
 Il gruppo dipende dalla causale. Vai in [Gruppi di causali](app:gruppi), cerca la causale di quel movimento e cambiale gruppo. Attenzione: la modifica vale per tutti i movimenti con quella causale.
 
 Se invece è un solo movimento a fare eccezione, non serve cambiare il gruppo: dal menu **⋮** del movimento puoi sceglierne il tipo (per esempio Giroconto) o segnarlo come straordinario. Vedi [La pagina dei movimenti](cap:movimenti).
+
+**Ho importato per sbaglio il file di un conto che non volevo. Come lo tolgo?**
+
+Vai in [Impostazioni](app:impostazioni) e premi il cestino nella riga di quel conto: il conto sparisce con tutti i suoi movimenti, e gli altri conti restano come sono. Vedi [Conti, preferenze e sicurezza](cap:impostazioni).
 
 **Il programma dice che l'ultimo movimento è vecchio.**
 

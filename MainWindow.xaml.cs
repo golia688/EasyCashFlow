@@ -49,6 +49,7 @@ public partial class MainWindow : Window
         services.AddSingleton<ManualeService>();
         services.AddSingleton<AvvioService>();
         services.AddSingleton<NotificheService>();
+        services.AddSingleton<EliminazioneContoService>();
 #if DEBUG
         services.AddBlazorWebViewDeveloperTools();
 #endif

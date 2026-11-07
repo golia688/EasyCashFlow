@@ -4,6 +4,8 @@
 @inject DatabaseService Database
 @inject ISnackbar Snackbar
 @inject ImpostazioniService Impostazioni
+@inject IDialogService Dialoghi
+@inject EliminazioneContoService Eliminazione
 
 @* la freccia c'è solo se la pagina si è aperta dalla Home ("Vai ai conti", Main.razor) *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
@@ -21,7 +23,8 @@
     <MudText Typo="Typo.h6">Conti correnti</MudText>
     <MudText Typo="Typo.body2" Class="mt-1 mb-3 mud-text-secondary">
         I conti vengono registrati da soli alla prima importazione di un loro file. Dai a ciascuno
-        un nome che riconosci: è quello che compare nelle griglie e nei filtri.
+        un nome che riconosci: è quello che compare nelle griglie e nei filtri. Con il cestino elimini
+        un conto con tutti i suoi movimenti.
     </MudText>
 
     @if (_conti.Count == 0)
@@ -64,9 +67,16 @@
                         <td>@c.Abi</td>
                         <td>@(c.Divisa == "" ? "-" : c.Divisa)</td>
                         <td>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                       Disabled="@(!Modificato(c) || Errore(c) is not null)"
-                                       OnClick="@(() => Salva(c))">Salva</MudButton>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                           Disabled="@(!Modificato(c) || Errore(c) is not null)"
+                                           OnClick="@(() => Salva(c))">Salva</MudButton>
+                                <MudTooltip Text="Elimina il conto con tutti i suoi dati">
+                                    <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.DeleteOutline))"
+                                                   Color="Color.Error" Size="Size.Small" aria-label="Elimina il conto"
+                                                   OnClick="@(() => Elimina(c))" />
+                                </MudTooltip>
+                            </MudStack>
                         </td>
                     </tr>
                 }
@@ -110,6 +120,20 @@
         var nome = _nomi[c.Codice].Trim();
         Database.RinominaConto(c.Codice, nome);
         Snackbar.Add($"Conto rinominato in \"{nome}\".", Severity.Success);
+        Carica();
+    }
+
+    // Dopo la conferma (DialogoEliminaConto) elimina il conto e i suoi dati e toglie i riferimenti rimasti
+    // nelle preferenze e nei filtri (EliminazioneContoService)
+    private async Task Elimina(ContoCorrente c)
+    {
+        var finestra = await Dialoghi.ShowAsync<DialogoEliminaConto>("Eliminare il conto?",
+            new DialogParameters<DialogoEliminaConto> { { d => d.Conto, c } },
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        if (await finestra.Result is not { Canceled: false }) return;
+
+        var eliminati = Eliminazione.Elimina(c.Codice);
+        Snackbar.Add($"Conto \"{c.Nome}\" eliminato, con {eliminati.Movimenti:N0} movimenti.", Severity.Success);
         Carica();
     }
 

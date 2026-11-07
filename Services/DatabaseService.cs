@@ -853,6 +853,62 @@ public class DatabaseService
         return elenco;
     }
 
+    /// <summary>Quanti dati ha un conto, per la conferma prima di eliminarlo.</summary>
+    public DatiConto DatiDelConto(string codice)
+    {
+        using var connessione = Apri();
+
+        long Numero(string sql)
+        {
+            using var comando = connessione.CreateCommand();
+            comando.CommandText = sql;
+            comando.Parameters.AddWithValue("$conto", codice);
+            return Convert.ToInt64(comando.ExecuteScalar());
+        }
+
+        (DateOnly, DateOnly)? intervallo = null;
+        using (var comando = connessione.CreateCommand())
+        {
+            comando.CommandText = "SELECT MIN(DataContabile), MAX(DataContabile) FROM Movimenti WHERE Conto = $conto";
+            comando.Parameters.AddWithValue("$conto", codice);
+            using var lettore = comando.ExecuteReader();
+            if (lettore.Read() && !lettore.IsDBNull(0))
+                intervallo = (LeggiData(lettore.GetString(0)), LeggiData(lettore.GetString(1)));
+        }
+
+        return new DatiConto(
+            Movimenti: (int)Numero("SELECT COUNT(*) FROM Movimenti WHERE Conto = $conto"),
+            Intervallo: intervallo,
+            Giornate: (int)Numero("SELECT COUNT(*) FROM SaldiGiornalieri WHERE Conto = $conto"),
+            Scartati: (int)Numero("SELECT COUNT(*) FROM MovimentiScartati WHERE Conto = $conto"),
+            Straordinari: (int)Numero("SELECT COUNT(*) FROM Movimenti WHERE Conto = $conto AND (Straordinario = 1 OR TipoForzato IS NOT NULL)"));
+    }
+
+    /// <summary>Elimina un conto con tutti i suoi dati, in un'unica transazione: movimenti (con le scelte
+    /// fatte sui singoli movimenti), saldi giornalieri, movimenti scartati e il conto stesso. Restano i
+    /// gruppi di causali, che valgono per tutti i conti, e il registro delle importazioni, che riguarda i file.
+    /// Restituisce quanti dati ha eliminato.</summary>
+    public DatiConto EliminaConto(string codice)
+    {
+        var prima = DatiDelConto(codice);
+
+        using var connessione = Apri();
+        using var transazione = connessione.BeginTransaction();
+        foreach (var tabella in new[] { "Movimenti", "SaldiGiornalieri", "MovimentiScartati", "Conti" })
+        {
+            using var comando = connessione.CreateCommand();
+            comando.Transaction = transazione;
+            comando.CommandText = $"DELETE FROM {tabella} WHERE Conto = $conto";   // nome di tabella da un elenco fisso
+            comando.Parameters.AddWithValue("$conto", codice);
+            comando.ExecuteNonQuery();
+        }
+        transazione.Commit();
+
+        _log.Info($"Conto {Mascherato.Conto(codice)} eliminato: {prima.Movimenti} movimenti, {prima.Giornate} giornate di saldo, " +
+                  $"{prima.Scartati} movimenti scartati");
+        return prima;
+    }
+
     public void RinominaConto(string codice, string nome)
     {
         using var connessione = Apri();

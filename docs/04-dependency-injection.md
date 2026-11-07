@@ -69,6 +69,7 @@ Tutti registrati come **Singleton**: un'unica istanza per tutta la vita dell'app
 | `ChiusuraService` | La conferma di uscita, tra la finestra WPF e Blazor |
 | `AvvioService` | Avvisa la finestra quando Blazor ha disegnato la prima pagina |
 | `NotificheService` | Le notifiche della campanella, ricavate dallo stato del database e dall'ultima importazione (dal 05/11) |
+| `EliminazioneContoService` | Elimina un conto con i suoi dati e toglie il suo codice da preferenze, filtri e selezioni (dal 07/11) |
 
 Oltre ai nostri, quelli delle librerie: `AddWpfBlazorWebView()` (Blazor dentro WPF), `AddMudServices()` (MudBlazor: `ISnackbar`, `IDialogService`…; con le notifiche accorciate a 150 ms di animazione e al massimo tre insieme), e in Debug `AddBlazorWebViewDeveloperTools()`.
 

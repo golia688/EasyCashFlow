@@ -1,0 +1,63 @@
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+
+@* Conferma dell'eliminazione di un conto (Impostazioni > Dati > Conti correnti, dal 07/11). Non si torna
+   indietro: la finestra dice cosa sparisce e cosa resta, consiglia un backup e fa riscrivere il nome del
+   conto prima di abilitare il pulsante. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Stai per eliminare il conto <b>@Conto.Nome</b>@(Conto.Iban != "" ? $" ({Conto.Iban})" : "") con tutti i suoi dati:
+        </MudText>
+        <ul class="mud-typography-body2 mt-2 mb-2 ml-6">
+            <li>
+                <b>@_dati.Movimenti.ToString("N0") movimenti</b>@(_dati.Intervallo is { } i ? $", dal {i.Prima:dd/MM/yyyy} al {i.Ultima:dd/MM/yyyy}" : "")
+                @if (_dati.Straordinari > 0)
+                {
+                    <span>, compresi @_dati.Straordinari segnati come straordinari o con il tipo scelto a mano</span>
+                }
+            </li>
+            <li>@_dati.Giornate.ToString("N0") giornate di saldo</li>
+            @if (_dati.Scartati > 0)
+            {
+                <li>@_dati.Scartati.ToString("N0") movimenti scartati</li>
+            }
+            <li>il conto stesso, con il nome che gli hai dato</li>
+        </ul>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Restano i gruppi di causali, che valgono per tutti i conti, e il registro delle importazioni.
+            Analisi, Home e report non conteranno più questo conto.
+        </MudText>
+
+        <MudAlert Severity="Severity.Warning" Class="mt-3">
+            <b>Non si può annullare.</b> Se pensi che i dati ti possano servire, fai prima un backup
+            (Impostazioni &gt; Dati &gt; Backup). Il conto si può riavere importando di nuovo i suoi file CBI,
+            ma con il nome provvisorio e senza le scelte fatte sui singoli movimenti.
+        </MudAlert>
+
+        <MudTextField T="string" @bind-Value="_conferma" Immediate="true" Class="mt-4"
+                      Label="@($"Per confermare, scrivi il nome del conto: {Conto.Nome}")"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" AutoFocus="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="() => Dialogo.Cancel()">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" Disabled="!NomeGiusto"
+                   OnClick="() => Dialogo.Close(DialogResult.Ok(true))">Elimina definitivamente</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter, EditorRequired] public ContoCorrente Conto { get; set; } = default!;
+
+    private DatiConto _dati = new(0, null, 0, 0, 0);
+    private string? _conferma;
+
+    // le maiuscole e gli spazi in più non contano: conta che sia proprio quel conto
+    private bool NomeGiusto => string.Equals((_conferma ?? "").Trim(), Conto.Nome.Trim(), StringComparison.CurrentCultureIgnoreCase);
+
+    protected override void OnInitialized() => _dati = Database.DatiDelConto(Conto.Codice);
+}
