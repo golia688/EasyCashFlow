@@ -5,8 +5,12 @@
 
 
 -------------------------------------------------------------------------------
- VERSIONE 0.9.5 (5 novembre 2026)
+ VERSIONE 1.0.0 (7 novembre 2026)
 -------------------------------------------------------------------------------
+
+ La prima versione definitiva: EasyCashFlow non e' piu' "in prova".
+ Da questa versione si scarica da GitHub:
+   https://github.com/golia688/EasyCashFlow/releases/latest
 
  1. NUOVO: LA FINESTRA DI IMPORTAZIONE
  -------------------------------------
@@ -93,12 +97,19 @@
    tipo di file CBI) o un file rovinato, il programma lo dice chiaramente
    e non salva niente. Prima a volte mostrava un errore incomprensibile.
 
+ - Home con piu' conti: scegliendo "Tutti", il riquadro del mese mostra
+   il totale di tutti i conti fino al giorno a cui sono aggiornati tutti
+   (prima, con conti aggiornati a date diverse, mostrava i numeri di uno
+   solo). Il menu dei conti tiene le caselle come le spunti.
+
+ - In Analisi, il campo Conti mostra i nomi dei conti e non i codici.
+
 
 -------------------------------------------------------------------------------
  COME AGGIORNARE DALLA VERSIONE 0.9.4
 -------------------------------------------------------------------------------
 
-I tuoi dati restano: la 0.9.5 usa la stessa cartella "dati" e la stessa
+I tuoi dati restano: la 1.0.0 usa la stessa cartella "dati" e la stessa
 password.
 
  1. Chiudi EasyCashFlow.
@@ -110,7 +121,7 @@ password.
     quindi i tuoi movimenti, la password e le impostazioni restano.
 
  4. Avvia EasyCashFlow, scrivi la password e controlla in
-    Aiuto > Informazioni che la versione sia la 0.9.5.
+    Aiuto > Informazioni che la versione sia la 1.0.0.
 
  5. Consigliato: importa di nuovo i file CBI che avevi gia' importato.
     Non si duplica niente: i movimenti risultano "gia' presenti" e quelli

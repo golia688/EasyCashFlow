@@ -8,7 +8,9 @@ Siccome il formato CBI è uguale per tutte le banche, EasyCashFlow è anche un *
 
 Funziona **senza internet e senza account**: è portable (si avvia da una cartella, senza installazione) e i dati restano sul computer, **cifrati** con una password.
 
-> Versione **0.9.5**, in prova. Interfaccia e documentazione sono in italiano.
+> Versione **1.0.0**. Interfaccia e documentazione sono in italiano.
+>
+> **[Scarica EasyCashFlow](https://github.com/golia688/EasyCashFlow/releases/latest)**: lo zip pronto da usare, per Windows 10 e 11 a 64 bit. Non serve installare niente.
 
 ## Cosa fa
 
@@ -51,7 +53,7 @@ Altre schermate: [Analisi nel tema chiaro](docs/immagini/analisi-chiaro.png), [A
 
 ## Cosa serve
 
-Per **usarlo**: Windows 10 o 11 a 64 bit, con Microsoft Edge WebView2 Runtime (già presente su Windows 11). La versione pubblicata include .NET: non serve installare altro. Le istruzioni per installarlo sono in [`Distribuzione/LEGGIMI.txt`](Distribuzione/LEGGIMI.txt), le novità di ogni versione in [`Distribuzione/NOVITA.txt`](Distribuzione/NOVITA.txt).
+Per **usarlo**: Windows 10 o 11 a 64 bit, con Microsoft Edge WebView2 Runtime (già presente su Windows 11). Si scarica lo zip dalla pagina delle [versioni](https://github.com/golia688/EasyCashFlow/releases/latest), si estrae in una cartella del proprio utente (non in Programmi) e si avvia `EasyCashFlow.exe`: lo zip include .NET, non serve installare altro. Le istruzioni per installarlo sono in [`Distribuzione/LEGGIMI.txt`](Distribuzione/LEGGIMI.txt), le novità di ogni versione in [`Distribuzione/NOVITA.txt`](Distribuzione/NOVITA.txt).
 
 Per **compilarlo**: .NET 10 SDK e Visual Studio con i carichi di lavoro "Sviluppo di applicazioni desktop .NET" e "Sviluppo ASP.NET e Web" (per i file Razor).
 

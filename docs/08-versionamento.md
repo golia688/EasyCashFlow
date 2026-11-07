@@ -79,3 +79,17 @@ Una volta pubblicato, quello che è in un commit resta leggibile da chiunque nel
 Il primo commit era stato fatto con il nome e l'email veri dell'utente e con i numeri veri nella documentazione. Siccome non era stato pubblicato, è stato **riscritto**: autore `golia688` con l'indirizzo noreply, file senza dati veri (`git commit --amend --reset-author`). La versione vecchia è stata poi cancellata anche dalla memoria interna di git (`git reflog expire --expire=now --all` e `git gc --prune=now`), così non resta da nessuna parte nella cartella `.git`.
 
 Il 06/11, nel controllo finale prima della pubblicazione (tutte le versioni di tutti i file, i messaggi, gli autori, gli oggetti interni di git), è rimasta una sola cosa: la frase di questo documento che elencava cosa era stato tolto citava l'importo, arrotondato, del caso delle operazioni non contabilizzate. La storia (tre commit) è stata riscritta di nuovo con la frase corretta (`git filter-branch --tree-filter`), con gli stessi messaggi, date e autore, e le versioni vecchie cancellate come sopra. Nello stesso giorno sono stati aggiunti `README.md` (la pagina del repository su GitHub) e `LICENSE`: licenza **MIT**, titolare `golia688`.
+
+## 8. Le versioni da scaricare (Releases)
+
+Dal 07/11 (versione 1.0.0) il programma si scarica già pronto dalla pagina **Releases** del repository, senza clonarlo né compilarlo: [github.com/golia688/EasyCashFlow/releases/latest](https://github.com/golia688/EasyCashFlow/releases/latest). Il README ci rimanda in cima.
+
+Per ogni versione:
+
+1. si aumenta `<Version>` nel `.csproj` e si scrive la sezione nuova di `Distribuzione/NOVITA.txt`;
+2. commit e push;
+3. si pubblica con il profilo `VersionePerProva` (il nome è rimasto, la cartella è `bin\Pubblicazione\EasyCashFlow`) e si fa lo zip `EasyCashFlow-<versione>-win-x64.zip` di quella cartella (contiene `LEGGIMI.txt`, `NOVITA.txt` e `LICENSE.txt`, mai `dati` e `log`);
+4. un **tag** `v<versione>` sul commit della versione (`git tag v1.0.0`, `git push origin v1.0.0`): segna nella storia da quale codice è nato lo zip;
+5. su GitHub, *Releases > Draft a new release*: si sceglie il tag, si dà un titolo ("EasyCashFlow 1.0.0"), si scrivono le novità e si **allega lo zip**; *Publish release*.
+
+Lo zip non entra nel repository (`.gitignore` esclude `*.zip`): sta solo allegato alla release. GitHub aggiunge da solo anche gli archivi del codice sorgente di quel tag.

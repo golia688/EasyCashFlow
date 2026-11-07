@@ -1,6 +1,6 @@
 ===============================================================================
   EASYCASHFLOW - LEGGIMI
-  Versione di prova. Il numero di versione e' in Aiuto > Informazioni.
+  Il numero di versione e' in Aiuto > Informazioni.
 ===============================================================================
 
 EasyCashFlow ti aiuta a capire dove vanno i soldi dei tuoi conti correnti.
@@ -240,6 +240,8 @@ anche:
  8. SEGNALARE UN PROBLEMA
 -------------------------------------------------------------------------------
 
+Puoi aprire una segnalazione su GitHub, nella pagina "Issues":
+    https://github.com/golia688/EasyCashFlow/issues
 Indica la versione (Aiuto > Informazioni) e cosa stavi facendo.
 Se ti viene chiesto il file di log (menu Log > Apri il file di log di oggi,
 oppure "Apri il log" nel riepilogo di un'importazione),

@@ -7,8 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 
-    <!-- Versione: si cambia solo Version, gli altri numeri ne derivano. 0.x = ancora in prova. -->
-    <Version>0.9.5</Version>
+    <!-- Versione: si cambia solo Version, gli altri numeri ne derivano. Le 0.x erano versioni di prova;
+         la 1.0.0 (07/11/2026) è la prima definitiva, pubblicata su GitHub. -->
+    <Version>1.0.0</Version>
     <AssemblyVersion>$(Version).0</AssemblyVersion>
     <FileVersion>$(Version).0</FileVersion>
     <!-- Data e ora della build, automatiche: distinguono due compilazioni con la stessa versione.
@@ -56,6 +57,9 @@
     <None Include="Distribuzione\LEGGIMI.txt" Link="LEGGIMI.txt"
           CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
     <None Include="Distribuzione\NOVITA.txt" Link="NOVITA.txt"
+          CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
+    <!-- la licenza MIT chiede che il suo testo accompagni ogni copia del programma -->
+    <None Include="LICENSE" Link="LICENSE.txt"
           CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
   </ItemGroup>
 
