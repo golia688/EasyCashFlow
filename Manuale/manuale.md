@@ -104,7 +104,12 @@ Una notifica sparisce da sola quando la cosa è sistemata. **Nascondi** la togli
 
 ## Scaricare l'export dalla banca {#export-banca}
 
-EasyCashFlow legge i file **CBI**, un formato standard delle banche italiane.
+EasyCashFlow legge i file **CBI**, un formato standard delle banche italiane, in due versioni:
+
+- il file **di testo** (spesso con estensione `.txt`), quello classico;
+- il file **XML** (estensione `.xml`), la versione più recente dello stesso standard. Contiene gli stessi movimenti e in più qualche informazione, per esempio il nome e la località di chi ti ha fatto un bonifico.
+
+Vanno bene tutti e due, anche alternati: lo stesso movimento importato una volta dal testo e una volta dall'XML resta uno solo, e tiene la descrizione più completa.
 
 Nell'home banking cerca una funzione con un nome simile a:
 
@@ -112,7 +117,7 @@ Nell'home banking cerca una funzione con un nome simile a:
 - "Saldi e movimenti";
 - "Formato CBI" oppure "Rendicontazione CBI".
 
-Per esempio **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, permette di esportare i movimenti del conto in formato CBI. Ogni banca ha menu diversi: se non trovi la funzione, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**.
+Per esempio **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, permette di esportare i movimenti del conto in formato CBI, sia di testo sia XML. Ogni banca ha menu diversi: se non trovi la funzione, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**.
 
 Alcuni consigli:
 
@@ -120,7 +125,9 @@ Alcuni consigli:
 - poi basta scaricare ogni tanto gli ultimi movimenti;
 - i periodi possono sovrapporsi: i movimenti già importati **non vengono duplicati**.
 
-Il file che scarichi è un semplice file di testo (spesso ha estensione `.txt`). Non serve aprirlo.
+Non serve aprire il file che scarichi.
+
+**Il formato Excel non va bene.** Molte banche offrono anche l'export in Excel: è comodo da guardare, ma contiene solo date, importo e descrizione. Mancano la causale (che serve a raggruppare i movimenti), il riferimento della banca (che serve a riconoscere i movimenti già importati) e i saldi. Se lo scegli, il programma te lo dice e non importa niente.
 
 ## Importare i movimenti {#importare}
 
@@ -128,7 +135,7 @@ Per importare un file:
 
 1. vai in [Movimenti](app:movimenti);
 2. premi **Importa file CBI** (oppure usa il menu **Dati > Importa file CBI**);
-3. scegli il file scaricato dalla banca.
+3. scegli il file scaricato dalla banca, di testo o XML: il programma riconosce da solo il formato.
 
 Si apre la finestra **Importa file CBI**: mentre il programma legge il file vedi una barra che scorre, e dopo pochi secondi un riepilogo in tabella. Ecco cosa vogliono dire le righe:
 
@@ -142,11 +149,11 @@ Si apre la finestra **Importa file CBI**: mentre il programma legge il file vedi
 
 Gli **avvisi** sono sotto la tabella, raggruppati per tipo: per esempio "3 × il saldo iniziale non coincide…". Clicca su un avviso per vedere le date in cui capita. Un avviso non vuol dire che qualcosa si è rotto: il programma ti segnala una cosa strana nel file, e i movimenti letti sono stati importati comunque. L'avviso più comune riguarda le [operazioni non ancora contabilizzate](cap:domande). Altri dicono, per esempio, che i saldi di due giorni non si collegano (potrebbero mancare dei movimenti) o che il file sembra tagliato.
 
-**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
+**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI, un XML che non è la rendicontazione dei movimenti) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
 
 Il pulsante **Apri il log** apre il file in cui il programma scrive cosa ha fatto: serve se devi segnalare un problema. **Chiudi** chiude la finestra.
 
-Se importi di nuovo un file che avevi già caricato con una versione precedente del programma, alcuni movimenti già presenti possono ricevere una **descrizione più completa**: il riepilogo te lo dice. I movimenti non vengono duplicati.
+Alcuni movimenti già presenti possono ricevere una **descrizione più completa**: succede se importi l'XML degli stessi giorni di un file di testo già importato, o se importi di nuovo un file che avevi caricato con una versione precedente del programma. Il riepilogo te lo dice. I movimenti non vengono duplicati, e una descrizione non diventa mai meno completa.
 
 L'ultima importazione è riassunta anche nella [Home](app:home).
 

@@ -55,8 +55,9 @@ Tutti registrati come **Singleton**: un'unica istanza per tutta la vita dell'app
 | `ChiaviService` | La chiave del database in `chiave.json`: crea, sblocca con password o codice di recupero, cambia password, nuovo codice, la toglie dalla memoria |
 | `AccessoService` | Dall'avvio all'apertura del database: crea password, sblocca, attese dopo gli errori, blocco |
 | `BloccoService` | Il blocco per inattività (con `wwwroot/js/attivita.js`) |
-| `ImportazioneService` | Importa un file CBI: lo legge con `CbiParser`, lo salva, segnala l'esito |
-| `CbiParser` | Legge il formato CBI (documento 05) |
+| `ImportazioneService` | Importa un file CBI: ne riconosce il formato (`Formati.Riconosci`), lo legge con `CbiParser` o `CbiXmlParser`, lo salva, segnala l'esito |
+| `CbiParser` | Legge il formato CBI a 120 caratteri (documento 05) |
+| `CbiXmlParser` | Legge la rendicontazione XML del CBI (documento 05, sezione 14; dal 08/11) |
 | `AnalisiService` | Calcoli di Analisi, dettaglio, simulazione, Home e grafico personalizzato; ricorda periodo, conti e straordinari scelti |
 | `ReportService` | Il report Excel (Open XML) |
 | `BackupService` | Il backup verificato in uno zip |

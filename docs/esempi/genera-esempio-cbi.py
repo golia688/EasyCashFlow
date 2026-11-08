@@ -4,7 +4,11 @@ Due conti di due banche immaginarie (ABI 99001 e 99002, che non esistono), dal 0
 una rendicontazione per ogni giorno lavorativo e conto (61, 62+63, 64, 65), come prevede CBI-RND-001.
 Nomi, aziende, importi e riferimenti sono di fantasia. Il generatore è deterministico (seme fisso).
 
-Uso: python genera-esempio-cbi.py esempio-cbi-due-conti.txt
+Con un secondo nome di file scrive anche gli stessi movimenti nella rendicontazione XML del CBI
+(STRN-MO-001 v.00.01.02, versione giornaliera), come la esporta l'home banking: un blocco Stmt per ogni
+giornata con movimenti, stessi riferimenti e stesse causali del file a 120 caratteri (dal 08/11/2026).
+
+Uso: python genera-esempio-cbi.py esempio-cbi-due-conti.txt [esempio-cbi-due-conti.xml]
 """
 import random
 import sys
@@ -124,6 +128,7 @@ righe = []
 r = riga_vuota(); campo(r, 2, "RH"); campo(r, 4, "99001"); campo(r, 9, "ESEMP"); campo(r, 14, gg(FINE)); campo(r, 20, "ESEMPIO EASYCASHFLOW")
 righe.append("".join(r))
 prog = 0
+giornate_xml = []      # per l'XML: (conto, giorno, saldo iniziale, saldo finale, movimenti)
 giorno = INIZIO
 gia_usati = set()
 while giorno <= FINE:
@@ -136,15 +141,20 @@ while giorno <= FINE:
             campo(r, 52, c["cin"]); campo(r, 53, c["codice"]); campo(r, 75, "EUR"); campo(r, 78, gg(giorno))
             campo(r, 84, "C" if iniziale >= 0 else "D"); campo(r, 85, importo(iniziale)); campo(r, 100, c["iban4"])
             righe.append("".join(r))
+            del_giorno = []
             for num, (causale, valore, breve, info) in enumerate(mov, start=1):
                 valuta = giorno - timedelta(days=random.choice([0, 0, 0, 1, 2])) if causale in ("4310", "4317") else giorno
+                rif = nuovo_rif(valore)
                 r = riga_vuota(); campo(r, 2, "62"); campo(r, 4, f"{prog:07d}"); campo(r, 11, f"{num:03d}")
                 campo(r, 14, gg(valuta)); campo(r, 20, gg(giorno)); campo(r, 26, "C" if valore > 0 else "D")
-                campo(r, 27, importo(valore)); campo(r, 42, causale); campo(r, 62, nuovo_rif(valore)); campo(r, 87, breve[:34])
+                campo(r, 27, importo(valore)); campo(r, 42, causale); campo(r, 62, rif); campo(r, 87, breve[:34])
                 righe.append("".join(r))
                 for parte in info:
                     righe.append(riga63(prog, num, parte))
                 c["saldo"] = round(c["saldo"] + valore, 2)
+                del_giorno.append((causale, valore, breve, info, valuta, rif))
+            if del_giorno:
+                giornate_xml.append((c, giorno, iniziale, c["saldo"], del_giorno))
             r = riga_vuota(); campo(r, 2, "64"); campo(r, 4, f"{prog:07d}"); campo(r, 11, "EUR"); campo(r, 14, gg(giorno))
             campo(r, 20, "C" if c["saldo"] >= 0 else "D"); campo(r, 21, importo(c["saldo"]))
             campo(r, 36, "C" if c["saldo"] >= 0 else "D"); campo(r, 37, importo(c["saldo"]))
@@ -165,3 +175,58 @@ for x in righe:
 with open(sys.argv[1], "w", encoding="latin-1", newline="\r\n") as f:
     f.write("\n".join(righe) + "\n")
 print(f"{len(righe)} righe, {prog} rendicontazioni; saldi finali: " + ", ".join(f"{c['nome']} {c['saldo']:.2f}" for c in CONTI))
+
+
+def testo_xml(breve, info, giorno):
+    """Il testo del movimento come nell'XML della banca: la descrizione breve seguita dai record 63; il
+    bonifico ricevuto ha l'ordinante nelle "Info aggiuntive", come negli export veri."""
+    liberi = [p for p in info if isinstance(p, str)]
+    testo = " ".join([breve] + liberi)
+    yyy = next((p for p in info if isinstance(p, tuple) and p[0] == "YYY"), None)
+    yy2 = next((p for p in info if isinstance(p, tuple) and p[0] == "YY2"), None)
+    if yyy:
+        testo += (f" Info aggiuntive: Data ordine: {giorno:%d/%m/%Y} Localita ordinante: {yyy[3]}"
+                  f" Ragione sociale ordinante: {yyy[2]}" + (f" Indirizzo ordinante: {yy2[1]}" if yy2 else ""))
+    return testo.replace("&", "&amp;").replace("<", "&lt;")
+
+
+def saldo_xml(tipo, valore, giorno):
+    return (f"<ns5:Bal><ns5:Tp><ns5:CdOrPrtry><ns5:Cd>{tipo}</ns5:Cd></ns5:CdOrPrtry></ns5:Tp>"
+            f"<ns5:Amt Ccy=\"EUR\">{abs(valore):.2f}</ns5:Amt><ns5:CdtDbtInd>{'CRDT' if valore >= 0 else 'DBIT'}</ns5:CdtDbtInd>"
+            f"<ns5:Dt><ns5:Dt>{giorno.isoformat()}+01:00</ns5:Dt></ns5:Dt></ns5:Bal>")
+
+
+if len(sys.argv) > 2:
+    x = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+         '<ns4:CBIBdyBkToCstmrStmtReq xmlns:ns4="urn:CBI:xsd:CBIBdyBkToCstmrStmtReq.00.01.02" '
+         'xmlns:ns5="urn:CBI:xsd:CBIDlyStmtReqLogMsg.00.01.02" xmlns:ns6="urn:CBI:xsd:CBIBkToCstmrStmtReqLogMsg.00.01.02">',
+         '<ns4:PhyMsgInf><ns4:PhyMsgTpCd>INF-STMT-01</ns4:PhyMsgTpCd><ns4:NbOfLogMsg>1</ns4:NbOfLogMsg></ns4:PhyMsgInf>',
+         '<ns4:CBIEnvelBkToCstmrStmtReqLogMsg><ns4:CBIBkToCstmrStmtReqLogMsg><ns6:CBIDlyStmtReqLogMsg>',
+         f'<ns5:GrpHdr><ns5:MsgId>1</ns5:MsgId><ns5:CreDtTm>{FINE.isoformat()}T18:00:00.000+01:00</ns5:CreDtTm></ns5:GrpHdr>']
+    for n, (c, g, iniziale, finale, movs) in enumerate(giornate_xml, start=1):
+        iban_completo = c["iban4"] + c["cin"] + c["codice"]
+        x.append(f'<ns5:Stmt><ns5:Id>{n}</ns5:Id><ns5:ElctrncSeqNb>{n}</ns5:ElctrncSeqNb>'
+                 f'<ns5:CreDtTm>{FINE.isoformat()}T18:00:00.000+01:00</ns5:CreDtTm>'
+                 f'<ns5:Acct><ns5:Id><ns5:IBAN>{iban_completo}</ns5:IBAN></ns5:Id><ns5:Tp><ns5:Cd>CACC</ns5:Cd></ns5:Tp>'
+                 f'<ns5:Ccy>EUR</ns5:Ccy><ns5:Svcr><ns5:FinInstnId><ns5:ClrSysMmbId><ns5:MmbId>{c["abi"]}</ns5:MmbId>'
+                 f'</ns5:ClrSysMmbId></ns5:FinInstnId></ns5:Svcr></ns5:Acct>')
+        x.append(saldo_xml("CLBD", finale, g) + saldo_xml("OPBD", iniziale, g) + saldo_xml("CLAV", finale, g))
+        somma = sum(abs(m[1]) for m in movs)
+        netto = sum(m[1] for m in movs)
+        x.append(f'<ns5:TxsSummry><ns5:TtlNtries><ns5:NbOfNtries>{len(movs)}</ns5:NbOfNtries><ns5:Sum>{somma:.2f}</ns5:Sum>'
+                 f'<ns5:TtlNetNtryAmt>{abs(netto):.2f}</ns5:TtlNetNtryAmt><ns5:CdtDbtInd>{"CRDT" if netto >= 0 else "DBIT"}</ns5:CdtDbtInd>'
+                 f'</ns5:TtlNtries></ns5:TxsSummry>')
+        for k, (causale, valore, breve, info, valuta, rif) in enumerate(movs, start=1):
+            x.append(f'<ns5:Ntry><ns5:NtryRef>{k}</ns5:NtryRef><ns5:Amt Ccy="EUR">{abs(valore):.2f}</ns5:Amt>'
+                     f'<ns5:CdtDbtInd>{"CRDT" if valore > 0 else "DBIT"}</ns5:CdtDbtInd><ns5:Sts>BOOK</ns5:Sts>'
+                     f'<ns5:BookgDt><ns5:Dt>{g.isoformat()}+01:00</ns5:Dt></ns5:BookgDt>'
+                     f'<ns5:ValDt><ns5:Dt>{valuta.isoformat()}+01:00</ns5:Dt></ns5:ValDt>'
+                     f'<ns5:AcctSvcrRef>{rif}</ns5:AcctSvcrRef>'
+                     f'<ns5:BkTxCd><ns5:Prtry><ns5:Cd>{causale[:2]}//{causale[2:]}</ns5:Cd><ns5:Issr>CBI</ns5:Issr></ns5:Prtry></ns5:BkTxCd>'
+                     f'<ns5:NtryDtls><ns5:TxDtls><ns5:AddtlTxInf>{testo_xml(breve[:34], info, g)}</ns5:AddtlTxInf>'
+                     f'</ns5:TxDtls></ns5:NtryDtls></ns5:Ntry>')
+        x.append('</ns5:Stmt>')
+    x.append('</ns6:CBIDlyStmtReqLogMsg></ns4:CBIBkToCstmrStmtReqLogMsg></ns4:CBIEnvelBkToCstmrStmtReqLogMsg></ns4:CBIBdyBkToCstmrStmtReq>')
+    with open(sys.argv[2], "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(x) + "\n")
+    print(f"XML: {len(giornate_xml)} giornate con movimenti, {sum(len(g[4]) for g in giornate_xml)} movimenti")

@@ -97,8 +97,8 @@ Il programma non si installa: funziona dalla cartella in cui lo metti.
     quella pagina.
 
 Per importare i movimenti ti serve l'export del conto in formato CBI
-("Saldi e movimenti"), scaricato dall'home banking. Il manuale spiega cosa
-cercare (capitolo "Scaricare l'export dalla banca").
+("Saldi e movimenti"), di testo o XML, scaricato dall'home banking. Il
+manuale spiega cosa cercare (capitolo "Scaricare l'export dalla banca").
 
 
 -------------------------------------------------------------------------------
@@ -214,7 +214,7 @@ ATTENZIONE: i dati attuali vengono sostituiti da quelli della copia.
 
  * L'importazione dice che il file non sembra un export CBI
    Il file scaricato non e' nel formato giusto: in home banking scegli il
-   formato CBI ("Saldi e movimenti"), non PDF, Excel o CSV.
+   formato CBI ("Saldi e movimenti", testo o XML), non PDF, Excel o CSV.
 
  * L'importazione mostra degli avvisi
    Non e' un errore: il programma segnala qualcosa di strano nel file.

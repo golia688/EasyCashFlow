@@ -21,7 +21,7 @@ public class CbiParser
     // i soli record della funzione "saldi e movimenti" (CBI-RND-001, capitolo 2)
     private static readonly HashSet<string> RecordPrevisti = ["RH", "61", "62", "63", "64", "65", "EF"];
 
-    private const string NonCbi = "Il file non è un export CBI \"saldi e movimenti\": in home banking scegli il formato CBI, non PDF, Excel o CSV.";
+    internal const string NonCbi = "Il file non è un export CBI \"saldi e movimenti\": in home banking scegli il formato CBI (testo o XML), non PDF, Excel o CSV.";
     private readonly LogService _log;
 
     public CbiParser(LogService log)
@@ -32,7 +32,8 @@ public class CbiParser
     // Una giornata chiusa dal record 64. I controlli sui saldi si fanno alla fine, conto per conto e in
     // ordine di data, perché le banche non scrivono tutte le giornate nello stesso ordine: c'è chi va
     // dalla più vecchia alla più recente e chi al contrario (export di un tester, 05/11/2026).
-    private record Giornata(string Conto, DateOnly Data, decimal Iniziale, decimal Finale, int Movimenti, bool Quadra);
+    // Serve anche al lettore XML (CbiXmlParser), che fa gli stessi controlli sui saldi.
+    internal record Giornata(string Conto, DateOnly Data, decimal Iniziale, decimal Finale, int Movimenti, bool Quadra);
 
     public RisultatoImportCbi Leggi(IEnumerable<string> righe)
     {
@@ -305,7 +306,7 @@ public class CbiParser
     //   movimenti, quindi lo si dice.
     // - Operazioni non contabilizzate (export fatto in giornata): giornata senza movimenti, finale uguale
     //   a quello del giorno prima, solo l'iniziale diverso. È un solo fatto, con un solo avviso chiaro.
-    private static void ControllaSaldi(List<Giornata> giornate, Action<string, string, decimal?> avvisa)
+    internal static void ControllaSaldi(List<Giornata> giornate, Action<string, string, decimal?> avvisa)
     {
         foreach (var delConto in giornate.GroupBy(g => g.Conto))
         {
@@ -422,7 +423,7 @@ public class CbiParser
             Nome: "");
     }
 
-    private static bool IbanValido(string iban)
+    internal static bool IbanValido(string iban)
     {
         if (iban.Length < 15 || iban.Length > 34 || !iban.All(char.IsAsciiLetterOrDigit))
             return false;

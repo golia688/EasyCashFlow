@@ -15,7 +15,7 @@
     <DialogContent>
         @if (_esito is null)
         {
-            <AttesaCalcolo Testo="@(_nomeFile is null ? "Scegli il file CBI scaricato dalla banca…" : $"Importazione di {_nomeFile} in corso…")" />
+            <AttesaCalcolo Testo="@(_nomeFile is null ? "Scegli il file CBI (testo o XML) scaricato dalla banca…" : $"Importazione di {_nomeFile} in corso…")" />
         }
         else if (_esito.Errore is { } errore)
         {
@@ -61,7 +61,7 @@
                             @if (_esito.DescrizioniAggiornate > 0)
                             {
                                 <div class="mud-text-secondary">
-                                    di cui @_esito.DescrizioniAggiornate.ToString("N0") con la descrizione estesa aggiornata, ora più completa
+                                    di cui @_esito.DescrizioniAggiornate.ToString("N0") con la descrizione aggiornata, ora più completa
                                 </div>
                             }
                         </td>

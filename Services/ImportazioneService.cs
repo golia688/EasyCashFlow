@@ -8,6 +8,7 @@ namespace EasyCashFlow.Services;
 public class ImportazioneService
 {
     private readonly CbiParser _parser;
+    private readonly CbiXmlParser _parserXml;
     private readonly DatabaseService _database;
     private readonly SelettoreFile _selettore;
     private readonly LogService _log;
@@ -19,9 +20,10 @@ public class ImportazioneService
     /// blocca per inattività (BloccoService).</summary>
     public bool InCorso { get; private set; }
 
-    public ImportazioneService(CbiParser parser, DatabaseService database, SelettoreFile selettore, LogService log)
+    public ImportazioneService(CbiParser parser, CbiXmlParser parserXml, DatabaseService database, SelettoreFile selettore, LogService log)
     {
         _parser = parser;
+        _parserXml = parserXml;
         _database = database;
         _selettore = selettore;
         _log = log;
@@ -90,9 +92,20 @@ public class ImportazioneService
             var info = new FileInfo(percorso);
             _log.Trace($"File: {Mascherato.Percorso(percorso)} ({info.Length:N0} byte, modificato il {info.LastWriteTime:dd/MM/yyyy HH:mm:ss})");
         }
-        _log.Debug("Codifica di lettura: Latin1");
+        var formato = Formati.Riconosci(percorso);
+        _log.Debug($"Formato del file: {formato}");
 
-        var letto = _parser.Leggi(File.ReadLines(percorso, Encoding.Latin1));
+        RisultatoImportCbi letto;
+        if (formato == FormatoExport.Xml)
+        {
+            using var flusso = File.OpenRead(percorso);
+            letto = _parserXml.Leggi(flusso, _database.DescrizioniBreviDellaCausale);
+        }
+        else
+        {
+            _log.Debug("Codifica di lettura: Latin1");
+            letto = _parser.Leggi(File.ReadLines(percorso, Encoding.Latin1));
+        }
 
         if (letto.Saldi.Count == 0 && letto.Movimenti.Count == 0)
         {
@@ -106,7 +119,8 @@ public class ImportazioneService
         // prima dei movimenti, così ogni movimento salvato ha il suo conto registrato
         _database.RegistraConti(letto.Conti);
 
-        var risultato = _database.InserisciMovimenti(letto.Movimenti, nomeFile);
+        // la descrizione breve è un campo della banca solo nel file a 120 caratteri; nell'XML è ricavata
+        var risultato = _database.InserisciMovimenti(letto.Movimenti, nomeFile, breveDellaBanca: formato == FormatoExport.Cbi);
 
         // i saldi servono all'andamento del saldo nelle analisi; rimportare un file vecchio li aggiunge
         var saldiSalvati = _database.SalvaSaldi(letto.Saldi);
@@ -121,7 +135,7 @@ public class ImportazioneService
 
         if (risultato.DescrizioniAggiornate > 0)
         {
-            _log.Info($"{risultato.DescrizioniAggiornate} movimenti erano già presenti: aggiornata la loro descrizione estesa");
+            _log.Info($"{risultato.DescrizioniAggiornate} movimenti erano già presenti: aggiornata la loro descrizione, ora più completa");
         }
 
         // le causali nuove senza gruppo predefinito ricevono quello della loro causale CBI

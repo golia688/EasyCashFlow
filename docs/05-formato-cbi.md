@@ -278,7 +278,7 @@ Funzionamento:
 - Alla fine fa i controlli sui saldi per conto e in ordine di data (sezione 6).
 - Restituisce conti, movimenti, saldi giornalieri, righe scartate e avvisi.
 
-**Reimportazione** (05/11): un movimento con la stessa chiave e lo stesso contenuto tranne la descrizione estesa è lo stesso movimento, letto da un lettore più completo. `DatabaseService.InserisciMovimenti` ne aggiorna la descrizione invece di metterlo tra gli scarti, e il riepilogo dell'importazione dice quanti. Se cambiano anche data valuta, causale o descrizione breve resta uno scarto "contenuto diverso", come prima.
+**Reimportazione** (05/11): un movimento con la stessa chiave e lo stesso contenuto tranne la descrizione estesa è lo stesso movimento, letto da un lettore più completo. `DatabaseService.InserisciMovimenti` ne aggiorna la descrizione invece di metterlo tra gli scarti, e il riepilogo dell'importazione dice quanti. Se cambiano anche data valuta, causale o descrizione breve resta uno scarto "contenuto diverso", come prima. Dal 08/11 la regola è più generale: lo stesso movimento tiene la descrizione più completa, da qualunque formato arrivi (sezione 14).
 
 Prove del 05/11 (programmi `provacbi` e `provadb` nella cartella di lavoro temporanea, con i sorgenti veri): giornate in ordine inverso senza avvisi; più 63 uniti, `YYY` con ordinante, data e codice fiscale, `ID1` + `RI1` + `RI2`, numero dell'assegno; avvisi per continuità, divisa, conteggi dell'EF e ritrasmissione; le operazioni non contabilizzate con le giornate in ordine inverso; sul database cifrato, la descrizione aggiornata reimportando, lo scarto per un contenuto davvero diverso, i gruppi di ripiego che non toccano quelli dell'utente. **File vero** (05/11, export della BCC di 1.266 righe, 184 giornate, 328 movimenti, letto dal programma di prova `provafile` senza importarlo): tutte le righe di 120 caratteri, nessun avviso e nessuna riga scartata (con il lettore di prima le giornate in ordine decrescente avrebbero dato un avviso di continuità quasi ogni giorno), conteggi dell'EF giusti, 22 bonifici ricevuti con `YYY` + `YY2` + testo libero scritti per esteso, 27 movimenti con più di un 63. Non ancora reimportato nel programma.
 
@@ -293,7 +293,7 @@ var risultato = new CbiParser(log).Leggi(righe);
 
 - **Riferimento di 16 caratteri** (sezione 8): da rivedere solo se il log segnala la posizione 77 usata.
 - **Estratto conto periodico** (testa `EC`, capitolo 3 di CBI-RND-001): un'altra funzione dello stesso documento, non letta dal programma. Gli export visti sono tutti "saldi e movimenti" (`RH`).
-- **Rendicontazione XML** (camt.053 del CBI, sezione 13): da fare solo se una banca la dà come export.
+- **Rendicontazione XML** (camt.053 del CBI): letta dal 08/11, sezione 14. Restano da vedere il camt.053 "puro" delle banche estere, con quasi la stessa struttura, e i movimenti raggruppati (`Btch`), non presenti negli export visti.
 - **Saldi negativi** (segno `D` sui saldi) e **divise diverse da EUR**: previsti dal lettore ma non presenti nei campioni.
 - **Un file con più conti**: non osservato; il lettore è predisposto (conto da ogni 61, controlli per conto). Il 04/11 è stato importato il file di un secondo conto, separato: i due conti convivono nel database e nelle pagine.
 - **Nome provvisorio del conto**: si potrebbe usare la descrizione del rapporto (61, posizioni 34-49), se la banca la scrive.
@@ -307,10 +307,55 @@ Il 05/11 l'utente ha scaricato dal portale del Consorzio CBI una raccolta di sta
 - **CBI-RND-001 6.05**, capitolo 2 "Rendicontazione saldi e movimenti di conti correnti": il tracciato di questo documento (sezioni 3-8). Lo stesso documento descrive altre funzioni con lo stesso tipo di record: l'**estratto conto periodico** (capitolo 3, testa `EC` invece di `RH`, record 61-64 quasi uguali), conti anticipi, dossier titoli e portafoglio (capitoli 4-6), che a un privato non servono.
 - **CBI-STD-001 6.10**, le regole comuni: l'Appendice B con le causali CBI (sezione 7); le date facoltative possono essere spazi o zeri (par. 3.2.3, il lettore accetta entrambi nei 63 strutturati); i caratteri consigliati sono quelli ASCII (Appendice A), quindi la lettura in Latin-1 basta. Gli importi sono "con virgola virtuale" (in centesimi, senza virgola) se il documento della funzione non dice altro: CBI-RND-001 dice altro, tutti i suoi importi finiscono con la virgola e due decimali (Premessa), come legge il lettore. L'Appendice D (divise) servirebbe con conti in valuta.
 
-**Da tenere per il futuro: Rendicontazioni XML** (STRN-MO-001 v.00.01.02, con gli schemi XSD). È lo stesso servizio "saldi e movimenti" in XML, costruito sullo standard internazionale **ISO 20022 camt.053** (estratto conto; il CBI lo chiama `CBIBkToCstmrStmt`), in tre versioni: giornaliera (`CBIDlyStmtReqLogMsg`), periodica (`CBIPrdcStmtReqLogMsg`) e intraday (`CBIIdyStmtReqLogMsg`, sullo standard camt.052).
+**Rendicontazioni XML** (STRN-MO-001 v.00.01.02, con gli schemi XSD; letta dal programma dal 08/11, sezione 14). È lo stesso servizio "saldi e movimenti" in XML, costruito sullo standard internazionale **ISO 20022 camt.053** (estratto conto; il CBI lo chiama `CBIBkToCstmrStmt`), in tre versioni: giornaliera (`CBIDlyStmtReqLogMsg`), periodica (`CBIPrdcStmtReqLogMsg`) e intraday (`CBIIdyStmtReqLogMsg`, sullo standard camt.052).
 - Servirebbe se una banca, anche estera, desse come export il camt.053 invece del file a 120 caratteri.
 - Il movimento (`Ntry`) contiene la **causale CBI** nei primi due caratteri del codice proprietario dell'operazione (`BkTxCd/Prtry/Cd`, con emittente `CBI`): causali, descrizioni e gruppi di ripiego (sezione 7) varrebbero anche lì. Accanto c'è il codice ISO (`Domn`/`Fmly`/`SubFmlyCd`).
 - I controlli che la banca deve rispettare corrispondono a quelli del lettore: saldo iniziale e finale (`OPBD`, `CLBD`) della stessa data, numero e somma dei movimenti (`TxsSummry`, come i conteggi dell'EF), riferimento del movimento (`NtryRef`) unico nell'estratto.
 - L'**intraday** riporta movimenti "pending", che la banca può ancora annullare, e il documento dice di non usarlo per la riconciliazione: come per le operazioni non contabilizzate (sezione 6), andrebbe tenuto separato dai movimenti.
 
 **Non servono al programma**, perché riguardano disposizioni che un'azienda manda alla banca o l'infrastruttura del circuito CBI: bonifici (CBI-BON-001, Area IP "Pagamenti", STPE bonifico estero), incassi (CBI-RIB-001 Ri.Ba., CBI-MAV-001, CBI-BOB-001 bollettino Freccia, CBI-AVV-001 avvisatura effetti, Incassi SDD, STIN SEDA), deleghe F24 (CBI-F24-001, convenzione I24), Request to Pay, anticipo fatture, esiti PSD, InfTrf, Area GD, flussi a struttura libera (CBI-STL-001), parte generale, framework dei servizi, porting e firma digitale. Le "prossime release" del 15/11/2026 (bonifico estero XML, disposizioni di pagamento XML, incassi SDD) sono anch'esse servizi di pagamento. I movimenti che nascono da questi servizi (un F24 pagato, un SDD addebitato) arrivano comunque nel file di rendicontazione, con la loro causale CBI.
+
+## 14. La rendicontazione XML (`CbiXmlParser`, dal 08/11)
+
+Dal 08/11 il programma importa anche la **rendicontazione XML** del CBI: lo stesso servizio "saldi e movimenti", nel formato XML descritto da STRN-MO-001 v.00.01.02 (sezione 13) e costruito sullo standard ISO 20022 camt.053. Relax Banking (BCC del gruppo Iccrea) la esporta accanto al file a 120 caratteri.
+
+**Confronto su due export veri degli stessi tre mesi** (08/11, stessa banca e stesso conto; letti solo dal programma di prova, i dati non sono nel repository):
+
+| | File a 120 caratteri | XML | Esito |
+|---|---|---|---|
+| Movimenti | 74 | 74 | stessi |
+| Chiave (data contabile, riferimento, importo) | posizioni 20-25, 62-76, 26-41 | `BookgDt`, `AcctSvcrRef` (15 cifre), `Amt` + `CdtDbtInd` | **identica per tutti** |
+| Data valuta | 14-19 | `ValDt` | uguale per tutti |
+| Causale | 42-45, per esempio `4800` | `BkTxCd/Prtry/Cd` = `48//00`, `Issr` = `CBI` | uguale togliendo `//` |
+| Conto | 53-74 (ABI + CAB + numero) | `Acct/Id/IBAN` | l'IBAN italiano, dopo i primi 5 caratteri, è il codice del conto |
+| Saldi | 61 e 64 | `Bal` con `OPBD` e `CLBD` (più `CLAV`, il disponibile, non usato) | 42 giornate, uguali |
+| Descrizione | breve (87-120) + record 63 | `NtryDtls/TxDtls/AddtlTxInf`, un testo unico | il testo XML comincia con la breve e contiene tutto il testo dei 63, più le "Info aggiuntive" (ordinante, IBAN del beneficiario, causale del bonifico, esito) |
+
+L'XML ha un blocco `Stmt` per ogni giornata con movimenti (le giornate senza movimenti non ci sono), le date con il fuso (`2026-11-06+01:00`), `NtryRef` che riparte da 1 in ogni giornata (non è una chiave) e lo stato `Sts` = `BOOK` (contabilizzato). La banca mette la controparte in `RltdPties/Cdtr/Nm` anche per gli accrediti: il programma non lo usa, perché il nome è già nel testo.
+
+**Il lettore** (`Services/CbiXmlParser.cs`) restituisce lo stesso `RisultatoImportCbi` di `CbiParser`, quindi salvataggio, deduplica, finestra di importazione, gruppi e analisi sono gli stessi.
+- Legge il file senza DTD e senza risorse esterne (un XML costruito apposta non può far leggere altri file né scaricare niente) e cerca gli elementi per nome locale, così prefissi e versioni degli spazi dei nomi non contano.
+- Legge solo la versione **giornaliera** (`CBIDlyStmtReqLogMsg`). Rifiuta, con il motivo, l'**intraday** (`CBIIdyStmtReqLogMsg`: movimenti che la banca può ancora annullare), il **periodico** (`CBIPrdcStmtReqLogMsg`: estratto conto, come la testa `EC` del file a 120 caratteri), un camt.053 non CBI e qualunque altro XML.
+- Controlli come per il file a 120 caratteri: saldi `OPBD` e `CLBD` obbligatori e della stessa data, quadratura e continuità (la stessa `CbiParser.ControllaSaldi`), il riepilogo `TxsSummry` (numero dei movimenti, somma dei valori assoluti, somma con il segno) al posto dei conteggi dell'EF. Un movimento non interpretabile si scarta da solo, con la riga dell'XML; un saldo o un IBAN mancanti fermano tutto.
+- I movimenti con stato diverso da `BOOK` non si importano (avviso).
+- Riferimento: `AcctSvcrRef`, letto di 15 caratteri come nel file a 120. Se manca, se ne fa uno dalla data e da `NtryRef`, con un avviso: quel movimento non si riconoscerebbe nel file a 120 caratteri.
+
+**La descrizione breve.** Nell'XML non è un campo a sé: è l'inizio del testo. Il lettore la ricava così, nell'ordine:
+1. una descrizione breve già nel database per la stessa causale, se il testo comincia così (`DatabaseService.DescrizioniBreviDellaCausale`): con lo storico importato dal file a 120 caratteri, sul file vero dà la breve giusta per 74 movimenti su 74;
+2. il testo prima di ` *` o ` @`, che nei testi della banca aprono la parte dei 63;
+3. la parte iniziale comune ai testi diversi con la stessa causale nel file, al massimo 34 caratteri;
+4. i primi 34 caratteri, senza spezzare una parola.
+
+Senza storico, i passi 2-4 indovinano 60 brevi su 74 nel file vero: per i pagamenti POS, per esempio, la breve prende anche la parola successiva ("… Eurozona Del"). Il testo non si perde mai (breve + estesa = testo della banca), e importando poi il file a 120 caratteri degli stessi giorni la breve diventa quella della banca.
+
+**Lo stesso movimento da due fonti** (`DatabaseService.AggiornaDescrizioni`). Stessa chiave, data valuta e causale vuol dire stesso movimento, anche con descrizioni diverse; se ne tiene la più completa, così l'ordine delle importazioni non conta:
+- la descrizione estesa **più lunga** (a parte gli spazi): l'XML arricchisce i movimenti venuti dal file a 120 caratteri, e reimportare quel file non li impoverisce;
+- la descrizione breve del file a 120 caratteri, che è un campo della banca; quella ricavata dall'XML non sostituisce quella salvata.
+
+Uno scarto "contenuto diverso" resta solo se cambiano data valuta o causale. Prima del 08/11 bastava una descrizione breve diversa.
+
+**Il formato si riconosce dal contenuto** (`Formati.Riconosci`): un XML comincia con `<`, dopo l'eventuale BOM. L'export "Excel" di Relax Banking (estensione `.xls`, ma è testo con le colonne separate da tabulazioni: data contabile, data valuta, importo, descrizione, note) si riconosce dall'intestazione e si rifiuta con il motivo: ha gli stessi 74 movimenti e lo stesso testo dell'XML, ma non ha causale, riferimento, saldi e conto, quindi non si potrebbero riconoscere i movimenti già importati.
+
+**Prove del 08/11** (programma `provaxml` nella cartella di lavoro temporanea, con i sorgenti veri; stampa solo conteggi): sui due export veri, riconoscimento dei tre formati, stessi conti, chiavi, date valuta, causali e saldi; testo poi XML (0 nuovi, nessuno scarto, 11 descrizioni arricchite), poi di nuovo testo (niente cambia); XML su un database vuoto poi testo (brevi corrette, estesa più lunga tenuta); causale o data valuta diverse ancora tra gli scarti; XML rovinato, di altro tipo, intraday, periodico e con DTD rifiutati. Sull'esempio inventato: stessi 373 movimenti, conti e saldi del file a 120 caratteri, nessun avviso.
+
+**Esempio con dati inventati**: `docs/esempi/esempio-cbi-due-conti.xml`, gli stessi movimenti di `esempio-cbi-due-conti.txt`, scritto dallo stesso `genera-esempio-cbi.py` con un secondo nome di file.

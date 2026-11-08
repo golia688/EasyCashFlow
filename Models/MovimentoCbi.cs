@@ -74,7 +74,7 @@ public record RisultatoImportCbi(
 public record RisultatoInserimento(
     int Inseriti,
     IReadOnlyList<RecordScartato> Scartati,
-    int DescrizioniAggiornate = 0);    // già presenti di cui si è aggiornata la descrizione estesa
+    int DescrizioniAggiornate = 0);    // già presenti di cui si è aggiornata la descrizione
 
 public record EsitoImportazione(
     string NomeFile,
@@ -90,6 +90,6 @@ public record EsitoImportazione(
     DateOnly? Dal = null,               // prima e ultima giornata del file
     DateOnly? Al = null,
     int Conti = 0,
-    int DescrizioniAggiornate = 0,      // già presenti di cui si è aggiornata la descrizione estesa
+    int DescrizioniAggiornate = 0,      // già presenti di cui si è aggiornata la descrizione
     int ContenutoDiverso = 0,           // stessa chiave, contenuto diverso: in MovimentiScartati
     int RigheNonValide = 0);            // righe del file che il lettore non ha potuto interpretare

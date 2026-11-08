@@ -16,7 +16,7 @@ Funziona **senza internet e senza account**: è portable (si avvia da una cartel
 
 ## Cosa fa
 
-- **Importazione CBI** secondo la specifica CBI-RND-001: controlli formali sul file (un file che non è un export CBI si rifiuta senza salvare niente), quadratura e continuità dei saldi, deduplica dei movimenti già importati, riepilogo dell'importazione con gli avvisi raggruppati.
+- **Importazione CBI**, del file di testo secondo la specifica CBI-RND-001 e della rendicontazione **XML** del CBI (ISO 20022 camt.053), anche alternati per gli stessi giorni: controlli formali sul file (un file che non è un export CBI si rifiuta senza salvare niente), quadratura e continuità dei saldi, deduplica dei movimenti già importati, riepilogo dell'importazione con gli avvisi raggruppati.
 - **Più conti e più banche**: ogni conto si riconosce da solo dal file; Home, Movimenti e Analisi lavorano su un conto, su alcuni o su tutti. Le **causali CBI** (comuni a tutte le banche) danno un gruppo anche alle causali di una banca nuova.
 - **Analisi**: entrate, uscite, flusso netto, tasso di risparmio, investito netto e saldo, con il dettaglio di ogni indicatore; grafici per mese e per gruppo di causali, spese ricorrenti e variabili, flusso cumulato, movimenti straordinari escludibili.
 - **Simulazione del saldo** nei mesi futuri, **grafico personalizzato** dei movimenti scelti e **report Excel** con formule e grafici.
@@ -65,7 +65,7 @@ dotnet build EasyCashFlow.csproj
 
 ## Provarlo con dati inventati
 
-[`docs/esempi/esempio-cbi-due-conti.txt`](docs/esempi/esempio-cbi-due-conti.txt) è un export CBI "saldi e movimenti" con **dati inventati**: due conti di due banche che non esistono (ABI 99001 e 99002), dal 01/10/2025 al 04/11/2026, con stipendio, mutuo, utenze, carte, un piano di accumulo, giroconti tra i due conti, qualche bonifico. È nel formato vero: si importa come un export della banca (Movimenti > Importa file CBI) e serve a provare il programma senza i propri dati. Lo genera [`genera-esempio-cbi.py`](docs/esempi/genera-esempio-cbi.py), sempre uguale (Python 3, nessun pacchetto in più).
+[`docs/esempi/esempio-cbi-due-conti.txt`](docs/esempi/esempio-cbi-due-conti.txt) è un export CBI "saldi e movimenti" con **dati inventati**: due conti di due banche che non esistono (ABI 99001 e 99002), dal 01/10/2025 al 04/11/2026, con stipendio, mutuo, utenze, carte, un piano di accumulo, giroconti tra i due conti, qualche bonifico. È nel formato vero: si importa come un export della banca (Movimenti > Importa file CBI) e serve a provare il programma senza i propri dati. Gli stessi movimenti ci sono anche nella rendicontazione XML, [`esempio-cbi-due-conti.xml`](docs/esempi/esempio-cbi-due-conti.xml). Li genera [`genera-esempio-cbi.py`](docs/esempi/genera-esempio-cbi.py), sempre uguali (Python 3, nessun pacchetto in più).
 
 La versione da distribuire si crea con il profilo `Properties/PublishProfiles/VersionePerProva.pubxml` (Visual Studio > Pubblica, oppure `dotnet publish -p:PublishProfile=VersionePerProva`): una cartella autonoma, con .NET incluso, in `bin\Pubblicazione\EasyCashFlow`.
 

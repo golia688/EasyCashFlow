@@ -921,8 +921,9 @@ public class DatabaseService
     }
 
     /// <summary>Inserisce i movimenti in un'unica transazione. Ogni movimento non inserito
-    /// viene restituito (e scritto nel log) con il motivo dello scarto.</summary>
-    public RisultatoInserimento InserisciMovimenti(IEnumerable<MovimentoCbi> movimenti, string nomeFile)
+    /// viene restituito (e scritto nel log) con il motivo dello scarto. breveDellaBanca è falso per i movimenti
+    /// letti dall'XML, dove la descrizione breve è ricavata dal testo: non sostituisce quella già salvata.</summary>
+    public RisultatoInserimento InserisciMovimenti(IEnumerable<MovimentoCbi> movimenti, string nomeFile, bool breveDellaBanca = true)
     {
         var scartati = new List<RecordScartato>();
 
@@ -980,17 +981,17 @@ public class DatabaseService
                 {
                     RecordScartato scarto;
 
-                    if (AggiornaDescrizioneEstesa(connessione, transazione, m))
+                    if (AggiornaDescrizioni(connessione, transazione, m, breveDellaBanca))
                     {
                         aggiornati++;
                         scarto = new RecordScartato(MotivoScarto.GiaPresente,
-                            "Movimento già presente nel database: aggiornata la descrizione estesa, letta in modo più completo.",
+                            "Movimento già presente nel database: aggiornata la descrizione, letta in modo più completo.",
                             m.RigaFile, null, m);
                     }
                     else if (HaContenutoDiverso(connessione, transazione, m))
                     {
                         scarto = new RecordScartato(MotivoScarto.ContenutoDiverso,
-                            "Esiste già un movimento con la stessa chiave ma con contenuto diverso (data valuta, causale o descrizione): il movimento del file non è stato importato.",
+                            "Esiste già un movimento con la stessa chiave ma con data valuta o causale diverse: il movimento del file non è stato importato.",
                             m.RigaFile, null, m);
                     }
                     else
@@ -1021,30 +1022,77 @@ public class DatabaseService
         return new RisultatoInserimento(inseriti, scartati, aggiornati);
     }
 
-    // Stessa chiave e stesso contenuto tranne la descrizione estesa: è lo stesso movimento (la chiave lo
-    // identifica), letto da un lettore più completo. Dal 05/11/2026 il lettore unisce tutti i record 63 di
-    // un movimento e scrive per esteso quelli strutturati; prima teneva solo l'ultimo, così come era nel file.
-    // Reimportando un file vecchio la descrizione si aggiorna, invece di finire tra gli scarti.
-    private static bool AggiornaDescrizioneEstesa(SqliteConnection connessione, SqliteTransaction transazione, MovimentoCbi m)
+    // Stessa chiave, stessa data valuta e stessa causale: è lo stesso movimento, che può arrivare con
+    // descrizioni diverse. Se ne tiene la più completa, così l'ordine delle importazioni non conta:
+    // - la descrizione estesa più lunga (spazi a parte). Dal 05/11/2026 il lettore CBI unisce tutti i record 63
+    //   e prima ne teneva uno solo; dal 08/11 l'XML ha anche le informazioni che il file a 120 caratteri non ha
+    //   (ordinante, IBAN del beneficiario, causale del bonifico). Un file letto meglio o l'XML arricchiscono il
+    //   movimento; reimportare dopo un file meno completo non lo impoverisce;
+    // - la descrizione breve del file a 120 caratteri, che è un campo della banca (breveDellaBanca); quella
+    //   ricavata dal testo dell'XML non sostituisce quella già salvata.
+    // Vero se ha aggiornato qualcosa.
+    private static bool AggiornaDescrizioni(SqliteConnection connessione, SqliteTransaction transazione, MovimentoCbi m,
+                                            bool breveDellaBanca)
     {
+        using var lettura = connessione.CreateCommand();
+        lettura.Transaction = transazione;
+        lettura.CommandText = """
+            SELECT DescrizioneBreve, DescrizioneEstesa FROM Movimenti
+            WHERE Conto = $conto AND DataContabile = $dataContabile
+              AND Riferimento = $riferimento AND ImportoCentesimi = $importo
+              AND DataValuta = $dataValuta AND Causale = $causale
+            """;
+        lettura.Parameters.AddWithValue("$conto", m.Conto);
+        lettura.Parameters.AddWithValue("$dataContabile", ScriviData(m.DataContabile));
+        lettura.Parameters.AddWithValue("$riferimento", m.Riferimento);
+        lettura.Parameters.AddWithValue("$importo", Centesimi(m.Importo));
+        lettura.Parameters.AddWithValue("$dataValuta", ScriviData(m.DataValuta));
+        lettura.Parameters.AddWithValue("$causale", m.Causale);
+
+        string breveSalvata, estesaSalvata;
+        using (var lettore = lettura.ExecuteReader())
+        {
+            if (!lettore.Read()) return false;
+            breveSalvata = lettore.GetString(0);
+            estesaSalvata = lettore.GetString(1);
+        }
+
+        static int Lunghezza(string testo) => string.Join(' ', testo.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).Length;
+
+        var breve = breveDellaBanca && m.DescrizioneBreve != "" ? m.DescrizioneBreve : breveSalvata;
+        var estesa = Lunghezza(m.DescrizioneEstesa) > Lunghezza(estesaSalvata) ? m.DescrizioneEstesa : estesaSalvata;
+        if (breve == breveSalvata && estesa == estesaSalvata) return false;
+
         using var comando = connessione.CreateCommand();
         comando.Transaction = transazione;
         comando.CommandText = """
-            UPDATE Movimenti SET DescrizioneEstesa = $descEstesa
+            UPDATE Movimenti SET DescrizioneBreve = $descBreve, DescrizioneEstesa = $descEstesa
             WHERE Conto = $conto AND DataContabile = $dataContabile
               AND Riferimento = $riferimento AND ImportoCentesimi = $importo
-              AND DataValuta = $dataValuta AND Causale = $causale AND DescrizioneBreve = $descBreve
-              AND DescrizioneEstesa <> $descEstesa
             """;
         comando.Parameters.AddWithValue("$conto", m.Conto);
         comando.Parameters.AddWithValue("$dataContabile", ScriviData(m.DataContabile));
         comando.Parameters.AddWithValue("$riferimento", m.Riferimento);
         comando.Parameters.AddWithValue("$importo", Centesimi(m.Importo));
-        comando.Parameters.AddWithValue("$dataValuta", ScriviData(m.DataValuta));
-        comando.Parameters.AddWithValue("$causale", m.Causale);
-        comando.Parameters.AddWithValue("$descBreve", m.DescrizioneBreve);
-        comando.Parameters.AddWithValue("$descEstesa", m.DescrizioneEstesa);
+        comando.Parameters.AddWithValue("$descBreve", breve);
+        comando.Parameters.AddWithValue("$descEstesa", estesa);
         return comando.ExecuteNonQuery() == 1;
+    }
+
+    /// <summary>Le descrizioni brevi già salvate per una causale: servono a dividere il testo dei movimenti
+    /// letti dall'XML come nel file CBI a 120 caratteri (CbiXmlParser).</summary>
+    public IReadOnlyCollection<string> DescrizioniBreviDellaCausale(string causale)
+    {
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        comando.CommandText = "SELECT DISTINCT DescrizioneBreve FROM Movimenti WHERE Causale = $causale AND DescrizioneBreve <> ''";
+        comando.Parameters.AddWithValue("$causale", causale);
+
+        var brevi = new List<string>();
+        using var lettore = comando.ExecuteReader();
+        while (lettore.Read())
+            brevi.Add(lettore.GetString(0));
+        return brevi;
     }
 
     // Le colonne per cui si può ordinare una griglia (OrdineGriglia.Campo -> SQL): un elenco fisso, così
@@ -1399,7 +1447,9 @@ public class DatabaseService
         return $"{colonna} IN ({string.Join(", ", nomi)})";
     }
 
-    // Vero se esiste già una riga con la stessa chiave ma con altri campi diversi.
+    // Vero se esiste già una riga con la stessa chiave ma con data valuta o causale diverse. Le descrizioni
+    // non contano più (dal 08/11/2026): lo stesso movimento ha descrizioni diverse nel file CBI a 120 caratteri
+    // e nell'XML, e se ne tiene la più completa (AggiornaDescrizioni).
     private static bool HaContenutoDiverso(SqliteConnection connessione, SqliteTransaction transazione, MovimentoCbi m)
     {
         using var comando = connessione.CreateCommand();
@@ -1408,8 +1458,7 @@ public class DatabaseService
             SELECT 1 FROM Movimenti
             WHERE Conto = $conto AND DataContabile = $dataContabile
               AND Riferimento = $riferimento AND ImportoCentesimi = $importo
-              AND (DataValuta <> $dataValuta OR Causale <> $causale
-                   OR DescrizioneBreve <> $descBreve OR DescrizioneEstesa <> $descEstesa)
+              AND (DataValuta <> $dataValuta OR Causale <> $causale)
             LIMIT 1
             """;
         comando.Parameters.AddWithValue("$conto", m.Conto);
@@ -1418,8 +1467,6 @@ public class DatabaseService
         comando.Parameters.AddWithValue("$importo", Centesimi(m.Importo));
         comando.Parameters.AddWithValue("$dataValuta", ScriviData(m.DataValuta));
         comando.Parameters.AddWithValue("$causale", m.Causale);
-        comando.Parameters.AddWithValue("$descBreve", m.DescrizioneBreve);
-        comando.Parameters.AddWithValue("$descEstesa", m.DescrizioneEstesa);
 
         return comando.ExecuteScalar() is not null;
     }

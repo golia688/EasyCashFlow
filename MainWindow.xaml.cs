@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         services.AddSingleton<ChiaviService>();
         services.AddSingleton<AccessoService>();
         services.AddSingleton<CbiParser>();
+        services.AddSingleton<CbiXmlParser>();
         services.AddSingleton<SelettoreFile>();
         services.AddSingleton<ImportazioneService>();
         services.AddSingleton<LogService>();
