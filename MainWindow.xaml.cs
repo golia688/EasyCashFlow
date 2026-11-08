@@ -90,7 +90,7 @@ public partial class MainWindow : Window
                 "Il database è di una versione di prova precedente (fino alla 0.9.2), che non lo cifrava: " +
                 "questa versione non lo apre.\n\n" +
                 "Cancella le cartelle dati e log che stanno accanto al programma e avvialo di nuovo: " +
-                "ti chiederà di creare una password. Poi importa di nuovo i file CBI scaricati dalla banca.",
+                "ti chiederà di creare una password. Poi importa di nuovo i file CBI o XML scaricati dalla banca.",
             StatoDatabase.Cifrato when !chiavi.FileEsiste =>
                 "Il database è cifrato ma manca il file della chiave (dati\\chiave.json): senza non si può aprire.\n\n" +
                 "Rimetti il file chiave.json nella cartella dati, prendendolo dalla stessa copia di sicurezza del database.",

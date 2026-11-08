@@ -111,7 +111,7 @@ public class ImportazioneService
         {
             _log.Errore($"Importazione di {nomeFile}: nessuna giornata riconosciuta, il file non sembra un export CBI valido");
             return new EsitoImportazione(nomeFile, 0, 0, 0, letto.Scartati.Count, letto.Avvisi,
-                _log.NomeFileCorrente, "Nessuna giornata riconosciuta: il file non sembra un export CBI valido.");
+                _log.NomeFileCorrente, "Nessuna giornata riconosciuta: il file non sembra un export CBI valido, di testo o XML.");
         }
 
         var avvisi = letto.Avvisi.ToList();

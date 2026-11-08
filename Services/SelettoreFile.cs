@@ -18,8 +18,8 @@ public class SelettoreFile
     {
         var dialogo = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Importa movimenti (formato CBI, testo o XML)",
-            Filter = "Export CBI (*.txt;*.cbi;*.xml)|*.txt;*.cbi;*.xml|Tutti i file (*.*)|*.*"
+            Title = "Importa file CBI o XML",
+            Filter = "File CBI di testo o XML (*.txt;*.cbi;*.xml)|*.txt;*.cbi;*.xml|Tutti i file (*.*)|*.*"
         };
         return dialogo.ShowDialog(Application.Current.MainWindow) == true ? dialogo.FileName : null;
     });

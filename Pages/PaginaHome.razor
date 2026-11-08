@@ -43,11 +43,11 @@
             Tre passi per avere movimenti e analisi pronti. Ognuno si segna come fatto da solo.
         </MudText>
 
-        @Passo(1, "Importa il primo file CBI",
-            "Scarica dall'home banking l'export \"Saldi e movimenti\" in formato CBI (testo o XML) e importalo. "
+        @Passo(1, "Importa il primo file CBI o XML",
+            "Scarica dall'home banking l'export \"Saldi e movimenti\" in formato CBI, di testo o XML, e importalo. "
             + "Puoi importare più file, anche con periodi sovrapposti: i movimenti già presenti non si duplicano.",
             _ciSonoMovimenti, _ciSonoMovimenti ? "Movimenti importati" : null,
-            "Importa file CBI", Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile)), Importa)
+            "Importa file CBI o XML", Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile)), Importa)
 
         @Passo(2, "Dai un nome ai conti",
             "Ogni conto si registra da solo con un nome provvisorio, come \"ABI 12345 - c/c ...6789\". "
@@ -89,7 +89,7 @@
                 @if (_saldo.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        Nessun saldo salvato negli ultimi @TestoGiorni: importa di nuovo i file CBI per aggiungerli.
+                        Nessun saldo salvato negli ultimi @TestoGiorni: importa di nuovo i file CBI o XML per aggiungerli.
                     </MudText>
                 }
                 else
@@ -226,7 +226,7 @@
                     }
                 }
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3"
-                           StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))" OnClick="Importa">Importa file CBI</MudButton>
+                           StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))" OnClick="Importa">Importa file CBI o XML</MudButton>
             </MudPaper>
         </MudItem>
 

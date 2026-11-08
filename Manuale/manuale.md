@@ -4,7 +4,7 @@ EasyCashFlow ti aiuta a capire **dove vanno i tuoi soldi**, su un conto o su tut
 
 Funziona così:
 
-1. scarichi dall'home banking l'elenco dei movimenti di ogni tuo conto corrente, nel formato **CBI**;
+1. scarichi dall'home banking l'elenco dei movimenti di ogni tuo conto corrente, nel formato **CBI**: un **file di testo** oppure un **file XML**, vanno bene tutti e due;
 2. lo importi in EasyCashFlow;
 3. il programma ti mostra entrate, uscite, saldo e grafici, mese per mese.
 
@@ -38,13 +38,13 @@ Poi bastano tre passi. Li trovi anche nella [Home](app:home), dove si segnano co
 
 **1. Importa il primo file**
 
-Scarica dall'home banking l'export dei movimenti in formato CBI e importalo. Il capitolo [Scaricare l'export dalla banca](cap:export-banca) spiega cosa cercare.
+Scarica dall'home banking l'export dei movimenti in formato CBI, di testo o XML, e importalo. Il capitolo [Scaricare l'export dalla banca](cap:export-banca) spiega cosa cercare.
 
 **2. Dai un nome al conto**
 
 Il conto si registra da solo, con un nome provvisorio tipo "ABI 12345 - c/c ...6789". Cambialo con un nome che riconosci, per esempio "Conto di casa". Lo trovi in [Impostazioni](app:impostazioni).
 
-Hai altri conti, anche in altre banche? Importa l'export CBI di ciascuno: ogni conto si aggiunge da solo, e dai un nome anche a quelli. Da quel momento puoi guardarli uno alla volta o tutti insieme.
+Hai altri conti, anche in altre banche? Importa l'export CBI (di testo o XML) di ciascuno: ogni conto si aggiunge da solo, e dai un nome anche a quelli. Da quel momento puoi guardarli uno alla volta o tutti insieme.
 
 **3. Controlla i gruppi di causali**
 
@@ -104,20 +104,26 @@ Una notifica sparisce da sola quando la cosa è sistemata. **Nascondi** la togli
 
 ## Scaricare l'export dalla banca {#export-banca}
 
-EasyCashFlow legge i file **CBI**, un formato standard delle banche italiane, in due versioni:
+EasyCashFlow legge il **CBI**, il formato standard con cui le banche italiane danno saldi e movimenti dei conti. Il CBI esiste in **due formati**, e il programma li legge tutti e due:
 
-- il file **di testo** (spesso con estensione `.txt`), quello classico;
-- il file **XML** (estensione `.xml`), la versione più recente dello stesso standard. Contiene gli stessi movimenti e in più qualche informazione, per esempio il nome e la località di chi ti ha fatto un bonifico.
+- **CBI di testo**: il file ha estensione `.txt` (a volte `.cbi`) e, aperto con il Blocco note, è fatto di righe di testo tutte della stessa lunghezza. Contiene movimenti, causali e saldi di ogni giornata. È il formato classico, quello che ogni banca italiana sa dare. Lo standard è il **CBI-RND-001** del Consorzio CBI, "Rendicontazione saldi e movimenti di conti correnti".
+- **CBI XML**: il file ha estensione `.xml` e, aperto con il Blocco note, comincia con `<?xml`. Contiene gli stessi movimenti, causali e saldi, e in più qualche informazione: per esempio nome e località di chi ti ha fatto un bonifico, o l'IBAN di chi ne ha ricevuto uno da te. Lo standard è lo **STRN-MO-001** del Consorzio CBI, "Rendicontazioni XML", costruito sullo standard internazionale ISO 20022 (camt.053); il programma legge la rendicontazione giornaliera.
 
-Vanno bene tutti e due, anche alternati: lo stesso movimento importato una volta dal testo e una volta dall'XML resta uno solo, e tiene la descrizione più completa.
+Il programma riconosce da solo quale dei due hai scelto. Se la tua banca li offre entrambi, puoi usare quello che preferisci, anche alternandoli: lo stesso movimento importato una volta dal file di testo e una volta dall'XML resta **uno solo**, e tiene la descrizione più completa. L'XML è un po' più ricco; il file di testo è il più diffuso.
 
 Nell'home banking cerca una funzione con un nome simile a:
 
 - "Esporta movimenti" o "Scarica movimenti";
 - "Saldi e movimenti";
-- "Formato CBI" oppure "Rendicontazione CBI".
+- "Formato CBI", "CBI XML" oppure "Rendicontazione CBI".
 
-Per esempio **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, permette di esportare i movimenti del conto in formato CBI, sia di testo sia XML. Ogni banca ha menu diversi: se non trovi la funzione, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**.
+**Relax Banking** (gruppo BCC Iccrea). EasyCashFlow è stato provato con **Relax Banking**, l'home banking delle BCC del gruppo bancario Iccrea, ed è **compatibile al 100%**: gli export veri, sia CBI di testo sia CBI XML, si importano con tutti i movimenti, le causali e i saldi, senza avvisi, e i due formati danno esattamente gli stessi movimenti. Per esportare:
+
+1. entra in Relax Banking e apri la lista dei **movimenti del conto**, con il periodo che ti serve;
+2. premi il pulsante **Esporta**, in alto sopra l'elenco;
+3. scegli **Esporta CBI** (il CBI di testo) oppure **Esporta XML** (il CBI XML). **Esporta PDF** ed **Esporta EXCEL** non vanno bene per il programma.
+
+**Le altre banche.** Il CBI è uguale per tutte le banche italiane, ma ogni home banking ha menu diversi: se non trovi la funzione, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**, di testo o XML.
 
 Alcuni consigli:
 
@@ -125,19 +131,19 @@ Alcuni consigli:
 - poi basta scaricare ogni tanto gli ultimi movimenti;
 - i periodi possono sovrapporsi: i movimenti già importati **non vengono duplicati**.
 
-Non serve aprire il file che scarichi.
+Non serve aprire il file che scarichi: il Blocco note serve solo, se vuoi, a capire quale dei due formati hai.
 
-**Il formato Excel non va bene.** Molte banche offrono anche l'export in Excel: è comodo da guardare, ma contiene solo date, importo e descrizione. Mancano la causale (che serve a raggruppare i movimenti), il riferimento della banca (che serve a riconoscere i movimenti già importati) e i saldi. Se lo scegli, il programma te lo dice e non importa niente.
+**Il formato Excel non va bene** (e nemmeno PDF o CSV). Molte banche offrono anche l'export in Excel: è comodo da guardare, ma contiene solo date, importo e descrizione. Mancano la causale (che serve a raggruppare i movimenti), il riferimento della banca (che serve a riconoscere i movimenti già importati) e i saldi. Se lo scegli, il programma te lo dice e non importa niente.
 
 ## Importare i movimenti {#importare}
 
 Per importare un file:
 
 1. vai in [Movimenti](app:movimenti);
-2. premi **Importa file CBI** (oppure usa il menu **Dati > Importa file CBI**);
-3. scegli il file scaricato dalla banca, di testo o XML: il programma riconosce da solo il formato.
+2. premi **Importa file CBI o XML** (oppure usa il menu **Dati > Importa file CBI o XML**);
+3. scegli il file scaricato dalla banca, CBI di testo o CBI XML: il programma riconosce da solo il formato.
 
-Si apre la finestra **Importa file CBI**: mentre il programma legge il file vedi una barra che scorre, e dopo pochi secondi un riepilogo in tabella. Ecco cosa vogliono dire le righe:
+Si apre la finestra **Importa file CBI o XML**: mentre il programma legge il file vedi una barra che scorre, e dopo pochi secondi un riepilogo in tabella. Ecco cosa vogliono dire le righe:
 
 - **Giornate nel file**: quanti giorni copre il file, dal primo all'ultimo.
 - **Movimenti nel file**: quanti movimenti contiene.
@@ -149,7 +155,7 @@ Si apre la finestra **Importa file CBI**: mentre il programma legge il file vedi
 
 Gli **avvisi** sono sotto la tabella, raggruppati per tipo: per esempio "3 × il saldo iniziale non coincide…". Clicca su un avviso per vedere le date in cui capita. Un avviso non vuol dire che qualcosa si è rotto: il programma ti segnala una cosa strana nel file, e i movimenti letti sono stati importati comunque. L'avviso più comune riguarda le [operazioni non ancora contabilizzate](cap:domande). Altri dicono, per esempio, che i saldi di due giorni non si collegano (potrebbero mancare dei movimenti) o che il file sembra tagliato.
 
-**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI, un XML che non è la rendicontazione dei movimenti) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
+**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI, un file XML che non è il CBI XML dei movimenti) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
 
 Il pulsante **Apri il log** apre il file in cui il programma scrive cosa ha fatto: serve se devi segnalare un problema. **Chiudi** chiude la finestra.
 
@@ -367,7 +373,7 @@ Poi premi **Salva** sulla riga.
 - **Esporta** salva in un file i gruppi di tutte le causali: il gruppo, il tipo e se è ricorrente, comprese le scelte che hai fatto tu. Il file (`EasyCashFlow-gruppi-causali-` e la data, `.json`) non contiene movimenti né importi.
 - **Importa** riprende i gruppi da un file esportato prima. Prima di cambiare qualcosa ti mostra, causale per causale, cosa succede: quelle che **cambiano**, con il gruppo, il tipo o la spesa di adesso barrati e quelli del file evidenziati accanto; quelle che **si aggiungono**, con il loro gruppo; quante sono già uguali; le righe del file non valide, con il motivo. Poi aspetta la tua conferma. Le causali che il file non ha restano come sono.
 
-Serve quando riparti da zero, per esempio con il programma in una cartella nuova o su un altro computer: importi il file dei gruppi, anche prima dei movimenti, e non devi riassegnare a mano i gruppi delle causali. Quando poi importi i file CBI, le causali prendono subito i tuoi gruppi.
+Serve quando riparti da zero, per esempio con il programma in una cartella nuova o su un altro computer: importi il file dei gruppi, anche prima dei movimenti, e non devi riassegnare a mano i gruppi delle causali. Quando poi importi i file CBI o XML, le causali prendono subito i tuoi gruppi.
 
 **Dove finisce una causale?** La freccia in fondo alla riga apre l'analisi in cui finiscono i movimenti di quella causale (entrate, uscite o investimenti), già filtrata sul suo gruppo.
 
@@ -445,7 +451,7 @@ Apri il programma con la password e vai in [Sicurezza](app:sicurezza): con la pa
 
 Nella schermata della password clicca **Ho dimenticato la password** e scrivi il **codice di recupero** che hai ricevuto quando l'hai creata (maiuscole, spazi e trattini non contano). Poi scegli una password nuova: riceverai anche un codice di recupero nuovo, perché quello usato non vale più. Conserva il nuovo come il primo.
 
-Se non hai più nemmeno il codice, i dati non si possono aprire: ricomincia da una cartella nuova e importa di nuovo i file CBI scaricati dalla banca.
+Se non hai più nemmeno il codice, i dati non si possono aprire: ricomincia da una cartella nuova e importa di nuovo i file CBI (di testo o XML) scaricati dalla banca.
 
 **Ho sbagliato la password più volte e devo aspettare.**
 
@@ -453,7 +459,7 @@ Dopo cinque tentativi sbagliati di fila il programma ti fa aspettare qualche sec
 
 **All'avvio un messaggio dice che il database è di una versione di prova precedente.**
 
-Le versioni di prova fino alla 0.9.2 non cifravano i dati, e questa versione non apre quei database. Cancella le cartelle **dati** e **log** che stanno accanto al programma (se dimentichi i log, li cancella il programma quando crei la password), avvialo di nuovo e crea la password; poi importa di nuovo i file CBI scaricati dalla banca. Movimenti e saldi tornano tutti; vanno rifatti a mano i movimenti straordinari, i gruppi di causali che avevi cambiato, i nomi dei conti e le scelte di [Aspetto](app:aspetto).
+Le versioni di prova fino alla 0.9.2 non cifravano i dati, e questa versione non apre quei database. Cancella le cartelle **dati** e **log** che stanno accanto al programma (se dimentichi i log, li cancella il programma quando crei la password), avvialo di nuovo e crea la password; poi importa di nuovo i file CBI o XML scaricati dalla banca. Movimenti e saldi tornano tutti; vanno rifatti a mano i movimenti straordinari, i gruppi di causali che avevi cambiato, i nomi dei conti e le scelte di [Aspetto](app:aspetto).
 
 **Ho importato due volte lo stesso file. È un problema?**
 
@@ -519,7 +525,7 @@ Quando scrivi la password la chiave viene riaperta e resta **nella memoria del c
 
 **Cosa non è cifrato**
 
-- i **file CBI** che scarichi dalla banca: restano in chiaro dove li hai salvati (vedi sotto);
+- i **file CBI** (di testo o XML) che scarichi dalla banca: restano in chiaro dove li hai salvati (vedi sotto);
 - il file `preferenze.json`: contiene solo le scelte di [Aspetto](app:aspetto) e i giorni dei log, che servono prima della password e non dicono niente dei tuoi soldi;
 - i **log**: non sono cifrati, ma non contengono i dati dei tuoi movimenti (vedi più avanti).
 
@@ -543,7 +549,7 @@ Vale la stessa attenzione di sopra: la copia è cifrata, ma contiene tutti i tuo
 
 Ricorda che una copia si apre con la password che valeva **quando l'hai fatta**: se poi cambi la password, la copia vecchia continua ad aprirsi con quella vecchia. Se hai cambiato la password perché temevi che qualcuno la conoscesse, cancella le copie fatte prima e fanne una nuova.
 
-Quando non ti serve più un file CBI scaricato dalla banca, cancellalo o mettilo nello stesso posto sicuro: contiene gli stessi dati.
+Quando non ti serve più un file CBI o XML scaricato dalla banca, cancellalo o mettilo nello stesso posto sicuro: contiene gli stessi dati.
 
 **Dove trovarli**
 

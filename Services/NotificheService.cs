@@ -107,7 +107,7 @@ public class NotificheService
         if (stat.Movimenti == 0)
         {
             elenco.Add(new("primo-file", GravitaNotifica.Informazione, "Importa il primo file",
-                "Non ci sono ancora movimenti: scarica dalla banca l'export CBI e importalo.", "Importa file CBI", AzioneNotifica.Importa));
+                "Non ci sono ancora movimenti: scarica dalla banca l'export CBI, di testo o XML, e importalo.", "Importa file CBI o XML", AzioneNotifica.Importa));
             return;
         }
 
@@ -131,7 +131,7 @@ public class NotificheService
         if (stat.Intervallo is { } intervallo && oggi.DayNumber - intervallo.Ultima.DayNumber > GiorniSenzaImportare)
             elenco.Add(new("export", GravitaNotifica.Informazione, "Importa un export recente",
                 $"L'ultimo movimento è del {intervallo.Ultima:dd/MM/yyyy}, {oggi.DayNumber - intervallo.Ultima.DayNumber} giorni fa.",
-                "Importa file CBI", AzioneNotifica.Importa));
+                "Importa file CBI o XML", AzioneNotifica.Importa));
 
         var ultimoBackup = _preferenze.UltimoBackup;
         if (ultimoBackup is null || (DateTime.Now - ultimoBackup.Value).TotalDays > GiorniSenzaBackup)

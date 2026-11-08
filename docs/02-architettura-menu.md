@@ -59,8 +59,8 @@ Sono generati da un dizionario che associa a ogni sezione i suoi menu e le sue v
 | Pagina | Menu e voci |
 |---|---|
 | Home | **Dashboard**: Aggiorna, Scegli periodo |
-| Movimenti | **Dati**: Importa file CBI, Movimenti scartati, Gruppi di causali |
-| Scarti | **Dati**: Importa file CBI, Torna ai movimenti |
+| Movimenti | **Dati**: Importa file CBI o XML, Movimenti scartati, Gruppi di causali |
+| Scarti | **Dati**: Importa file CBI o XML, Torna ai movimenti |
 | Analisi (e dettaglio, simulazione, grafico personalizzato) | **Grafici**: Grafico personalizzato · **Simulazione**: Simula il saldo futuro · **Report**: Genera report Excel |
 | Impostazioni (e sotto-pagine) | **Preferenze**: Generali, Aspetto, Sicurezza · **Dati**: Conti correnti, Gruppi di causali, Percorso dati, Backup |
 | Manuale | nessuno |
@@ -83,7 +83,7 @@ Il markup li disegna con due cicli annidati; il clic chiama `EseguiVoce(voce)`, 
 
 `MenuCorrente` è `MenuPerSezione[_sezione]`, tranne un caso: i gruppi di causali aperti da Movimenti mostrano il menu di Movimenti.
 
-"Importa file CBI" (anche dai pulsanti di Home e Movimenti) apre la finestra di importazione (`DialogoImportazione.ApriAsync`): scelta del file, caricamento e riepilogo; se dal riepilogo si sceglie "Vedi i movimenti scartati", la pagina che l'ha aperta porta agli scarti.
+"Importa file CBI o XML" (fino al 08/11 "Importa file CBI"; anche dai pulsanti di Home e Movimenti) apre la finestra di importazione (`DialogoImportazione.ApriAsync`): scelta del file, caricamento e riepilogo; se dal riepilogo si sceglie "Vedi i movimenti scartati", la pagina che l'ha aperta porta agli scarti.
 
 Le voci di **Dashboard** agiscono sulla Home già mostrata: `Main.razor` la raggiunge con `@ref="_home"` e chiama `Aggiorna()` e `ScegliPeriodoAsync()`. "Genera report Excel" apre una finestra di dialogo (`DialogoReport`).
 

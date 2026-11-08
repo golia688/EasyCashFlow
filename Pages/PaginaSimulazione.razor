@@ -21,7 +21,7 @@
 
 @if (_base is not { } b || _periodo is null)
 {
-    <MudAlert Severity="Severity.Info" Class="mt-4">Non ci sono ancora movimenti: importa un file CBI dalla sezione Movimenti.</MudAlert>
+    <MudAlert Severity="Severity.Info" Class="mt-4">Non ci sono ancora movimenti: importa un file CBI o XML dalla sezione Movimenti.</MudAlert>
     return;
 }
 
@@ -34,7 +34,7 @@
 {
     <MudAlert Severity="Severity.Warning" Class="mt-4">
         Non ci sono saldi salvati: la simulazione parte dal saldo reale più recente. I saldi si salvano a
-        ogni importazione; importa di nuovo un file CBI recente per aggiungerli.
+        ogni importazione; importa di nuovo un file CBI o XML recente per aggiungerli.
     </MudAlert>
 }
 

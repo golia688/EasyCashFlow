@@ -29,7 +29,7 @@ public static class Formati
             throw new FileNonCbiException("Il file è l'elenco dei movimenti in formato Excel della banca: ha solo date, " +
                 "importo e descrizione, senza causale, riferimento e saldi, e il programma non può usarlo (non saprebbe " +
                 "riconoscere i movimenti già importati né raggrupparli). In home banking esporta i movimenti in formato " +
-                "CBI oppure XML.");
+                "CBI, di testo o XML.");
 
         return FormatoExport.Cbi;
     }

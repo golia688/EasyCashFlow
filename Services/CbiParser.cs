@@ -21,7 +21,7 @@ public class CbiParser
     // i soli record della funzione "saldi e movimenti" (CBI-RND-001, capitolo 2)
     private static readonly HashSet<string> RecordPrevisti = ["RH", "61", "62", "63", "64", "65", "EF"];
 
-    internal const string NonCbi = "Il file non è un export CBI \"saldi e movimenti\": in home banking scegli il formato CBI (testo o XML), non PDF, Excel o CSV.";
+    internal const string NonCbi = "Il file non è un export CBI \"saldi e movimenti\": in home banking scegli il formato CBI, di testo o XML, non PDF, Excel o CSV.";
     private readonly LogService _log;
 
     public CbiParser(LogService log)

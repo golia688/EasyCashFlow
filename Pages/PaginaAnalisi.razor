@@ -17,7 +17,7 @@
 @if (_periodi.Count == 0)
 {
     <MudAlert Severity="Severity.Info" Class="mt-4">
-        Non ci sono ancora movimenti: importa un file CBI dalla sezione Movimenti.
+        Non ci sono ancora movimenti: importa un file CBI o XML dalla sezione Movimenti.
     </MudAlert>
     return;
 }
@@ -153,13 +153,13 @@
             @<div>
                 @if (k.SaldoFinale is null)
                 {
-                    <p>Nessun saldo salvato per il periodo: importa di nuovo i file CBI per aggiungerli.</p>
+                    <p>Nessun saldo salvato per il periodo: importa di nuovo i file CBI o XML per aggiungerli.</p>
                 }
                 else if (k.VariazioneSaldo is not { } variazione)
                 {
                     <p>Saldo contabile al @k.DataSaldoFinale?.ToString("dd/MM/yyyy"): <b>@Euro(k.SaldoFinale.Value)</b></p>
                     <p>I saldi salvati partono dal @r.Saldo[0].Data.ToString("dd/MM/yyyy"), dopo l'inizio del periodo:
-                       la variazione non si può calcolare. Importa i file CBI più vecchi per completarli.</p>
+                       la variazione non si può calcolare. Importa i file CBI o XML più vecchi per completarli.</p>
                 }
                 else
                 {
@@ -181,7 +181,7 @@
                     else
                     {
                         <p>Differenza di @Euro(variazione - atteso, segno: true): probabilmente mancano movimenti,
-                           per esempio un file CBI non importato per una parte del periodo.</p>
+                           per esempio un file non importato per una parte del periodo.</p>
                     }
                 }
             </div>)
@@ -202,7 +202,7 @@
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
                 Non ci sono saldi salvati per questo periodo. I saldi giornalieri si salvano a ogni
-                importazione: per avere lo storico, importa di nuovo i file CBI già caricati
+                importazione: per avere lo storico, importa di nuovo i file CBI o XML già caricati
                 (i movimenti risulteranno "già presenti", ma i saldi verranno aggiunti).
             </MudText>
         }

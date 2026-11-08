@@ -97,8 +97,22 @@ Il programma non si installa: funziona dalla cartella in cui lo metti.
     quella pagina.
 
 Per importare i movimenti ti serve l'export del conto in formato CBI
-("Saldi e movimenti"), di testo o XML, scaricato dall'home banking. Il
+("Saldi e movimenti"), scaricato dall'home banking. Il CBI esiste in due
+formati e il programma li legge tutti e due:
+ - CBI di testo: file .txt (a volte .cbi), il formato classico
+   (standard CBI-RND-001, "Rendicontazione saldi e movimenti");
+ - CBI XML: file .xml, con gli stessi movimenti e qualche informazione
+   in piu', per esempio chi ti ha fatto un bonifico (standard
+   STRN-MO-001, "Rendicontazioni XML", su ISO 20022 camt.053).
+Puoi usarli anche alternati: i movimenti non si duplicano. Il formato
+Excel invece non va bene: non ha causali, riferimenti e saldi. Il
 manuale spiega cosa cercare (capitolo "Scaricare l'export dalla banca").
+
+EasyCashFlow e' compatibile al 100% con Relax Banking, l'home banking
+delle BCC del gruppo Iccrea: e' stato provato sugli export veri, in
+tutti e due i formati. In Relax Banking apri la lista dei movimenti del
+conto, premi "Esporta" e scegli "Esporta CBI" oppure "Esporta XML"
+(non "Esporta PDF" ne' "Esporta EXCEL").
 
 
 -------------------------------------------------------------------------------
@@ -130,7 +144,7 @@ Cosa la cifratura NON protegge:
    in Impostazioni > Preferenze > Sicurezza) e puoi bloccarlo subito con
    il lucchetto "Blocca" nella barra a sinistra;
  - un virus sul computer mentre il programma e' aperto;
- - i file CBI scaricati dalla banca: sono in chiaro. Una volta importati,
+ - i file CBI o XML scaricati dalla banca: sono in chiaro. Una volta importati,
    cancellali o custodiscili con attenzione;
  - il report Excel (Analisi > Report): e' in chiaro, il programma te lo
    ricorda prima di salvarlo.
@@ -203,7 +217,7 @@ ATTENZIONE: i dati attuali vengono sostituiti da quelli della copia.
    scrivi il codice di recupero. Poi scegli una password nuova e annota
    il codice nuovo che ricevi. Senza password e senza codice i dati non
    si aprono piu': si ricomincia da una cartella nuova reimportando i
-   file CBI.
+   file CBI o XML.
 
  * Mentre lo uso, il programma mi chiede di nuovo la password
    E' il blocco per inattivita'. Scrivi la password e ritrovi tutto com'era.
@@ -214,7 +228,8 @@ ATTENZIONE: i dati attuali vengono sostituiti da quelli della copia.
 
  * L'importazione dice che il file non sembra un export CBI
    Il file scaricato non e' nel formato giusto: in home banking scegli il
-   formato CBI ("Saldi e movimenti", testo o XML), non PDF, Excel o CSV.
+   formato CBI ("Saldi e movimenti"), di testo o XML, non PDF, Excel
+   o CSV.
 
  * L'importazione mostra degli avvisi
    Non e' un errore: il programma segnala qualcosa di strano nel file.

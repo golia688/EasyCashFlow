@@ -4,7 +4,14 @@
 
 EasyCashFlow è un programma per Windows che legge i movimenti dei tuoi conti e mostra entrate, uscite, saldo e grafici, mese per mese.
 
-I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **movimenti del conto** e li **esporti nel formato CBI**. Di solito c'è una voce come "Esporta movimenti" o "Saldi e movimenti", in cui si sceglie il formato CBI; per esempio **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, lo permette. Il CBI ("saldi e movimenti") è il formato standard con cui le banche italiane rendicontano i movimenti dei conti: il file che scarichi è un semplice file di testo, e lo importi in EasyCashFlow.
+I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **movimenti del conto** e li **esporti nel formato CBI**. Di solito c'è una voce come "Esporta movimenti" o "Saldi e movimenti", in cui si sceglie il formato CBI; per esempio in **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, sono le voci **Esporta CBI** ed **Esporta XML** del pulsante **Esporta** sopra la lista dei movimenti. Il CBI ("saldi e movimenti") è il formato standard con cui le banche italiane rendicontano i movimenti dei conti, ed EasyCashFlow ne legge **tutti e due i formati**:
+
+- **CBI di testo** (`.txt`): il formato classico, righe di 120 caratteri, secondo lo standard **CBI-RND-001** "Rendicontazione saldi e movimenti di conti correnti";
+- **CBI XML** (`.xml`): la rendicontazione XML del CBI, standard **STRN-MO-001** "Rendicontazioni XML" (v.00.01.02, costruito su ISO 20022 camt.053), con gli stessi movimenti e qualche informazione in più.
+
+Il programma riconosce da solo il formato, e i due si possono alternare: lo stesso movimento non si duplica.
+
+> **Compatibile al 100% con Relax Banking** (gruppo BCC Iccrea): provato sugli export veri, CBI di testo e CBI XML, che si importano con tutti i movimenti, le causali e i saldi, senza avvisi; i due formati danno esattamente gli stessi movimenti.
 
 Siccome il formato CBI è uguale per tutte le banche, EasyCashFlow è anche un **aggregatore**: si importano i movimenti di più conti, anche in banche diverse, e li si analizza uno alla volta o tutti insieme, come se fossero un conto solo.
 
@@ -16,7 +23,7 @@ Funziona **senza internet e senza account**: è portable (si avvia da una cartel
 
 ## Cosa fa
 
-- **Importazione CBI**, del file di testo secondo la specifica CBI-RND-001 e della rendicontazione **XML** del CBI (ISO 20022 camt.053), anche alternati per gli stessi giorni: controlli formali sul file (un file che non è un export CBI si rifiuta senza salvare niente), quadratura e continuità dei saldi, deduplica dei movimenti già importati, riepilogo dell'importazione con gli avvisi raggruppati.
+- **Importazione CBI**, del file di testo secondo la specifica CBI-RND-001 e della rendicontazione **XML** del CBI secondo la STRN-MO-001 (ISO 20022 camt.053), anche alternati per gli stessi giorni: controlli formali sul file (un file che non è un export CBI si rifiuta senza salvare niente), quadratura e continuità dei saldi, deduplica dei movimenti già importati, riepilogo dell'importazione con gli avvisi raggruppati.
 - **Più conti e più banche**: ogni conto si riconosce da solo dal file; Home, Movimenti e Analisi lavorano su un conto, su alcuni o su tutti. Le **causali CBI** (comuni a tutte le banche) danno un gruppo anche alle causali di una banca nuova.
 - **Analisi**: entrate, uscite, flusso netto, tasso di risparmio, investito netto e saldo, con il dettaglio di ogni indicatore; grafici per mese e per gruppo di causali, spese ricorrenti e variabili, flusso cumulato, movimenti straordinari escludibili.
 - **Simulazione del saldo** nei mesi futuri, **grafico personalizzato** dei movimenti scelti e **report Excel** con formule e grafici.
@@ -88,7 +95,7 @@ La documentazione è in `docs/`: si comincia dallo [storico dello sviluppo](docs
 
 I dati stanno nella cartella `dati` accanto al programma (database cifrato, file della chiave, preferenze) e non entrano mai nel repository, come gli export CBI e i log (`.gitignore`). Gli importi negli esempi della documentazione sono inventati.
 
-I documenti tecnici del Consorzio CBI (CBI-RND-001, CBI-STD-001) non sono inclusi: sono riservati e si scaricano, previa registrazione, dal portale del CBI. La documentazione descrive solo le posizioni dei campi del tracciato.
+I documenti tecnici del Consorzio CBI (CBI-RND-001, CBI-STD-001, STRN-MO-001 per l'XML) non sono inclusi: sono riservati e si scaricano, previa registrazione, dal portale del CBI. La documentazione descrive solo le posizioni dei campi del tracciato.
 
 ## Licenza
 

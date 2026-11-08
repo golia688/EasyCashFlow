@@ -7,7 +7,7 @@
 @inject ImpostazioniService Impostazioni
 @inject LogService Log
 
-@* Importa file CBI: la finestra si apre subito, chiede il file, mostra la barra di caricamento mentre
+@* Importa file CBI o XML: la finestra si apre subito, chiede il file, mostra la barra di caricamento mentre
    importa e alla fine il riepilogo, con gli avvisi raggruppati per tipo e il pulsante per aprire il log.
    Fino al 05/11 l'esito arrivava come notifiche (snackbar), una per avviso da chiudere a mano: con un file
    del tester erano 183. Si apre con ApriAsync, da qualunque punto si importi. *@
@@ -15,7 +15,7 @@
     <DialogContent>
         @if (_esito is null)
         {
-            <AttesaCalcolo Testo="@(_nomeFile is null ? "Scegli il file CBI (testo o XML) scaricato dalla banca…" : $"Importazione di {_nomeFile} in corso…")" />
+            <AttesaCalcolo Testo="@(_nomeFile is null ? "Scegli il file CBI di testo o XML scaricato dalla banca…" : $"Importazione di {_nomeFile} in corso…")" />
         }
         else if (_esito.Errore is { } errore)
         {
@@ -23,7 +23,7 @@
                 <b>@_esito.NomeFile</b>: @errore Non è stato caricato nessun movimento.
             </MudAlert>
             <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">
-                I dettagli sono nel log (@_esito.FileLog). Se il file è davvero un export CBI, mandalo insieme al log a chi
+                I dettagli sono nel log (@_esito.FileLog). Se il file è davvero un export CBI (di testo o XML), mandalo insieme al log a chi
                 ti ha dato il programma.
             </MudText>
         }
@@ -194,7 +194,7 @@
 
     /// <summary>Apre la finestra e importa. Vero se l'utente ha scelto di vedere i movimenti scartati: la
     /// pagina che l'ha aperta ci porta.</summary>
-    public static Task<bool> ApriAsync(IDialogService dialoghi) => Mostra(dialoghi, "Importa file CBI", null);
+    public static Task<bool> ApriAsync(IDialogService dialoghi) => Mostra(dialoghi, "Importa file CBI o XML", null);
 
     /// <summary>Mostra di nuovo il riepilogo di un'importazione già fatta. Vero come per ApriAsync.</summary>
     public static Task<bool> MostraRiepilogoAsync(IDialogService dialoghi, EsitoImportazione esito) =>

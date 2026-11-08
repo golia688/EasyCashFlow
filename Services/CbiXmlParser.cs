@@ -141,7 +141,7 @@ public class CbiXmlParser
         if (riferimentiLunghi > 0)
             _log.Avviso($"{riferimentiLunghi} movimenti con il riferimento della banca più lungo di 15 caratteri: letto di 15, come nel file CBI");
         if (senzaRiferimento > 0)
-            avvisi.Add($"{senzaRiferimento} movimenti non hanno il riferimento della banca: se importi anche il file CBI degli " +
+            avvisi.Add($"{senzaRiferimento} movimenti non hanno il riferimento della banca: se importi anche il file CBI di testo degli " +
                        "stessi giorni, potrebbero comparire due volte.");
 
         var movimenti = Dividi(letti, breviNote);

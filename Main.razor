@@ -469,11 +469,11 @@
         {
             // niente modifica a mano dei movimenti: arrivano solo dai file CBI della banca
             // Gruppi di causali: scorciatoia alla pagina di Impostazioni, per capire dove finisce un movimento
-            ("Dati", new[] { "Importa file CBI", "Movimenti scartati", "Gruppi di causali" })
+            ("Dati", new[] { "Importa file CBI o XML", "Movimenti scartati", "Gruppi di causali" })
         },
         [Sezione.Scarti] = new[]
         {
-            ("Dati", new[] { "Importa file CBI", "Torna ai movimenti" })
+            ("Dati", new[] { "Importa file CBI o XML", "Torna ai movimenti" })
         },
         [Sezione.Analisi] = MenuAnalisi,
         [Sezione.DettaglioAnalisi] = MenuAnalisi,
@@ -710,7 +710,7 @@
             case "Scegli periodo":
                 if (_home is not null) await _home.ScegliPeriodoAsync();
                 break;
-            case "Importa file CBI":
+            case "Importa file CBI o XML":
                 await ImportaAsync();
                 break;
             case "Movimenti scartati":
@@ -808,7 +808,7 @@
         }
     }
 
-    // Importa file CBI da qualunque pagina: la finestra di importazione mostra caricamento e riepilogo
+    // Importa file CBI o XML da qualunque pagina: la finestra di importazione mostra caricamento e riepilogo
     // (fino al 05/11 l'esito arrivava come notifiche, una per avviso)
     private async Task ImportaAsync()
     {
