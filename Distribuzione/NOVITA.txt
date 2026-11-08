@@ -5,6 +5,69 @@
 
 
 -------------------------------------------------------------------------------
+ VERSIONE 1.1.0 (8 novembre 2026)
+-------------------------------------------------------------------------------
+
+ 1. NUOVO: SI IMPORTA ANCHE IL FILE XML CBI
+ ------------------------------------------
+
+ Le banche danno i movimenti del conto in due tipi di file, che seguono
+ tutti e due gli standard CBI. Prima il programma leggeva solo il primo,
+ ora li legge entrambi:
+
+ - file di testo CBI: .txt (a volte .cbi), il formato classico
+   (standard CBI-RND-001, "Rendicontazione saldi e movimenti");
+
+ - file XML CBI: .xml, con gli stessi movimenti, causali e saldi e
+   qualche informazione in piu', per esempio chi ti ha fatto un
+   bonifico (standard STRN-MO-001, "Rendicontazioni XML").
+
+ Il pulsante e il menu ora si chiamano "Importa file CBI o XML". Il
+ programma riconosce da solo quale file hai scelto, e puoi alternarli:
+ lo stesso movimento importato una volta dal file di testo e una volta
+ dall'XML resta uno solo, con la descrizione piu' completa.
+
+ EasyCashFlow e' compatibile al 100% con Relax Banking, l'home banking
+ delle BCC del gruppo Iccrea: e' stato provato sui file veri, di testo
+ e XML. In Relax Banking apri la lista dei movimenti del conto, premi
+ "Esporta" e scegli "Esporta CBI" oppure "Esporta XML".
+
+
+ 2. ALTRE NOVITA'
+ ----------------
+
+ - Se reimporti un movimento che la banca ora descrive in modo piu'
+   completo, il programma aggiorna la descrizione invece di metterlo
+   tra i movimenti scartati. Finiscono tra gli scartati solo i
+   movimenti con data valuta o causale diversa.
+
+ - Se scegli l'export "Excel" della banca, il programma spiega che non
+   va bene (non ha causali, riferimenti e saldi) e di scegliere il file
+   CBI, di testo o XML.
+
+ - Manuale, LEGGIMI e messaggi spiegano meglio quali file servono e
+   dove trovarli nell'home banking.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE DALLA VERSIONE 1.0.0 O 1.0.1
+-------------------------------------------------------------------------------
+
+I tuoi dati restano: la 1.1.0 usa la stessa cartella "dati" e la stessa
+password. Se vieni da una versione precedente, segui prima anche le
+istruzioni della 1.0.0, piu' sotto.
+
+ 1. Chiudi EasyCashFlow.
+
+ 2. Estrai il nuovo .zip nella STESSA cartella del programma e conferma di
+    sostituire i file. Il .zip non contiene le cartelle "dati" e "log",
+    quindi i tuoi movimenti, la password e le impostazioni restano.
+
+ 3. Avvia EasyCashFlow, scrivi la password e controlla in
+    Aiuto > Informazioni che la versione sia la 1.1.0.
+
+
+-------------------------------------------------------------------------------
  VERSIONE 1.0.1 (7 novembre 2026)
 -------------------------------------------------------------------------------
 
