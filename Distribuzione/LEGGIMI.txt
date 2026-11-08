@@ -7,8 +7,8 @@ EasyCashFlow ti aiuta a capire dove vanno i soldi dei tuoi conti correnti.
 Importi l'elenco dei movimenti scaricato dall'home banking e il programma
 ti mostra entrate, uscite, saldo e grafici, mese per mese.
 
-Puoi importare i movimenti di piu' conti, anche di banche diverse: il
-formato CBI e' uguale per tutte le banche italiane. Poi li guardi uno
+Puoi importare i movimenti di piu' conti, anche di banche diverse: i
+file CBI sono uguali per tutte le banche italiane. Poi li guardi uno
 alla volta o tutti insieme, come se fossero un conto solo.
 
 Funziona senza internet e senza account: tutto resta sul tuo computer,
@@ -96,12 +96,13 @@ Il programma non si installa: funziona dalla cartella in cui lo metti.
     Accanto al titolo di ogni pagina, l'icona "?" apre la spiegazione di
     quella pagina.
 
-Per importare i movimenti ti serve l'export del conto in formato CBI
-("Saldi e movimenti"), scaricato dall'home banking. Il CBI esiste in due
-formati e il programma li legge tutti e due:
- - CBI di testo: file .txt (a volte .cbi), il formato classico
+Per importare i movimenti ti serve il file CBI del conto ("Saldi e
+movimenti"), scaricato dall'home banking. L'home banking lo fa scaricare
+in due tipi di file, che seguono tutti e due gli standard CBI, e il
+programma li legge entrambi:
+ - file di testo CBI: .txt (a volte .cbi), il formato classico
    (standard CBI-RND-001, "Rendicontazione saldi e movimenti");
- - CBI XML: file .xml, con gli stessi movimenti e qualche informazione
+ - file XML CBI: .xml, con gli stessi movimenti e qualche informazione
    in piu', per esempio chi ti ha fatto un bonifico (standard
    STRN-MO-001, "Rendicontazioni XML", su ISO 20022 camt.053).
 Puoi usarli anche alternati: i movimenti non si duplicano. Il formato
@@ -109,8 +110,8 @@ Excel invece non va bene: non ha causali, riferimenti e saldi. Il
 manuale spiega cosa cercare (capitolo "Scaricare l'export dalla banca").
 
 EasyCashFlow e' compatibile al 100% con Relax Banking, l'home banking
-delle BCC del gruppo Iccrea: e' stato provato sugli export veri, in
-tutti e due i formati. In Relax Banking apri la lista dei movimenti del
+delle BCC del gruppo Iccrea: e' stato provato sui file veri, di
+testo e XML. In Relax Banking apri la lista dei movimenti del
 conto, premi "Esporta" e scegli "Esporta CBI" oppure "Esporta XML"
 (non "Esporta PDF" ne' "Esporta EXCEL").
 

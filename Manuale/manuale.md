@@ -10,7 +10,7 @@ Funziona così:
 
 **Tutti i tuoi conti, anche in banche diverse**
 
-EasyCashFlow è un **aggregatore**: mette insieme in un posto solo i movimenti di tutti i tuoi conti correnti, anche se sono in banche diverse. Funziona perché il CBI è un formato **standard**, uguale per tutte le banche italiane: l'export di una banca e quello di un'altra si leggono allo stesso modo.
+EasyCashFlow è un **aggregatore**: mette insieme in un posto solo i movimenti di tutti i tuoi conti correnti, anche se sono in banche diverse. Funziona perché i file CBI seguono degli **standard**, uguali per tutte le banche italiane: il file di una banca e quello di un'altra si leggono allo stesso modo.
 
 - **Importi l'export di ogni conto**, uno dopo l'altro. Il programma riconosce da solo a quale conto appartiene ogni movimento: un conto nuovo si aggiunge all'elenco, e non si confondono mai i movimenti di due conti.
 - **Scegli cosa guardare**: un conto alla volta, alcuni conti, oppure tutti insieme. In questo caso vedi il **cash flow aggregato**: entrate e uscite di tutti i conti, e il saldo come somma dei saldi. La scelta dei conti c'è nella Home, nei movimenti e nelle analisi; la simulazione del saldo e il report Excel usano i conti scelti nelle analisi.
@@ -38,13 +38,13 @@ Poi bastano tre passi. Li trovi anche nella [Home](app:home), dove si segnano co
 
 **1. Importa il primo file**
 
-Scarica dall'home banking l'export dei movimenti in formato CBI, di testo o XML, e importalo. Il capitolo [Scaricare l'export dalla banca](cap:export-banca) spiega cosa cercare.
+Scarica dall'home banking i movimenti del conto in un file CBI, di testo o XML, e importalo. Il capitolo [Scaricare l'export dalla banca](cap:export-banca) spiega cosa cercare.
 
 **2. Dai un nome al conto**
 
 Il conto si registra da solo, con un nome provvisorio tipo "ABI 12345 - c/c ...6789". Cambialo con un nome che riconosci, per esempio "Conto di casa". Lo trovi in [Impostazioni](app:impostazioni).
 
-Hai altri conti, anche in altre banche? Importa l'export CBI (di testo o XML) di ciascuno: ogni conto si aggiunge da solo, e dai un nome anche a quelli. Da quel momento puoi guardarli uno alla volta o tutti insieme.
+Hai altri conti, anche in altre banche? Importa il file CBI (di testo o XML) di ciascuno: ogni conto si aggiunge da solo, e dai un nome anche a quelli. Da quel momento puoi guardarli uno alla volta o tutti insieme.
 
 **3. Controlla i gruppi di causali**
 
@@ -104,10 +104,10 @@ Una notifica sparisce da sola quando la cosa è sistemata. **Nascondi** la togli
 
 ## Scaricare l'export dalla banca {#export-banca}
 
-EasyCashFlow legge il **CBI**, il formato standard con cui le banche italiane danno saldi e movimenti dei conti. Il CBI esiste in **due formati**, e il programma li legge tutti e due:
+EasyCashFlow legge i **file CBI**: i file con cui le banche italiane danno saldi e movimenti dei conti, secondo gli standard del Consorzio CBI. L'home banking li fa scaricare in **due tipi di file**, che seguono tutti e due gli standard CBI, e il programma li legge entrambi:
 
-- **CBI di testo**: il file ha estensione `.txt` (a volte `.cbi`) e, aperto con il Blocco note, è fatto di righe di testo tutte della stessa lunghezza. Contiene movimenti, causali e saldi di ogni giornata. È il formato classico, quello che ogni banca italiana sa dare. Lo standard è il **CBI-RND-001** del Consorzio CBI, "Rendicontazione saldi e movimenti di conti correnti".
-- **CBI XML**: il file ha estensione `.xml` e, aperto con il Blocco note, comincia con `<?xml`. Contiene gli stessi movimenti, causali e saldi, e in più qualche informazione: per esempio nome e località di chi ti ha fatto un bonifico, o l'IBAN di chi ne ha ricevuto uno da te. Lo standard è lo **STRN-MO-001** del Consorzio CBI, "Rendicontazioni XML", costruito sullo standard internazionale ISO 20022 (camt.053); il programma legge la rendicontazione giornaliera.
+- **File di testo CBI**: il file ha estensione `.txt` (a volte `.cbi`) e, aperto con il Blocco note, è fatto di righe di testo tutte della stessa lunghezza. Contiene movimenti, causali e saldi di ogni giornata. È il formato classico, quello che ogni banca italiana sa dare. Lo standard è il **CBI-RND-001** del Consorzio CBI, "Rendicontazione saldi e movimenti di conti correnti".
+- **File XML CBI**: il file ha estensione `.xml` e, aperto con il Blocco note, comincia con `<?xml`. Contiene gli stessi movimenti, causali e saldi, e in più qualche informazione: per esempio nome e località di chi ti ha fatto un bonifico, o l'IBAN di chi ne ha ricevuto uno da te. Lo standard è lo **STRN-MO-001** del Consorzio CBI, "Rendicontazioni XML", costruito sullo standard internazionale ISO 20022 (camt.053); il programma legge la rendicontazione giornaliera.
 
 Il programma riconosce da solo quale dei due hai scelto. Se la tua banca li offre entrambi, puoi usare quello che preferisci, anche alternandoli: lo stesso movimento importato una volta dal file di testo e una volta dall'XML resta **uno solo**, e tiene la descrizione più completa. L'XML è un po' più ricco; il file di testo è il più diffuso.
 
@@ -115,15 +115,15 @@ Nell'home banking cerca una funzione con un nome simile a:
 
 - "Esporta movimenti" o "Scarica movimenti";
 - "Saldi e movimenti";
-- "Formato CBI", "CBI XML" oppure "Rendicontazione CBI".
+- "Formato CBI", "Rendicontazione CBI" oppure "XML".
 
-**Relax Banking** (gruppo BCC Iccrea). EasyCashFlow è stato provato con **Relax Banking**, l'home banking delle BCC del gruppo bancario Iccrea, ed è **compatibile al 100%**: gli export veri, sia CBI di testo sia CBI XML, si importano con tutti i movimenti, le causali e i saldi, senza avvisi, e i due formati danno esattamente gli stessi movimenti. Per esportare:
+**Relax Banking** (gruppo BCC Iccrea). EasyCashFlow è stato provato con **Relax Banking**, l'home banking delle BCC del gruppo bancario Iccrea, ed è **compatibile al 100%**: i file veri, sia il file di testo CBI sia il file XML, si importano con tutti i movimenti, le causali e i saldi, senza avvisi, e i due formati danno esattamente gli stessi movimenti. Per esportare:
 
 1. entra in Relax Banking e apri la lista dei **movimenti del conto**, con il periodo che ti serve;
 2. premi il pulsante **Esporta**, in alto sopra l'elenco;
-3. scegli **Esporta CBI** (il CBI di testo) oppure **Esporta XML** (il CBI XML). **Esporta PDF** ed **Esporta EXCEL** non vanno bene per il programma.
+3. scegli **Esporta CBI** (il file di testo CBI) oppure **Esporta XML** (il file XML CBI). **Esporta PDF** ed **Esporta EXCEL** non vanno bene per il programma.
 
-**Le altre banche.** Il CBI è uguale per tutte le banche italiane, ma ogni home banking ha menu diversi: se non trovi la funzione, chiedi alla tua banca come scaricare **"i movimenti del conto in formato CBI"**, di testo o XML.
+**Le altre banche.** I file CBI sono uguali per tutte le banche italiane, ma ogni home banking ha menu diversi: se non trovi la funzione, chiedi alla tua banca come scaricare **"i movimenti del conto in un file CBI"**, di testo o XML.
 
 Alcuni consigli:
 
@@ -141,7 +141,7 @@ Per importare un file:
 
 1. vai in [Movimenti](app:movimenti);
 2. premi **Importa file CBI o XML** (oppure usa il menu **Dati > Importa file CBI o XML**);
-3. scegli il file scaricato dalla banca, CBI di testo o CBI XML: il programma riconosce da solo il formato.
+3. scegli il file scaricato dalla banca, il file di testo CBI o il file XML: il programma riconosce da solo il formato.
 
 Si apre la finestra **Importa file CBI o XML**: mentre il programma legge il file vedi una barra che scorre, e dopo pochi secondi un riepilogo in tabella. Ecco cosa vogliono dire le righe:
 
@@ -155,7 +155,7 @@ Si apre la finestra **Importa file CBI o XML**: mentre il programma legge il fil
 
 Gli **avvisi** sono sotto la tabella, raggruppati per tipo: per esempio "3 × il saldo iniziale non coincide…". Clicca su un avviso per vedere le date in cui capita. Un avviso non vuol dire che qualcosa si è rotto: il programma ti segnala una cosa strana nel file, e i movimenti letti sono stati importati comunque. L'avviso più comune riguarda le [operazioni non ancora contabilizzate](cap:domande). Altri dicono, per esempio, che i saldi di due giorni non si collegano (potrebbero mancare dei movimenti) o che il file sembra tagliato.
 
-**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI, un file XML che non è il CBI XML dei movimenti) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
+**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI, un file XML che non è quello dei movimenti secondo lo standard CBI) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
 
 Il pulsante **Apri il log** apre il file in cui il programma scrive cosa ha fatto: serve se devi segnalare un problema. **Chiudi** chiude la finestra.
 

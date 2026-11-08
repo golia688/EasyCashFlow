@@ -189,8 +189,8 @@ public class CbiXmlParser
             return ("Il file è un estratto conto periodico in XML: il programma legge solo la " +
                 "rendicontazione giornaliera \"saldi e movimenti\". In home banking scegli quella.");
         if (Discendenti(radice, "Stmt").Any())
-            return ("Il file è un estratto conto XML, ma non nel formato CBI (rendicontazione " +
-                "giornaliera del CBI): il programma non lo sa leggere. " + CbiParser.NonCbi);
+            return ("Il file è un estratto conto XML, ma non secondo lo standard CBI (rendicontazione " +
+                "giornaliera \"saldi e movimenti\"): il programma non lo sa leggere. " + CbiParser.NonCbi);
         return $"Il file è un XML, ma non una rendicontazione dei movimenti CBI (elemento principale {radice.Name.LocalName}). " +
                CbiParser.NonCbi;
     }
