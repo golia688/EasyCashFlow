@@ -27,10 +27,10 @@
  lo stesso movimento importato una volta dal file di testo e una volta
  dall'XML resta uno solo, con la descrizione piu' completa.
 
- EasyCashFlow e' compatibile al 100% con Relax Banking, l'home banking
- delle BCC del gruppo Iccrea: e' stato provato sui file veri, di testo
- e XML. In Relax Banking apri la lista dei movimenti del conto, premi
- "Esporta" e scegli "Esporta CBI" oppure "Esporta XML".
+ EasyCashFlow e' compatibile al 100% con Relax Banking, l'Home Banking
+ del gruppo Iccrea: e' stato provato sui file veri, di testo e XML. In
+ Relax Banking apri la lista dei movimenti del conto, premi "Esporta" e
+ scegli "Esporta CBI" oppure "Esporta XML".
 
 
  2. ALTRE NOVITA'

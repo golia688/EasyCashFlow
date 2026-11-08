@@ -117,7 +117,7 @@ Nell'home banking cerca una funzione con un nome simile a:
 - "Saldi e movimenti";
 - "Formato CBI", "Rendicontazione CBI" oppure "XML".
 
-**Relax Banking** (gruppo BCC Iccrea). EasyCashFlow è stato provato con **Relax Banking**, l'home banking delle BCC del gruppo bancario Iccrea, ed è **compatibile al 100%**: i file veri, sia il file di testo CBI sia il file XML, si importano con tutti i movimenti, le causali e i saldi, senza avvisi, e i due formati danno esattamente gli stessi movimenti. Per esportare:
+**Relax Banking** (Home Banking del gruppo Iccrea). EasyCashFlow è stato provato con **Relax Banking**, l'home banking del gruppo Iccrea, ed è **compatibile al 100%**: i file veri, sia il file di testo CBI sia il file XML, si importano con tutti i movimenti, le causali e i saldi, senza avvisi, e i due formati danno esattamente gli stessi movimenti. Per esportare:
 
 1. entra in Relax Banking e apri la lista dei **movimenti del conto**, con il periodo che ti serve;
 2. premi il pulsante **Esporta**, in alto sopra l'elenco;

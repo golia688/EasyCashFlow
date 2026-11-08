@@ -109,11 +109,11 @@ Puoi usarli anche alternati: i movimenti non si duplicano. Il formato
 Excel invece non va bene: non ha causali, riferimenti e saldi. Il
 manuale spiega cosa cercare (capitolo "Scaricare l'export dalla banca").
 
-EasyCashFlow e' compatibile al 100% con Relax Banking, l'home banking
-delle BCC del gruppo Iccrea: e' stato provato sui file veri, di
-testo e XML. In Relax Banking apri la lista dei movimenti del
-conto, premi "Esporta" e scegli "Esporta CBI" oppure "Esporta XML"
-(non "Esporta PDF" ne' "Esporta EXCEL").
+EasyCashFlow e' compatibile al 100% con Relax Banking, l'Home Banking
+del gruppo Iccrea: e' stato provato sui file veri, di testo e XML. In
+Relax Banking apri la lista dei movimenti del conto, premi "Esporta" e
+scegli "Esporta CBI" oppure "Esporta XML" (non "Esporta PDF" ne'
+"Esporta EXCEL").
 
 
 -------------------------------------------------------------------------------

@@ -4,14 +4,14 @@
 
 EasyCashFlow è un programma per Windows che legge i movimenti dei tuoi conti e mostra entrate, uscite, saldo e grafici, mese per mese.
 
-I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **movimenti del conto** e li **esporti nel formato CBI**. Di solito c'è una voce come "Esporta movimenti" o "Saldi e movimenti", in cui si sceglie il formato CBI; per esempio in **Relax Banking**, l'home banking delle BCC del gruppo Iccrea, sono le voci **Esporta CBI** ed **Esporta XML** del pulsante **Esporta** sopra la lista dei movimenti. I file CBI ("saldi e movimenti") sono i file standard con cui le banche italiane rendicontano i movimenti dei conti. Sono di due tipi, che seguono tutti e due gli standard CBI, ed EasyCashFlow li legge **entrambi**:
+I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **movimenti del conto** e li **esporti nel formato CBI**. Di solito c'è una voce come "Esporta movimenti" o "Saldi e movimenti", in cui si sceglie il formato CBI; per esempio in **Relax Banking**, l'home banking del gruppo Iccrea, sono le voci **Esporta CBI** ed **Esporta XML** del pulsante **Esporta** sopra la lista dei movimenti. I file CBI ("saldi e movimenti") sono i file standard con cui le banche italiane rendicontano i movimenti dei conti. Sono di due tipi, che seguono tutti e due gli standard CBI, ed EasyCashFlow li legge **entrambi**:
 
 - **file di testo CBI** (`.txt`): il formato classico, righe di 120 caratteri, secondo lo standard **CBI-RND-001** "Rendicontazione saldi e movimenti di conti correnti";
 - **file XML CBI** (`.xml`): la rendicontazione in XML, standard **STRN-MO-001** "Rendicontazioni XML" (v.00.01.02, costruito su ISO 20022 camt.053), con gli stessi movimenti e qualche informazione in più.
 
 Il programma riconosce da solo il formato, e i due si possono alternare: lo stesso movimento non si duplica.
 
-> **Compatibile al 100% con Relax Banking** (gruppo BCC Iccrea): provato sui file veri, di testo e XML, che si importano con tutti i movimenti, le causali e i saldi, senza avvisi; i due formati danno esattamente gli stessi movimenti.
+> **Compatibile al 100% con Relax Banking** (Home Banking del gruppo Iccrea): provato sui file veri, di testo e XML, che si importano con tutti i movimenti, le causali e i saldi, senza avvisi; i due formati danno esattamente gli stessi movimenti.
 
 Siccome i file CBI sono uguali per tutte le banche, EasyCashFlow è anche un **aggregatore**: si importano i movimenti di più conti, anche in banche diverse, e li si analizza uno alla volta o tutti insieme, come se fossero un conto solo.
 
