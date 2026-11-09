@@ -9,7 +9,10 @@
 @inject IDialogService Dialoghi
 @inject LogService Log
 
-@* la freccia c'è solo se la pagina si è aperta dalla Home o dal menu Dati di Movimenti (Main.razor) *@
+@* Gruppi di causali (dal 10/11 per causale CBI): il gruppo si sceglie per le prime due cifre della causale,
+   uguali per tutte le banche, e vale per tutte le causali che cominciano con quel codice. Fino al 09/11 si
+   sceglieva per ogni causale completa di 4 caratteri.
+   La freccia indietro c'è solo se la pagina si è aperta dalla Home o dal menu Dati di Movimenti (Main.razor). *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
     @if (TornaIndietro.HasDelegate)
     {
@@ -21,7 +24,7 @@
     <AiutoManuale Capitolo="gruppi" />
     <MudSpacer />
     @* i gruppi in un file, per ritrovarli su un'installazione nuova o su un altro computer (dal 06/11) *@
-    <MudTooltip Text="Salva in un file i gruppi di tutte le causali">
+    <MudTooltip Text="Salva in un file i gruppi delle causali CBI">
         <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.FileDownload))"
                    OnClick="Esporta">Esporta</MudButton>
     </MudTooltip>
@@ -33,184 +36,30 @@
 
 <MudPaper Class="pa-4 mt-4" Elevation="1">
     <MudText Typo="Typo.body2" Class="mud-text-secondary">
-        Nelle analisi i movimenti si raggruppano per causale. Qui scegli a quale gruppo appartiene
-        ogni causale e come va trattata:
+        Nelle analisi i movimenti si raggruppano per <b>causale CBI</b>: le prime due cifre della causale, un codice
+        dello standard CBI uguale per tutte le banche (48 è un bonifico ricevuto, 43 un pagamento con il POS, 27 lo
+        stipendio). Il gruppo che scegli per una causale CBI vale per tutti i movimenti con quel codice, di qualunque
+        banca e di qualunque file. Per ogni causale CBI scegli:
     </MudText>
     <ul class="mud-typography-body2 mud-text-secondary mt-1 mb-3 ml-6">
+        <li><b>Gruppo</b>: il nome che vedrai nei grafici, uno esistente o uno nuovo.</li>
         <li><b>Ordinario</b>: entrata o uscita vera e propria, secondo il segno del movimento.</li>
         <li><b>Investimento</b>: soldi spostati verso gli investimenti o rientrati da essi; non conta né come spesa né come entrata.</li>
         <li><b>Giroconto</b>: spostamento tra conti propri; escluso dalle analisi.</li>
         <li><b>Ricorrente</b>: spesa fissa, come mutuo, utenze e imposte; le altre sono variabili.</li>
     </ul>
     <MudText Typo="Typo.body2" Class="mud-text-secondary">
-        Le causali senza gruppo (le trovi con il filtro Gruppo) nelle analisi finiscono in "Altro".
-        Le modifiche valgono dalla prossima apertura della pagina Analisi.
-        Con <b>Esporta</b> salvi i gruppi in un file, e con <b>Importa</b> li ritrovi su un'installazione nuova
-        di EasyCashFlow, anche prima di importare i movimenti.
+        Le causali CBI senza gruppo nelle analisi finiscono in "Altro". Un movimento diverso dagli altri della sua
+        causale (per esempio un bonifico verso un tuo altro conto) si corregge da solo, dal menu ⋮ in Movimenti.
+        Con <b>Esporta</b> salvi i gruppi in un file, e con <b>Importa</b> li ritrovi su un'installazione nuova.
     </MudText>
 </MudPaper>
 
-@if (_righe.Count > 0)
-{
-    @* filtri: si applicano subito, sui valori salvati (non su quelli scritti e non ancora salvati,
-       altrimenti una riga sparirebbe mentre la si modifica) *@
-    <MudPaper Class="pa-4 mt-4" Elevation="1">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" sm="6" md="4">
-                <MudTextField T="string" @bind-Value="_testo" Label="Cerca" Placeholder="Codice o descrizione della banca"
-                              Immediate="true" DebounceInterval="200" Clearable="true"
-                              Adornment="Adornment.Start" AdornmentIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Search))"
-                              Variant="Variant.Outlined" Margin="Margin.Dense" />
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudSelect T="string" @bind-Value="_gruppo" Label="Gruppo" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    <MudSelectItem T="string" Value="@Tutti">Tutti i gruppi</MudSelectItem>
-                    <MudSelectItem T="string" Value="@SenzaGruppo">Senza gruppo</MudSelectItem>
-                    @foreach (var g in _gruppi)
-                    {
-                        <MudSelectItem T="string" Value="g">@g</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="6" sm="6" md="2">
-                <MudSelect T="TipoGruppo?" @bind-Value="_tipo" Label="Tipo" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    <MudSelectItem T="TipoGruppo?" Value="@((TipoGruppo?)null)">Tutti</MudSelectItem>
-                    @foreach (var tipo in Enum.GetValues<TipoGruppo>())
-                    {
-                        <MudSelectItem T="TipoGruppo?" Value="@((TipoGruppo?)tipo)">@tipo</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="6" sm="6" md="2">
-                <MudSelect T="bool?" @bind-Value="_ricorrente" Label="Spesa" Variant="Variant.Outlined" Margin="Margin.Dense">
-                    <MudSelectItem T="bool?" Value="@((bool?)null)">Tutte</MudSelectItem>
-                    <MudSelectItem T="bool?" Value="@((bool?)true)">Ricorrenti</MudSelectItem>
-                    <MudSelectItem T="bool?" Value="@((bool?)false)">Variabili</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="1" Class="d-flex align-center">
-                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="Azzera" Disabled="@(!CiSonoFiltri)">Azzera</MudButton>
-            </MudItem>
-        </MudGrid>
-        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-            @(CiSonoFiltri ? $"{RigheFiltrate.Count()} causali su {_righe.Count}" : $"{_righe.Count} causali")
-        </MudText>
-    </MudPaper>
-}
-
 <MudPaper Class="pa-4 mt-4" Elevation="1">
-    @if (_righe.Count == 0)
-    {
-        <MudText Typo="Typo.body2">Non ci sono ancora movimenti: importali dalla sezione Movimenti, con Importa movimenti.</MudText>
-    }
-    else
-    {
-        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
-            <thead>
-                @* le intestazioni si cliccano per ordinare (di nuovo per invertire); all'inizio per descrizione *@
-                <tr>
-                    <th>@Intestazione("Causale", "Causale")</th>
-                    <th>@Intestazione("Descrizione", "Descrizione della banca")</th>
-                    <th style="text-align: right;">@Intestazione("Movimenti", "Movimenti")</th>
-                    <th style="text-align: right;">@Intestazione("Totale", "Totale (€)")</th>
-                    <th style="min-width: 240px;">@Intestazione("Gruppo", "Gruppo")</th>
-                    <th style="min-width: 160px;">@Intestazione("Tipo", "Tipo")</th>
-                    <th>@Intestazione("Ricorrente", "Ricorrente")</th>
-                    <th></th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var riga in RigheFiltrate)
-                {
-                    var c = riga.Originale;
-                    <tr>
-                        <td style="font-family: monospace;">@c.Causale</td>
-                        <td>
-                            @c.Descrizione
-                            @if (c.Gruppo is null)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="ml-2">senza gruppo</MudChip>
-                            }
-                            @* le prime due cifre sono la causale CBI, uguale per tutte le banche (Models/CausaliCbi.cs) *@
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
-                                causale CBI @CausaliCbi.Di(c.Causale)@(CausaliCbi.Descrizione(c.Causale) is { } cbi ? $": {cbi}" : "")
-                            </MudText>
-                        </td>
-                        <td style="text-align: right;">@c.Movimenti</td>
-                        <td style="text-align: right;">
-                            <MudText Typo="Typo.body2" Class="importo" Color="@(c.Totale < 0 ? Color.Error : Color.Success)">
-                                @c.Totale.ToString("N2", Italiano)
-                            </MudText>
-                        </td>
-                        @if (c.Causale == CausaliCbi.Fittizia)
-                        {
-                            @* la causale fittizia dei file Excel resta senza gruppo: un gruppo qui varrebbe per tutti
-                               i movimenti non riconosciuti, qualunque cosa siano. Si sceglie la causale di ognuno. *@
-                            <td colspan="4">
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                                    Movimenti dei file Excel di cui il programma non ha riconosciuto il tipo. Non le si dà un gruppo:
-                                    in Movimenti scegli la causale giusta di ognuno, dal menu del movimento o selezionandone più di uno.
-                                </MudText>
-                            </td>
-                        }
-                        else
-                        {
-                        <td>
-                            <MudAutocomplete T="string" @bind-Value="riga.Gruppo" SearchFunc="CercaGruppi"
-                                             CoerceValue="true" MaxLength="40" Placeholder="Altro"
-                                             Variant="Variant.Outlined" Margin="Margin.Dense" />
-                        </td>
-                        <td>
-                            <MudSelect T="TipoGruppo" @bind-Value="riga.Tipo" Variant="Variant.Outlined" Margin="Margin.Dense">
-                                @foreach (var tipo in Enum.GetValues<TipoGruppo>())
-                                {
-                                    <MudSelectItem T="TipoGruppo" Value="tipo">@tipo</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </td>
-                        <td>
-                            <MudCheckBox T="bool" @bind-Value="riga.Ricorrente" Color="Color.Primary" />
-                        </td>
-                        <td>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                       Disabled="@(!riga.Modificata || string.IsNullOrWhiteSpace(riga.Gruppo))"
-                                       OnClick="@(() => Salva(riga))">Salva</MudButton>
-                        </td>
-                        }
-                        <td>
-                            <MudTooltip Text="@($"Dove finisce: apre il dettaglio di {PaginaDettaglioIndicatore.Titolo(Destinazione(c))}, su tutto il periodo, filtrato sul gruppo")">
-                                <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowForward))" Size="Size.Small"
-                                               OnClick="@(() => ApriDettaglio.InvokeAsync((Destinazione(c), c.Gruppo ?? "Altro")))" />
-                            </MudTooltip>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
-        @if (!RigheFiltrate.Any())
-        {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-3">Nessuna causale corrisponde ai filtri.</MudText>
-        }
-    }
+    <TabellaCausaliCbi @ref="_tabella" ApriDettaglio="ApriDettaglio" />
 </MudPaper>
 
 @code {
-    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
-    private static readonly StringComparer ConfrontoItaliano = StringComparer.Create(Italiano, ignoreCase: true);
-
-    // i valori nei campi di una riga, confrontati con quelli salvati per abilitare "Salva"
-    private class Riga(GruppoCausale originale)
-    {
-        public GruppoCausale Originale { get; } = originale;
-        public string? Gruppo { get; set; } = originale.Gruppo;
-        public TipoGruppo Tipo { get; set; } = originale.Tipo;
-        public bool Ricorrente { get; set; } = originale.Ricorrente;
-
-        public bool Modificata =>
-            (Gruppo ?? "").Trim() != (Originale.Gruppo ?? "") || Tipo != Originale.Tipo || Ricorrente != Originale.Ricorrente;
-    }
-
     [Parameter] public EventCallback<(Indicatore Indicatore, string Gruppo)> ApriDettaglio { get; set; }
 
     /// <summary>Solo se la pagina si è aperta dalla Home o dai movimenti: mostra la freccia per tornarci.</summary>
@@ -218,120 +67,7 @@
 
     [Parameter] public string TestoRitorno { get; set; } = "Torna indietro";
 
-    // L'indicatore in cui finiscono i movimenti della causale, secondo il gruppo salvato (non quello
-    // scritto e non ancora salvato): Investimento -> Investito netto, Giroconto -> riconciliazione del
-    // saldo, Ordinario -> Entrate o Uscite secondo il segno del totale.
-    private static Indicatore Destinazione(GruppoCausale c) => c.Tipo switch
-    {
-        TipoGruppo.Investimento => Indicatore.InvestitoNetto,
-        TipoGruppo.Giroconto => Indicatore.Saldo,
-        _ => c.Totale > 0 ? Indicatore.Entrate : Indicatore.Uscite
-    };
-
-    private List<Riga> _righe = [];
-    private List<string> _gruppi = [];
-
-    // filtri; per il gruppo, Tutti e SenzaGruppo sono valori che nessun gruppo può avere
-    private const string Tutti = "";
-    private const string SenzaGruppo = "\0senza";
-    private string? _testo;
-    private string _gruppo = Tutti;
-    private TipoGruppo? _tipo;
-    private bool? _ricorrente;
-
-    private bool CiSonoFiltri =>
-        !string.IsNullOrWhiteSpace(_testo) || _gruppo != Tutti || _tipo is not null || _ricorrente is not null;
-
-    private IEnumerable<Riga> RigheFiltrate => Ordina(_righe.Where(r =>
-    {
-        var c = r.Originale;
-        var testo = _testo?.Trim();
-        return (string.IsNullOrEmpty(testo)
-                    || c.Causale.Contains(testo, StringComparison.OrdinalIgnoreCase)
-                    || c.Descrizione.Contains(testo, StringComparison.CurrentCultureIgnoreCase)
-                    || (CausaliCbi.Descrizione(c.Causale)?.Contains(testo, StringComparison.CurrentCultureIgnoreCase) ?? false))
-               && (_gruppo == Tutti
-                    || (_gruppo == SenzaGruppo ? c.Gruppo is null : ConfrontoItaliano.Equals(c.Gruppo, _gruppo)))
-               && (_tipo is null || (c.Gruppo is not null && c.Tipo == _tipo))
-               && (_ricorrente is null || (c.Gruppo is not null && c.Ricorrente == _ricorrente));
-    }));
-
-    // Ordinamento cliccando le intestazioni. Si ordina per i valori salvati, come per i filtri: una riga
-    // che stai modificando non cambia posto finché non premi Salva. A parità, per descrizione e causale.
-    private string _ordinaPer = "Descrizione";
-    private bool _decrescente;
-
-    private void OrdinaPer(string campo)
-    {
-        _decrescente = _ordinaPer == campo && !_decrescente;
-        _ordinaPer = campo;
-    }
-
-    private IEnumerable<Riga> Ordina(IEnumerable<Riga> righe)
-    {
-        Func<Riga, object> chiave = _ordinaPer switch
-        {
-            "Causale" => r => r.Originale.Causale,
-            "Movimenti" => r => r.Originale.Movimenti,
-            "Totale" => r => r.Originale.Totale,
-            "Gruppo" => r => r.Originale.Gruppo ?? "",
-            "Tipo" => r => r.Originale.Gruppo is null ? "" : r.Originale.Tipo.ToString(),
-            "Ricorrente" => r => r.Originale.Gruppo is not null && r.Originale.Ricorrente,
-            _ => r => r.Originale.Descrizione.Trim()
-        };
-        var confronto = Comparer<object>.Create((a, b) => a is string x && b is string y
-            ? ConfrontoItaliano.Compare(x, y)
-            : Comparer<object>.Default.Compare(a, b));
-        return (_decrescente ? righe.OrderByDescending(chiave, confronto) : righe.OrderBy(chiave, confronto))
-            .ThenBy(r => r.Originale.Descrizione.Trim(), ConfrontoItaliano)
-            .ThenBy(r => r.Originale.Causale);
-    }
-
-    private RenderFragment Intestazione(string campo, string testo) =>
-        @<span style="cursor: pointer; user-select: none; white-space: nowrap;" @onclick="() => OrdinaPer(campo)">
-            @testo
-            @if (_ordinaPer == campo)
-            {
-                <MudIcon Icon="@Impostazioni.Icona(_decrescente ? nameof(Icons.Material.Filled.ArrowDownward) : nameof(Icons.Material.Filled.ArrowUpward))"
-                         Style="font-size: 1rem; vertical-align: middle;" />
-            }
-        </span>;
-
-    private void Azzera()
-    {
-        _testo = null;
-        _gruppo = Tutti;
-        _tipo = null;
-        _ricorrente = null;
-    }
-
-    protected override void OnInitialized() => Carica();
-
-    // in ordine alfabetico della descrizione della banca (dal 04/11; prima le causali senza gruppo in cima,
-    // poi per gruppo): le causali senza gruppo si trovano con il filtro Gruppo
-    // Le righe modificate e non ancora salvate conservano quello che c'è scritto: salvando una riga si
-    // ricarica l'elenco, e senza questo si perderebbero le modifiche in corso sulle altre.
-    private void Carica()
-    {
-        var inCorso = _righe.Where(r => r.Modificata).ToDictionary(r => r.Originale.Causale);
-
-        var elenco = Database.ElencoGruppiCausali();
-        _righe = elenco
-            .OrderBy(c => c.Descrizione.Trim(), ConfrontoItaliano)
-            .ThenBy(c => c.Causale)
-            .Select(c => inCorso.TryGetValue(c.Causale, out var vecchia)
-                ? new Riga(c) { Gruppo = vecchia.Gruppo, Tipo = vecchia.Tipo, Ricorrente = vecchia.Ricorrente }
-                : new Riga(c))
-            .ToList();
-        _gruppi = elenco.Where(c => c.Gruppo is not null).Select(c => c.Gruppo!)
-                        .Distinct(ConfrontoItaliano).Order(ConfrontoItaliano).ToList();
-    }
-
-    // i gruppi esistenti che contengono il testo scritto; un nome nuovo si accetta così com'è (CoerceValue)
-    private Task<IEnumerable<string>> CercaGruppi(string? testo, CancellationToken annulla) =>
-        Task.FromResult(string.IsNullOrWhiteSpace(testo)
-            ? _gruppi.AsEnumerable()
-            : _gruppi.Where(g => g.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase)));
+    private TabellaCausaliCbi? _tabella;
 
     private async Task Esporta()
     {
@@ -341,8 +77,8 @@
         {
             var gruppi = Database.TuttiGruppiCausali();
             FileGruppiCausali.Scrivi(percorso, gruppi);
-            Log.Info($"Gruppi di causali esportati: {gruppi.Count} causali in {System.IO.Path.GetFileName(percorso)}");
-            Snackbar.Add($"Esportati i gruppi di {gruppi.Count} causali in {System.IO.Path.GetFileName(percorso)}.", Severity.Success);
+            Log.Info($"Gruppi di causali esportati: {gruppi.Count} causali CBI in {System.IO.Path.GetFileName(percorso)}");
+            Snackbar.Add($"Esportati i gruppi di {gruppi.Count} causali CBI in {System.IO.Path.GetFileName(percorso)}.", Severity.Success);
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
@@ -351,8 +87,8 @@
         }
     }
 
-    // Legge il file, mostra cosa cambierebbe e scrive solo dopo la conferma. Le causali del file sostituiscono
-    // gruppo, tipo e ricorrenza di quelle uguali; le causali che il file non ha restano come sono.
+    // Legge il file, mostra cosa cambierebbe e scrive solo dopo la conferma. Le causali CBI del file
+    // sostituiscono gruppo, tipo e ricorrenza; quelle che il file non ha restano come sono.
     private async Task Importa()
     {
         var percorso = await Selettore.ScegliFileGruppiAsync();
@@ -377,7 +113,7 @@
             return;
         }
 
-        // causale per causale: com'è adesso e com'è nel file
+        // causale CBI per causale CBI: com'è adesso e com'è nel file
         var attuali = Database.TuttiGruppiCausali().ToDictionary(g => g.Causale);
         var cambiano = new List<(GruppoEsportato Attuale, GruppoEsportato Nuovo)>();
         var nuove = new List<GruppoEsportato>();
@@ -392,7 +128,7 @@
 
         if (nuove.Count + cambiano.Count == 0)
         {
-            Snackbar.Add($"Le {letto.Gruppi.Count} causali del file hanno già gli stessi gruppi: non c'è niente da cambiare." +
+            Snackbar.Add($"Le {letto.Gruppi.Count} causali CBI del file hanno già gli stessi gruppi: non c'è niente da cambiare." +
                          (letto.Scarti.Count > 0 ? $" {letto.Scarti.Count} righe del file non erano valide." : ""), Severity.Info);
             return;
         }
@@ -411,18 +147,7 @@
         if (await finestra.Result is not { Canceled: false }) return;
 
         var esito = Database.ImportaGruppiCausali(letto.Gruppi);
-        Carica();
-        Snackbar.Add($"Gruppi importati: {esito.Nuove} causali aggiunte, {esito.Cambiate} cambiate.", Severity.Success);
-    }
-
-    private void Salva(Riga riga)
-    {
-        var testo = riga.Gruppo!.Trim();
-        // un gruppo già esistente scritto con maiuscole diverse prende il nome esistente: niente doppioni
-        var gruppo = _gruppi.FirstOrDefault(g => ConfrontoItaliano.Equals(g, testo)) ?? testo;
-
-        Database.SalvaGruppoCausale(riga.Originale.Causale, gruppo, riga.Tipo, riga.Ricorrente);
-        Snackbar.Add($"Causale {riga.Originale.Causale}: salvata nel gruppo \"{gruppo}\".", Severity.Success);
-        Carica();
+        _tabella?.Carica();
+        Snackbar.Add($"Gruppi importati: {esito.Nuove} causali CBI aggiunte, {esito.Cambiate} cambiate.", Severity.Success);
     }
 }

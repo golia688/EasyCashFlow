@@ -37,6 +37,11 @@ public record GruppoCausale(
     TipoGruppo Tipo,
     bool Ricorrente);
 
+/// <summary>Il gruppo di una causale CBI (dal 10/11): vale per tutte le causali che cominciano con quel codice.
+/// Gruppo null = nessun gruppo. Movimenti e Totale: dei movimenti con quella causale CBI.</summary>
+public record RegolaCausaleCbi(string Codice, string Descrizione, string? Gruppo, TipoGruppo Tipo, bool Ricorrente,
+                               int Movimenti, decimal Totale);
+
 /// <summary>Gli indicatori della pagina Analisi, ognuno con la sua pagina di dettaglio.</summary>
 public enum Indicatore
 {

@@ -159,6 +159,11 @@ public static class CausaliCbi
     public static (string Gruppo, TipoGruppo Tipo, bool Ricorrente)? GruppoDiRipiego(string causale) =>
         Di(causale) is { } cbi && Ripiego.TryGetValue(cbi, out var gruppo) ? gruppo : null;
 
+    /// <summary>I gruppi di partenza delle causali CBI, per riempire la tabella GruppiCausaliCbi la prima
+    /// volta (dal 10/11): da lì in poi li sceglie l'utente.</summary>
+    public static IEnumerable<(string Codice, string Gruppo, TipoGruppo Tipo, bool Ricorrente)> GruppiDiPartenza =>
+        Ripiego.Select(r => (r.Key, r.Value.Item1, r.Value.Item2, r.Value.Item3));
+
     private static readonly Dictionary<string, (string, TipoGruppo, bool)> Ripiego = new()
     {
         ["05"] = ("Prelievi contanti", TipoGruppo.Ordinario, false),

@@ -395,13 +395,16 @@ La scelta resta finché il programma è aperto, anche se cambi pagina; alla chiu
 
 ## I gruppi di causali {#gruppi}
 
-Ogni movimento ha una **causale**: un codice di quattro cifre con cui la banca dice che tipo di operazione è. Per esempio 2700 è "Emolumenti" (lo stipendio), 4500 è "Utilizzo carta di credito".
+Ogni movimento ha una **causale**: un codice di quattro caratteri con cui la banca dice che tipo di operazione è. Per esempio 2700 è "Emolumenti" (lo stipendio), 4500 è "Utilizzo carta di credito".
 
-Per fare i grafici, il programma mette le causali in **gruppi**: "Stipendio", "Mutuo", "Carta di credito" e così via. Li trovi in [Gruppi di causali](app:gruppi) (menu **Impostazioni > Dati > Gruppi di causali**, oppure **Dati > Gruppi di causali** nella pagina dei movimenti: da lì la freccia in alto riporta ai movimenti).
+- Le **prime due cifre** sono la **causale CBI**: un codice dello standard CBI, uguale per tutte le banche italiane. Per esempio 48 è "Bonifico a Vostro favore", 43 "Pagamento tramite POS", 27 gli stipendi.
+- Le **ultime due** le sceglie la banca, per distinguere i suoi sottotipi; per il programma non contano.
 
-Per ogni causale scegli:
+Per fare i grafici, il programma mette i movimenti in **gruppi**: "Stipendio", "Mutuo", "Carta di credito" e così via. Il gruppo si sceglie per **causale CBI**, in [Gruppi di causali](app:gruppi) (menu **Impostazioni > Dati > Gruppi di causali**, oppure **Dati > Gruppi di causali** nella pagina dei movimenti: da lì la freccia in alto riporta ai movimenti). Il gruppo di una causale CBI vale per **tutti i movimenti con quel codice**: per esempio il gruppo del 48 vale per 4800, 4801, per i 48 di qualunque altra banca e per i bonifici ricevuti dei file Excel (48XL), anche per quelli che importerai in futuro.
 
-- **Gruppo**: il nome che vedrai nei grafici. Puoi sceglierne uno esistente o scriverne uno nuovo.
+La pagina ha una riga per ogni causale CBI, con la descrizione dello standard, quanti movimenti hai con quel codice e il loro totale. Per ogni causale CBI scegli:
+
+- **Gruppo**: il nome che vedrai nei grafici. La tendina propone tutti i gruppi già usati; puoi anche scriverne uno nuovo, oppure svuotarlo per lasciare la causale senza gruppo.
 - **Tipo**:
   - **Ordinario**: un'entrata o un'uscita normale. Quasi tutte le causali sono di questo tipo.
   - **Investimento**: soldi spostati verso investimenti o rientrati da essi. Non contano né come spese né come entrate.
@@ -410,30 +413,25 @@ Per ogni causale scegli:
 
 Poi premi **Salva** sulla riga.
 
+Il programma parte con un gruppo già proposto per le causali CBI più comuni. Restano senza gruppo quelle che possono voler dire cose diverse, come gli storni, e le causali che alcune banche usano a modo loro: la BCC, per esempio, usa il **31** per gli addebiti diretti (SDD), che per lo standard sarebbe un'altra cosa. Dagli tu il gruppo che preferisci. Le causali senza gruppo nei grafici finiscono in "Altro".
+
+**Trovare una causale CBI.** All'inizio vedi solo le causali CBI dei tuoi movimenti; togli **Solo le causali dei miei movimenti** per vederle tutte, per esempio per preparare i gruppi prima di importare. Poi:
+
+- **Cerca**: scrivi il codice (per esempio "48") o una parola della descrizione o del gruppo (per esempio "bonifico");
+- **Gruppo**: mostra solo un gruppo, oppure solo le causali **senza gruppo**.
+
+I filtri guardano le scelte già salvate: una riga che stai modificando non sparisce finché non premi **Salva**.
+
+**Dove finisce una causale?** La freccia in fondo alla riga apre l'analisi in cui finiscono i suoi movimenti (entrate, uscite o investimenti), già filtrata sul suo gruppo.
+
+**Un movimento è diverso dagli altri?** Il gruppo vale per tutti i movimenti della causale CBI. Se uno solo è diverso, per esempio un bonifico verso un tuo altro conto o un addebito che in realtà è un investimento, cambialo dal menu **⋮** del movimento (vedi [La pagina dei movimenti](cap:movimenti)): puoi sceglierne il tipo o segnarlo come straordinario.
+
 **Salvare i gruppi in un file e riprenderli.** In alto a destra nella pagina ci sono due pulsanti:
 
-- **Esporta** salva in un file i gruppi di tutte le causali: il gruppo, il tipo e se è ricorrente, comprese le scelte che hai fatto tu. Il file (`EasyCashFlow-gruppi-causali-` e la data, `.json`) non contiene movimenti né importi.
-- **Importa** riprende i gruppi da un file esportato prima. Prima di cambiare qualcosa ti mostra, causale per causale, cosa succede: quelle che **cambiano**, con il gruppo, il tipo o la spesa di adesso barrati e quelli del file evidenziati accanto; quelle che **si aggiungono**, con il loro gruppo; quante sono già uguali; le righe del file non valide, con il motivo. Poi aspetta la tua conferma. Le causali che il file non ha restano come sono.
+- **Esporta** salva in un file i gruppi delle causali CBI: il gruppo, il tipo e se è ricorrente. Il file (`EasyCashFlow-gruppi-causali-` e la data, `.json`) non contiene movimenti né importi.
+- **Importa** riprende i gruppi da un file esportato prima. Prima di cambiare qualcosa ti mostra, causale per causale, cosa succede: quelle che **cambiano**, con il gruppo, il tipo o la spesa di adesso barrati e quelli del file evidenziati accanto; quelle che **si aggiungono**, con il loro gruppo; quante sono già uguali; le righe del file non valide, con il motivo. Poi aspetta la tua conferma. Le causali che il file non ha restano come sono. Un file esportato con una versione precedente del programma, che aveva i gruppi delle causali complete, si importa ancora: ogni causale CBI prende il gruppo più usato dalle sue causali.
 
-Serve quando riparti da zero, per esempio con il programma in una cartella nuova o su un altro computer: importi il file dei gruppi, anche prima dei movimenti, e non devi riassegnare a mano i gruppi delle causali. Quando poi importi i file CBI o XML, le causali prendono subito i tuoi gruppi.
-
-**Dove finisce una causale?** La freccia in fondo alla riga apre l'analisi in cui finiscono i movimenti di quella causale (entrate, uscite o investimenti), già filtrata sul suo gruppo.
-
-**Un movimento fa eccezione?** Il tipo scelto qui vale per tutti i movimenti della causale. Se uno solo è diverso, per esempio un bonifico verso un tuo altro conto, cambialo dal menu **⋮** del movimento (vedi [La pagina dei movimenti](cap:movimenti)): lì puoi anche segnarlo come straordinario.
-
-**Causale CBI.** Sotto la descrizione della banca leggi la *causale CBI*: sono le prime due cifre della causale, un codice uguale per tutte le banche italiane, con la descrizione dello standard CBI. Per esempio 26 è "Vostra disposizione a favore di", cioè un bonifico che hai fatto tu, e 48 è "Bonifico a Vostro favore", un bonifico ricevuto. Quando arriva una causale nuova che il programma non conosce, magari di un'altra banca, il programma le propone il gruppo della sua causale CBI; puoi sempre cambiarlo. Restano senza gruppo solo le causali che possono voler dire cose diverse, come gli storni.
-
-Le causali sono in ordine alfabetico della descrizione della banca; cliccando l'intestazione di una colonna (causale, movimenti, totale, gruppo…) le ordini per quella, e cliccandola di nuovo inverti l'ordine. Quelle senza gruppo nei grafici finiscono in "Altro" finché non gliene assegni uno: per trovarle tutte, scegli **senza gruppo** nel filtro **Gruppo**.
-
-**Trovare una causale**
-
-Quando le causali sono tante, usa i filtri sopra l'elenco:
-
-- **Cerca**: scrivi il codice (per esempio "4500") o una parola della descrizione (per esempio "carta");
-- **Gruppo**: mostra solo un gruppo, oppure solo le causali **senza gruppo**;
-- **Tipo** e **Spesa**: mostra solo un tipo, oppure solo le spese ricorrenti o variabili.
-
-**Azzera** li toglie tutti. I filtri guardano le scelte già salvate: una riga che stai modificando non sparisce finché non premi **Salva**.
+Serve quando riparti da zero, per esempio con il programma in una cartella nuova o su un altro computer: importi il file dei gruppi, anche prima dei movimenti, e non devi rifare a mano le tue scelte.
 
 ## Conti, preferenze e sicurezza {#impostazioni}
 
@@ -517,7 +515,7 @@ Il saldo si salva ogni volta che importi un file, per le giornate di quel file. 
 
 **Un movimento finisce nel gruppo sbagliato. Come lo correggo?**
 
-Il gruppo dipende dalla causale. Vai in [Gruppi di causali](app:gruppi), cerca la causale di quel movimento e cambiale gruppo. Attenzione: la modifica vale per tutti i movimenti con quella causale.
+Il gruppo dipende dalle prime due cifre della causale, la causale CBI. Vai in [Gruppi di causali](app:gruppi), cerca quella causale CBI e cambiale gruppo. Attenzione: la modifica vale per tutti i movimenti con quella causale CBI.
 
 Se invece è un solo movimento a fare eccezione, non serve cambiare il gruppo: dal menu **⋮** del movimento puoi sceglierne il tipo (per esempio Giroconto) o segnarlo come straordinario. Vedi [La pagina dei movimenti](cap:movimenti).
 

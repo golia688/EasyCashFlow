@@ -178,8 +178,7 @@ public class ImportazioneService
             _log.Info($"{risultato.DescrizioniAggiornate} movimenti erano già presenti: aggiornata la loro descrizione, ora più completa");
         }
 
-        // le causali nuove senza gruppo predefinito ricevono quello della loro causale CBI
-        _database.AssegnaGruppiDiRipiego();
+        // il gruppo delle causali nuove viene dalla regola della loro causale CBI (GruppiEffettivi, dal 10/11)
 
         var giaPresenti = risultato.Scartati.Count(s => s.Motivo == MotivoScarto.GiaPresente);
         var scartati = letto.Scartati.Count + risultato.Scartati.Count;

@@ -1,5 +1,7 @@
 @using MudBlazor
 @using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
 
 @* La causale di uno o più movimenti importati da un file Excel (dal 09/11): il programma l'ha dedotta dalla
    descrizione, oppure, se non ha riconosciuto il tipo, ha messo la causale fittizia 00XL senza gruppo.
@@ -22,9 +24,9 @@
         {
             <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">
                 Nuova causale <b>@(codice)XL</b> ·
-                @(CausaliCbi.GruppoDiRipiego(codice) is { } g
-                    ? $"gruppo proposto: {g.Gruppo}"
-                    : "nessun gruppo proposto: lo scegli in Gruppi di causali")
+                @(_regole.GetValueOrDefault(codice)?.Gruppo is { } g
+                    ? $"gruppo: {g} (quello della causale CBI {codice})"
+                    : "la causale CBI non ha un gruppo: lo scegli in Gruppi di causali")
             </MudText>
         }
     </DialogContent>
@@ -43,6 +45,10 @@
 
     private const string ExcelSuffisso = "XL";
     private string? _scelta;
+    private Dictionary<string, RegolaCausaleCbi> _regole = [];
+
+    protected override void OnInitialized() =>
+        _regole = Database.RegoleCausaliCbi().ToDictionary(r => r.Codice);
 
     /// <summary>Apre la finestra; restituisce la nuova causale (codice CBI + "XL") o null se l'utente annulla.</summary>
     public static async Task<string?> ApriAsync(IDialogService dialoghi, int quanti, string causaleAttuale)
@@ -67,7 +73,7 @@
         if (!string.IsNullOrWhiteSpace(testo))
             elenco = elenco.Where(c => c.Codice.StartsWith(testo.Trim(), StringComparison.OrdinalIgnoreCase)
                                        || c.Descrizione.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase)
-                                       || (CausaliCbi.GruppoDiRipiego(c.Codice)?.Gruppo.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase) ?? false));
+                                       || (_regole.GetValueOrDefault(c.Codice)?.Gruppo?.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase) ?? false));
         return Task.FromResult(elenco.Select(c => c.Codice));
     }
 }

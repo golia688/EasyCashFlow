@@ -207,66 +207,86 @@ public class DatabaseService
                 Avvisi       INTEGER NOT NULL
             );
 
-            -- come trattare ogni causale nelle analisi: gruppo, tipo e se è una spesa ricorrente
+            -- fino al 09/11 il gruppo di ogni causale completa; dal 10/11 non si usa più (il gruppo viene dalla
+            -- causale CBI, GruppiCausaliCbi), e resta solo perché i database di prima la hanno
             CREATE TABLE IF NOT EXISTS GruppiCausali (
                 Causale    TEXT    NOT NULL PRIMARY KEY,
                 Gruppo     TEXT    NOT NULL,
                 Tipo       TEXT    NOT NULL,   -- Ordinario, Investimento, Giroconto (enum TipoGruppo)
                 Ricorrente INTEGER NOT NULL    -- 1 = spesa fissa (mutuo, utenze, ...), 0 = variabile
             );
+
+            -- come trattare i movimenti nelle analisi (dal 10/11): gruppo, tipo e se è una spesa ricorrente, per
+            -- ogni causale CBI, le prime due cifre della causale, uguali per tutte le banche. Vale per tutte le
+            -- causali che cominciano con quel codice. Una causale CBI senza riga non ha gruppo
+            CREATE TABLE IF NOT EXISTS GruppiCausaliCbi (
+                Codice     TEXT    NOT NULL PRIMARY KEY,
+                Gruppo     TEXT    NOT NULL,
+                Tipo       TEXT    NOT NULL,
+                Ricorrente INTEGER NOT NULL
+            );
+
+            -- il gruppo di ogni causale dei movimenti, dalla sua causale CBI; le causali senza gruppo non
+            -- compaiono (nelle analisi: "Altro")
+            DROP VIEW IF EXISTS GruppiEffettivi;
+            CREATE VIEW GruppiEffettivi AS
+            SELECT c.Causale, r.Gruppo, r.Tipo, r.Ricorrente
+            FROM (SELECT DISTINCT Causale FROM Movimenti) c
+            JOIN GruppiCausaliCbi r ON r.Codice = substr(c.Causale, 1, 2);
             """;
         comando.ExecuteNonQuery();
 
-        InserisciGruppiPredefiniti(connessione);
-        AssegnaGruppiDiRipiego(connessione);
+        PreparaGruppi(connessione);
     }
 
-    /// <summary>Le causali dei movimenti che non hanno un gruppo ricevono quello proposto per la loro
-    /// causale CBI (<see cref="CausaliCbi.GruppoDiRipiego"/>): così anche le causali di una banca diversa
-    /// dalla BCC, i cui codici interni non sono tra i predefiniti, partono con un gruppo. Come per i
-    /// predefiniti, una causale che ha già un gruppo non si tocca.</summary>
-    public void AssegnaGruppiDiRipiego()
-    {
-        using var connessione = Apri();
-        AssegnaGruppiDiRipiego(connessione);
-    }
+    private const string ChiaveVersioneGruppi = "GruppiCausali.Versione";
 
-    private void AssegnaGruppiDiRipiego(SqliteConnection connessione)
+    // Una volta sola (dal 10/11): i gruppi di partenza delle causali CBI (CausaliCbi.GruppiDiPartenza). Da lì
+    // in poi li sceglie l'utente; una regola tolta non torna. I gruppi scelti fino al 09/11 per le causali
+    // complete (tabella GruppiCausali) non contano più.
+    private void PreparaGruppi(SqliteConnection connessione)
     {
-        var senzaGruppo = new List<string>();
         using (var lettura = connessione.CreateCommand())
         {
-            lettura.CommandText = """
-                SELECT DISTINCT Causale FROM Movimenti
-                WHERE Causale NOT IN (SELECT Causale FROM GruppiCausali)
-                """;
-            using var lettore = lettura.ExecuteReader();
-            while (lettore.Read())
-                senzaGruppo.Add(lettore.GetString(0));
+            lettura.CommandText = "SELECT Valore FROM Impostazioni WHERE Chiave = $chiave";
+            lettura.Parameters.AddWithValue("$chiave", ChiaveVersioneGruppi);
+            if (lettura.ExecuteScalar() is string versione && versione != "") return;
         }
 
-        var assegnate = new List<string>();
         using var transazione = connessione.BeginTransaction();
-        foreach (var causale in senzaGruppo)
+        using (var regola = connessione.CreateCommand())
         {
-            if (CausaliCbi.GruppoDiRipiego(causale) is not { } g) continue;
-            using var comando = connessione.CreateCommand();
-            comando.Transaction = transazione;
-            comando.CommandText = """
-                INSERT INTO GruppiCausali (Causale, Gruppo, Tipo, Ricorrente)
-                VALUES ($causale, $gruppo, $tipo, $ricorrente)
+            regola.Transaction = transazione;
+            regola.CommandText = """
+                INSERT INTO GruppiCausaliCbi (Codice, Gruppo, Tipo, Ricorrente)
+                VALUES ($codice, $gruppo, $tipo, $ricorrente)
                 ON CONFLICT DO NOTHING
                 """;
-            comando.Parameters.AddWithValue("$causale", causale);
-            comando.Parameters.AddWithValue("$gruppo", g.Gruppo);
-            comando.Parameters.AddWithValue("$tipo", g.Tipo.ToString());
-            comando.Parameters.AddWithValue("$ricorrente", g.Ricorrente ? 1 : 0);
-            if (comando.ExecuteNonQuery() == 1) assegnate.Add(causale);
+            var pCodice = regola.Parameters.Add("$codice", SqliteType.Text);
+            var pGruppo = regola.Parameters.Add("$gruppo", SqliteType.Text);
+            var pTipo = regola.Parameters.Add("$tipo", SqliteType.Text);
+            var pRicorrente = regola.Parameters.Add("$ricorrente", SqliteType.Integer);
+            foreach (var g in CausaliCbi.GruppiDiPartenza)
+            {
+                pCodice.Value = g.Codice;
+                pGruppo.Value = g.Gruppo;
+                pTipo.Value = g.Tipo.ToString();
+                pRicorrente.Value = g.Ricorrente ? 1 : 0;
+                regola.ExecuteNonQuery();
+            }
+        }
+        using (var versione = connessione.CreateCommand())
+        {
+            versione.Transaction = transazione;
+            versione.CommandText = """
+                INSERT INTO Impostazioni (Chiave, Valore) VALUES ($chiave, '3')
+                ON CONFLICT (Chiave) DO UPDATE SET Valore = excluded.Valore
+                """;
+            versione.Parameters.AddWithValue("$chiave", ChiaveVersioneGruppi);
+            versione.ExecuteNonQuery();
         }
         transazione.Commit();
-
-        if (assegnate.Count > 0)
-            _log.Info($"Gruppi proposti dalla causale CBI per {assegnate.Count} causali: {string.Join(", ", assegnate)}");
+        _log.Info("Gruppi delle causali CBI di partenza preparati");
     }
 
     /// <summary>Segna (o smette di segnare) dei movimenti come straordinari.</summary>
@@ -326,71 +346,6 @@ public class DatabaseService
         return comando.ExecuteNonQuery();
     }
 
-    // Gruppi di partenza per le causali osservate negli export. ON CONFLICT DO NOTHING: una causale
-    // già presente (magari modificata dall'utente) non viene toccata; una nuova voce di questo elenco
-    // viene aggiunta al prossimo avvio. Le causali non elencate finiscono nel gruppo "Altro".
-    private void InserisciGruppiPredefiniti(SqliteConnection connessione)
-    {
-        (string Causale, string Gruppo, TipoGruppo Tipo, bool Ricorrente)[] predefiniti =
-        [
-            ("2700", "Stipendio", TipoGruppo.Ordinario, true),
-            ("4800", "Bonifici ricevuti", TipoGruppo.Ordinario, false),
-            ("1410", "Rendite finanziarie", TipoGruppo.Ordinario, false),     // cedole
-            ("1450", "Rendite finanziarie", TipoGruppo.Ordinario, false),     // dividendi
-            ("1800", "Rendite finanziarie", TipoGruppo.Ordinario, false),     // interessi
-            ("7850", "Versamenti contanti", TipoGruppo.Ordinario, false),
-            ("7030", "Investimenti", TipoGruppo.Investimento, false),         // vendita titoli
-            ("8320", "Investimenti", TipoGruppo.Investimento, false),         // sottoscrizione fondi
-            ("3126", "Investimenti", TipoGruppo.Investimento, true),          // SDD finanziario (PAC)
-            ("1510", "Mutuo", TipoGruppo.Ordinario, true),
-            ("1129", "Utenze e servizi", TipoGruppo.Ordinario, true),         // SDD utenze
-            ("3122", "Utenze e servizi", TipoGruppo.Ordinario, true),         // SDD core (luce, gas)
-            ("5046", "SDD commerciali", TipoGruppo.Ordinario, false),         // ricariche Satispay e simili
-            ("4500", "Carta di credito", TipoGruppo.Ordinario, false),
-            ("4302", "Carta di debito", TipoGruppo.Ordinario, false),         // PagoBancomat
-            ("4310", "Carta di debito", TipoGruppo.Ordinario, false),         // POS
-            ("0500", "Prelievi contanti", TipoGruppo.Ordinario, false),
-            ("5240", "Prelievi contanti", TipoGruppo.Ordinario, false),
-            ("2611", "Bonifici effettuati", TipoGruppo.Ordinario, false),
-            ("2610", "Bonifici effettuati", TipoGruppo.Ordinario, false),
-            ("2609", "Lavori casa con detrazione", TipoGruppo.Ordinario, false), // L. 296/06
-            ("2615", "Lavori casa con detrazione", TipoGruppo.Ordinario, false), // art. 16 bis
-            ("2617", "Lavori casa con detrazione", TipoGruppo.Ordinario, false), // L. 90/13
-            ("1905", "Imposte e tasse", TipoGruppo.Ordinario, true),          // bollo
-            ("1906", "Imposte e tasse", TipoGruppo.Ordinario, true),          // bollo dossier titoli
-            ("1985", "Imposte e tasse", TipoGruppo.Ordinario, false),         // F24
-            ("1640", "Spese bancarie", TipoGruppo.Ordinario, false),
-            ("2210", "Spese bancarie", TipoGruppo.Ordinario, true)
-        ];
-
-        using var transazione = connessione.BeginTransaction();
-        using var comando = connessione.CreateCommand();
-        comando.Transaction = transazione;
-        comando.CommandText = """
-            INSERT INTO GruppiCausali (Causale, Gruppo, Tipo, Ricorrente)
-            VALUES ($causale, $gruppo, $tipo, $ricorrente)
-            ON CONFLICT DO NOTHING
-            """;
-        var pCausale = comando.Parameters.Add("$causale", SqliteType.Text);
-        var pGruppo = comando.Parameters.Add("$gruppo", SqliteType.Text);
-        var pTipo = comando.Parameters.Add("$tipo", SqliteType.Text);
-        var pRicorrente = comando.Parameters.Add("$ricorrente", SqliteType.Integer);
-
-        int aggiunti = 0;
-        foreach (var g in predefiniti)
-        {
-            pCausale.Value = g.Causale;
-            pGruppo.Value = g.Gruppo;
-            pTipo.Value = g.Tipo.ToString();
-            pRicorrente.Value = g.Ricorrente ? 1 : 0;
-            aggiunti += comando.ExecuteNonQuery();
-        }
-        transazione.Commit();
-
-        if (aggiunti > 0)
-            _log.Info($"Gruppi di causali predefiniti aggiunti: {aggiunti}");
-    }
-
     /// <summary>Salva i saldi delle giornate lette da un file. Una giornata già salvata viene
     /// sovrascritta: un export più recente può averla completata (per esempio la giornata in corso).</summary>
     public int SalvaSaldi(IEnumerable<SaldoGiornaliero> saldi)
@@ -440,7 +395,7 @@ public class DatabaseService
                    COALESCE(g.Gruppo, 'Altro'), COALESCE(m.TipoForzato, g.Tipo, 'Ordinario'), COALESCE(g.Ricorrente, 0),
                    m.Straordinario, m.TipoForzato IS NOT NULL, COALESCE(g.Tipo, 'Ordinario')
             FROM Movimenti m
-            LEFT JOIN GruppiCausali g ON g.Causale = m.Causale
+            LEFT JOIN GruppiEffettivi g ON g.Causale = m.Causale
             WHERE m.DataContabile BETWEEN $dal AND $al {filtroConti}
             ORDER BY m.DataContabile
             """;
@@ -482,7 +437,7 @@ public class DatabaseService
         comando.CommandText = $"""
             SELECT EXISTS (
                 SELECT 1 FROM Movimenti m
-                LEFT JOIN GruppiCausali g ON g.Causale = m.Causale
+                LEFT JOIN GruppiEffettivi g ON g.Causale = m.Causale
                 WHERE COALESCE(m.TipoForzato, g.Tipo, 'Ordinario') = 'Investimento' {filtroConti})
             """;
         return Convert.ToInt64(comando.ExecuteScalar()) == 1;
@@ -608,16 +563,10 @@ public class DatabaseService
             Conti: (int)Numero("SELECT COUNT(*) FROM Conti"),
             Causali: (int)Numero("SELECT COUNT(DISTINCT Causale) FROM Movimenti"),
             CausaliSenzaGruppo: (int)Numero(
-                "SELECT COUNT(DISTINCT Causale) FROM Movimenti WHERE Causale NOT IN (SELECT Causale FROM GruppiCausali)"),
+                "SELECT COUNT(DISTINCT Causale) FROM Movimenti WHERE Causale NOT IN (SELECT Causale FROM GruppiEffettivi)"),
             // i gruppi effettivamente usati dai movimenti, non tutti quelli predefiniti
-            Gruppi: (int)Numero("""
-                SELECT COUNT(DISTINCT g.Gruppo) FROM GruppiCausali g
-                WHERE g.Causale IN (SELECT DISTINCT Causale FROM Movimenti)
-                """),
-            GruppiInvestimento: (int)Numero("""
-                SELECT COUNT(DISTINCT g.Gruppo) FROM GruppiCausali g
-                WHERE g.Tipo = 'Investimento' AND g.Causale IN (SELECT DISTINCT Causale FROM Movimenti)
-                """),
+            Gruppi: (int)Numero("SELECT COUNT(DISTINCT Gruppo) FROM GruppiEffettivi"),
+            GruppiInvestimento: (int)Numero("SELECT COUNT(DISTINCT Gruppo) FROM GruppiEffettivi WHERE Tipo = 'Investimento'"),
             GiornateSaldo: (int)Numero("SELECT COUNT(DISTINCT Data) FROM SaldiGiornalieri"),
             Scartati: (int)Numero("SELECT COUNT(*) FROM MovimentiScartati"),
             Importazioni: (int)Numero("SELECT COUNT(*) FROM Importazioni"),
@@ -641,7 +590,7 @@ public class DatabaseService
             SELECT m.Causale, MIN(m.DescrizioneBreve), COUNT(*), SUM(m.ImportoCentesimi),
                    g.Gruppo, g.Tipo, g.Ricorrente
             FROM Movimenti m
-            LEFT JOIN GruppiCausali g ON g.Causale = m.Causale
+            LEFT JOIN GruppiEffettivi g ON g.Causale = m.Causale
             GROUP BY m.Causale
             """;
 
@@ -661,94 +610,105 @@ public class DatabaseService
         return elenco;
     }
 
-    public void SalvaGruppoCausale(string causale, string gruppo, TipoGruppo tipo, bool ricorrente)
+    /// <summary>I gruppi delle causali CBI (dal 10/11): tutte le causali dello standard, con il gruppo scelto
+    /// (null se non ne hanno), quanti movimenti hanno e il loro totale.</summary>
+    public List<RegolaCausaleCbi> RegoleCausaliCbi()
+    {
+        var regole = new Dictionary<string, (string Gruppo, TipoGruppo Tipo, bool Ricorrente)>();
+        var movimenti = new Dictionary<string, (int Numero, decimal Totale)>();
+        using var connessione = Apri();
+        using (var comando = connessione.CreateCommand())
+        {
+            comando.CommandText = "SELECT Codice, Gruppo, Tipo, Ricorrente FROM GruppiCausaliCbi";
+            using var lettore = comando.ExecuteReader();
+            while (lettore.Read())
+                regole[lettore.GetString(0)] = (lettore.GetString(1),
+                    Enum.TryParse<TipoGruppo>(lettore.GetString(2), out var tipo) ? tipo : TipoGruppo.Ordinario,
+                    lettore.GetInt64(3) == 1);
+        }
+        using (var comando = connessione.CreateCommand())
+        {
+            comando.CommandText = """
+                SELECT substr(Causale, 1, 2), COUNT(*), SUM(ImportoCentesimi)
+                FROM Movimenti GROUP BY substr(Causale, 1, 2)
+                """;
+            using var lettore = comando.ExecuteReader();
+            while (lettore.Read())
+                movimenti[lettore.GetString(0)] = (lettore.GetInt32(1), lettore.GetInt64(2) / 100m);
+        }
+
+        return CausaliCbi.Scegliibili
+            .Select(c =>
+            {
+                var (numero, totale) = movimenti.GetValueOrDefault(c.Codice);
+                return regole.TryGetValue(c.Codice, out var r)
+                    ? new RegolaCausaleCbi(c.Codice, c.Descrizione, r.Gruppo, r.Tipo, r.Ricorrente, numero, totale)
+                    : new RegolaCausaleCbi(c.Codice, c.Descrizione, null, TipoGruppo.Ordinario, false, numero, totale);
+            })
+            .ToList();
+    }
+
+    /// <summary>Il gruppo di una causale CBI; gruppo null o vuoto lo toglie (le sue causali restano senza
+    /// gruppo, e nelle analisi finiscono in "Altro").</summary>
+    public void SalvaRegolaCbi(string codice, string? gruppo, TipoGruppo tipo, bool ricorrente)
     {
         using var connessione = Apri();
         using var comando = connessione.CreateCommand();
+        if (string.IsNullOrWhiteSpace(gruppo))
+        {
+            comando.CommandText = "DELETE FROM GruppiCausaliCbi WHERE Codice = $codice";
+            comando.Parameters.AddWithValue("$codice", codice);
+            comando.ExecuteNonQuery();
+            _log.Info($"Causale CBI {codice}: nessun gruppo");
+            return;
+        }
         comando.CommandText = """
-            INSERT INTO GruppiCausali (Causale, Gruppo, Tipo, Ricorrente)
-            VALUES ($causale, $gruppo, $tipo, $ricorrente)
-            ON CONFLICT (Causale) DO UPDATE SET
+            INSERT INTO GruppiCausaliCbi (Codice, Gruppo, Tipo, Ricorrente)
+            VALUES ($codice, $gruppo, $tipo, $ricorrente)
+            ON CONFLICT (Codice) DO UPDATE SET
                 Gruppo = excluded.Gruppo, Tipo = excluded.Tipo, Ricorrente = excluded.Ricorrente
             """;
-        comando.Parameters.AddWithValue("$causale", causale);
-        comando.Parameters.AddWithValue("$gruppo", gruppo);
+        comando.Parameters.AddWithValue("$codice", codice);
+        comando.Parameters.AddWithValue("$gruppo", gruppo.Trim());
         comando.Parameters.AddWithValue("$tipo", tipo.ToString());
         comando.Parameters.AddWithValue("$ricorrente", ricorrente ? 1 : 0);
         comando.ExecuteNonQuery();
-        _log.Info($"Causale {causale}: gruppo {Mascherato.Nome("gruppo", gruppo)}, tipo {tipo}, {(ricorrente ? "ricorrente" : "variabile")}");
+        _log.Info($"Causale CBI {codice}: gruppo {Mascherato.Nome("gruppo", gruppo)}, tipo {tipo}, {(ricorrente ? "ricorrente" : "variabile")}");
     }
 
-    /// <summary>Tutta la tabella GruppiCausali, per l'esportazione: anche le causali che non hanno (ancora)
-    /// movimenti, come le predefinite, con la descrizione della banca se ci sono movimenti.</summary>
-    public List<GruppoEsportato> TuttiGruppiCausali()
+    /// <summary>Tutti i nomi di gruppo usati, per proporli nella tendina.</summary>
+    public List<string> NomiGruppi()
     {
-        var elenco = new List<GruppoEsportato>();
+        var nomi = new List<string>();
         using var connessione = Apri();
         using var comando = connessione.CreateCommand();
-        comando.CommandText = """
-            SELECT g.Causale, g.Gruppo, g.Tipo, g.Ricorrente,
-                   (SELECT MIN(m.DescrizioneBreve) FROM Movimenti m WHERE m.Causale = g.Causale)
-            FROM GruppiCausali g
-            ORDER BY g.Causale
-            """;
+        comando.CommandText = "SELECT DISTINCT Gruppo FROM GruppiCausaliCbi";
         using var lettore = comando.ExecuteReader();
-        while (lettore.Read())
-            elenco.Add(new GruppoEsportato(
-                Causale: lettore.GetString(0),
-                Gruppo: lettore.GetString(1),
-                Tipo: Enum.TryParse<TipoGruppo>(lettore.GetString(2), out var tipo) ? tipo : TipoGruppo.Ordinario,
-                Ricorrente: lettore.GetInt64(3) == 1,
-                DescrizioneBanca: lettore.IsDBNull(4) ? null : lettore.GetString(4).Trim().TrimEnd('-', ' ')));
-        return elenco;
+        while (lettore.Read()) nomi.Add(lettore.GetString(0));
+        var italiano = StringComparer.Create(CultureInfo.GetCultureInfo("it-IT"), ignoreCase: true);
+        return nomi.Distinct(italiano).Order(italiano).ToList();
     }
 
-    /// <summary>Scrive i gruppi letti da un file esportato, in un'unica transazione: una causale già presente
-    /// prende gruppo, tipo e ricorrenza del file, le altre causali della tabella restano come sono.
-    /// Restituisce quante causali erano nuove, quante sono cambiate e quante erano già uguali.</summary>
+    /// <summary>I gruppi delle causali CBI, con la descrizione dello standard, per l'esportazione.</summary>
+    public List<GruppoEsportato> TuttiGruppiCausali() =>
+        RegoleCausaliCbi().Where(r => r.Gruppo is not null)
+            .Select(r => new GruppoEsportato(r.Codice, r.Gruppo!, r.Tipo, r.Ricorrente, r.Descrizione))
+            .ToList();
+
+    /// <summary>Scrive i gruppi delle causali CBI letti da un file esportato. Restituisce quante causali erano
+    /// senza gruppo, quante sono cambiate e quante erano già uguali.</summary>
     public (int Nuove, int Cambiate, int Uguali) ImportaGruppiCausali(IReadOnlyList<GruppoEsportato> gruppi)
     {
-        var attuali = TuttiGruppiCausali().ToDictionary(g => g.Causale);
         int nuove = 0, cambiate = 0, uguali = 0;
-
-        using var connessione = Apri();
-        using var transazione = connessione.BeginTransaction();
-        using var comando = connessione.CreateCommand();
-        comando.Transaction = transazione;
-        comando.CommandText = """
-            INSERT INTO GruppiCausali (Causale, Gruppo, Tipo, Ricorrente)
-            VALUES ($causale, $gruppo, $tipo, $ricorrente)
-            ON CONFLICT (Causale) DO UPDATE SET
-                Gruppo = excluded.Gruppo, Tipo = excluded.Tipo, Ricorrente = excluded.Ricorrente
-            """;
-        var pCausale = comando.Parameters.Add("$causale", SqliteType.Text);
-        var pGruppo = comando.Parameters.Add("$gruppo", SqliteType.Text);
-        var pTipo = comando.Parameters.Add("$tipo", SqliteType.Text);
-        var pRicorrente = comando.Parameters.Add("$ricorrente", SqliteType.Integer);
-
+        var attuali = RegoleCausaliCbi().Where(r => r.Gruppo is not null).ToDictionary(r => r.Codice);
         foreach (var g in gruppi)
         {
-            if (attuali.TryGetValue(g.Causale, out var attuale))
-            {
-                if (attuale.Gruppo == g.Gruppo && attuale.Tipo == g.Tipo && attuale.Ricorrente == g.Ricorrente)
-                {
-                    uguali++;
-                    continue;
-                }
-                cambiate++;
-            }
-            else
-                nuove++;
-
-            pCausale.Value = g.Causale;
-            pGruppo.Value = g.Gruppo;
-            pTipo.Value = g.Tipo.ToString();
-            pRicorrente.Value = g.Ricorrente ? 1 : 0;
-            comando.ExecuteNonQuery();
+            if (!attuali.TryGetValue(g.Causale, out var a)) nuove++;
+            else if (a.Gruppo == g.Gruppo && a.Tipo == g.Tipo && a.Ricorrente == g.Ricorrente) { uguali++; continue; }
+            else cambiate++;
+            SalvaRegolaCbi(g.Causale, g.Gruppo, g.Tipo, g.Ricorrente);
         }
-        transazione.Commit();
-
-        _log.Info($"Gruppi di causali importati da file: {nuove} nuove, {cambiate} cambiate, {uguali} già uguali");
+        _log.Info($"Gruppi delle causali CBI importati da file: {nuove} nuovi, {cambiate} cambiati, {uguali} già uguali");
         return (nuove, cambiate, uguali);
     }
 
@@ -1241,7 +1201,6 @@ public class DatabaseService
             transazione.Commit();
         }
         _log.Info($"Causale {causale} scelta per {cambiati} movimenti importati da file Excel");
-        AssegnaGruppiDiRipiego();
         return cambiati;
     }
 

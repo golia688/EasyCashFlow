@@ -10,7 +10,8 @@
         <MudText Typo="Typo.body2">
             Il file <b>@NomeFile</b>@(EsportatoIl is { } quando ? $", esportato il {quando:dd/MM/yyyy} alle {quando:HH:mm}," : "")
             contiene i gruppi di @(Cambiano.Count + Nuove.Count + Uguali) causali. Ecco cosa cambia importandolo;
-            le causali che il file non ha restano come sono.
+            le causali CBI che il file non ha restano come sono. Un file esportato con una versione di prima ha i gruppi
+            delle causali complete: ogni causale CBI prende il gruppo più usato dalle sue causali.
         </MudText>
 
         <div class="elenco-differenze mt-3">

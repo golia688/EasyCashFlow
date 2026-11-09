@@ -37,7 +37,7 @@ public record RigaExcel(int Riga, DateOnly? DataContabile, DateOnly? DataValuta,
 /// dall'utente (dal 09/11/2026). Rispetto al file CBI mancano dei dati, e si ricavano così:
 /// - la causale, se il file non ne ha una colonna con i codici CBI, si deduce dal testo con poche regole
 ///   (POS, bonifico, prelievo, stipendio...): le prime due cifre sono la causale CBI, le altre due "XL",
-///   così il gruppo arriva da CausaliCbi.GruppoDiRipiego e si distingue dalle causali delle banche; quello
+///   così il gruppo arriva dalla causale CBI (Gruppi di causali) e si distingue dalle causali delle banche; quello
 ///   che non si riconosce ha la causale "00XL", senza gruppo, e lo classifica l'utente;
 /// - il riferimento, che con conto, data e importo fa la chiave del movimento, è "XL" più un'impronta di
 ///   data valuta, importo e descrizione: reimportare un periodo già importato non duplica i movimenti;

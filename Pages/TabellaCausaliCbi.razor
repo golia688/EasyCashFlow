@@ -1,0 +1,205 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+@inject ISnackbar Snackbar
+@inject ImpostazioniService Impostazioni
+
+@* Gruppi di causali (dal 10/11): una riga per ogni causale CBI dello standard (le prime due cifre della
+   causale, uguali per tutte le banche), con il gruppo che vale per tutti i movimenti con quel codice. All'inizio
+   si vedono solo quelle dei movimenti, se ce ne sono; l'interruttore mostra tutte le altre. *@
+<MudGrid Spacing="2" Class="mb-2">
+    <MudItem xs="12" sm="6" md="4">
+        <MudTextField T="string" @bind-Value="_testo" Label="Cerca" Placeholder="Codice, descrizione o gruppo"
+                      Immediate="true" DebounceInterval="200" Clearable="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Search))"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudSelect T="string" @bind-Value="_filtroGruppo" Label="Gruppo" Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudSelectItem T="string" Value="@Tutti">Tutti i gruppi</MudSelectItem>
+            <MudSelectItem T="string" Value="@SenzaGruppo">Senza gruppo</MudSelectItem>
+            @foreach (var g in _gruppi)
+            {
+                <MudSelectItem T="string" Value="g">@g</MudSelectItem>
+            }
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" md="5" Class="d-flex align-center">
+        <MudSwitch T="bool" @bind-Value="_soloUsate" Color="Color.Primary" Label="Solo le causali dei miei movimenti" />
+    </MudItem>
+</MudGrid>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+    @RigheFiltrate.Count() causali CBI@(_soloUsate ? " dei tuoi movimenti" : "")
+</MudText>
+
+<MudSimpleTable Dense="true" Hover="true" Elevation="0">
+    <thead>
+        <tr>
+            <th>CBI</th>
+            <th>Descrizione dello standard</th>
+            <th style="text-align: right;">Movimenti</th>
+            <th style="text-align: right;">Totale (€)</th>
+            <th>Gruppo</th>
+            <th>Tipo</th>
+            <th>Ricorrente</th>
+            <th></th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var riga in RigheFiltrate)
+        {
+            var r = riga.Originale;
+            <tr>
+                <td style="font-family: monospace;">@r.Codice</td>
+                <td>
+                    @r.Descrizione
+                    @if (r.Gruppo is null)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="ml-2">senza gruppo</MudChip>
+                    }
+                </td>
+                <td style="text-align: right;">@(r.Movimenti > 0 ? r.Movimenti.ToString("N0", Italiano) : "")</td>
+                <td style="text-align: right;">
+                    @if (r.Movimenti > 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="importo" Color="@(r.Totale < 0 ? Color.Error : Color.Success)">
+                            @r.Totale.ToString("N2", Italiano)
+                        </MudText>
+                    }
+                </td>
+                <td>
+                    <MudAutocomplete T="string" @bind-Value="riga.Gruppo" SearchFunc="CercaGruppi" CoerceValue="true"
+                                     MaxLength="60" Placeholder="senza gruppo" Clearable="true"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </td>
+                <td>
+                    <MudSelect T="TipoGruppo" @bind-Value="riga.Tipo" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Disabled="@string.IsNullOrWhiteSpace(riga.Gruppo)">
+                        @foreach (var tipo in Enum.GetValues<TipoGruppo>())
+                        {
+                            <MudSelectItem T="TipoGruppo" Value="tipo">@tipo</MudSelectItem>
+                        }
+                    </MudSelect>
+                </td>
+                <td>
+                    <MudCheckBox T="bool" @bind-Value="riga.Ricorrente" Color="Color.Primary" Disabled="@string.IsNullOrWhiteSpace(riga.Gruppo)" />
+                </td>
+                <td>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="@(!riga.Modificata)"
+                               OnClick="@(() => Salva(riga))">Salva</MudButton>
+                </td>
+                <td>
+                    @if (r.Movimenti > 0)
+                    {
+                        <MudTooltip Text="@($"Dove finisce: apre il dettaglio di {PaginaDettaglioIndicatore.Titolo(Destinazione(r))}, su tutto il periodo, filtrato sul gruppo")">
+                            <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowForward))" Size="Size.Small"
+                                           OnClick="@(() => ApriDettaglio.InvokeAsync((Destinazione(r), r.Gruppo ?? "Altro")))" />
+                        </MudTooltip>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+@if (!RigheFiltrate.Any())
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mt-3">
+        @(_soloUsate && !_righe.Any(r => r.Originale.Movimenti > 0)
+            ? "Non ci sono ancora movimenti: togli \"Solo le causali dei miei movimenti\" per vedere tutte le causali CBI e sceglierne i gruppi."
+            : "Nessuna causale CBI corrisponde ai filtri.")
+    </MudText>
+}
+
+@code {
+    private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
+    private static readonly StringComparer ConfrontoItaliano = StringComparer.Create(Italiano, ignoreCase: true);
+
+    [Parameter] public EventCallback<(Indicatore Indicatore, string Gruppo)> ApriDettaglio { get; set; }
+
+    // i valori nei campi di una riga, confrontati con quelli salvati per abilitare "Salva"
+    private class Riga(RegolaCausaleCbi originale)
+    {
+        public RegolaCausaleCbi Originale { get; } = originale;
+        public string? Gruppo { get; set; } = originale.Gruppo;
+        public TipoGruppo Tipo { get; set; } = originale.Tipo;
+        public bool Ricorrente { get; set; } = originale.Ricorrente;
+
+        public bool Modificata =>
+            (Gruppo ?? "").Trim() != (Originale.Gruppo ?? "")
+            || (!string.IsNullOrWhiteSpace(Gruppo) && (Tipo != Originale.Tipo || Ricorrente != Originale.Ricorrente));
+    }
+
+    private List<Riga> _righe = [];
+    private List<string> _gruppi = [];
+
+    // filtri, sui valori salvati: una riga che stai modificando non sparisce finché non premi Salva
+    private const string Tutti = "";
+    private const string SenzaGruppo = "\0senza";
+    private string? _testo;
+    private string _filtroGruppo = Tutti;
+    private bool _soloUsate;
+
+    private IEnumerable<Riga> RigheFiltrate => _righe.Where(riga =>
+    {
+        var r = riga.Originale;
+        var testo = _testo?.Trim();
+        return (!_soloUsate || r.Movimenti > 0)
+               && (_filtroGruppo == Tutti
+                   || (_filtroGruppo == SenzaGruppo ? r.Gruppo is null : ConfrontoItaliano.Equals(r.Gruppo, _filtroGruppo)))
+               && (string.IsNullOrEmpty(testo)
+                   || r.Codice.StartsWith(testo, StringComparison.OrdinalIgnoreCase)
+                   || r.Descrizione.Contains(testo, StringComparison.CurrentCultureIgnoreCase)
+                   || (r.Gruppo?.Contains(testo, StringComparison.CurrentCultureIgnoreCase) ?? false));
+    });
+
+    // L'indicatore in cui finiscono i movimenti della causale CBI, secondo il gruppo salvato: Investimento ->
+    // Investito netto, Giroconto -> riconciliazione del saldo, Ordinario -> Entrate o Uscite secondo il segno.
+    private static Indicatore Destinazione(RegolaCausaleCbi r) => r.Gruppo is null ? (r.Totale > 0 ? Indicatore.Entrate : Indicatore.Uscite) : r.Tipo switch
+    {
+        TipoGruppo.Investimento => Indicatore.InvestitoNetto,
+        TipoGruppo.Giroconto => Indicatore.Saldo,
+        _ => r.Totale > 0 ? Indicatore.Entrate : Indicatore.Uscite
+    };
+
+    protected override void OnInitialized()
+    {
+        Carica();
+        // con dei movimenti si parte da quelle che servono; senza, si vedono tutte per sceglierne i gruppi
+        _soloUsate = _righe.Any(r => r.Originale.Movimenti > 0);
+    }
+
+    /// <summary>Rilegge i gruppi (anche dopo un'importazione da file); le righe in modifica restano.</summary>
+    public void Carica()
+    {
+        var inCorso = _righe.Where(r => r.Modificata).ToDictionary(r => r.Originale.Codice);
+        _righe = Database.RegoleCausaliCbi()
+            .Select(r => inCorso.TryGetValue(r.Codice, out var vecchia)
+                ? new Riga(r) { Gruppo = vecchia.Gruppo, Tipo = vecchia.Tipo, Ricorrente = vecchia.Ricorrente }
+                : new Riga(r))
+            .ToList();
+        _gruppi = Database.NomiGruppi();
+        StateHasChanged();
+    }
+
+    private Task<IEnumerable<string>> CercaGruppi(string? testo, CancellationToken _) =>
+        Task.FromResult(string.IsNullOrWhiteSpace(testo)
+            ? _gruppi.AsEnumerable()
+            : _gruppi.Where(g => g.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase)));
+
+    private void Salva(Riga riga)
+    {
+        var testo = riga.Gruppo?.Trim();
+        // un gruppo già esistente scritto con maiuscole diverse prende il nome esistente: niente doppioni
+        var gruppo = string.IsNullOrEmpty(testo) ? null : _gruppi.FirstOrDefault(g => ConfrontoItaliano.Equals(g, testo)) ?? testo;
+
+        Database.SalvaRegolaCbi(riga.Originale.Codice, gruppo, riga.Tipo, riga.Ricorrente);
+        Snackbar.Add(gruppo is null
+            ? $"Causale CBI {riga.Originale.Codice}: senza gruppo. I suoi movimenti finiscono in \"Altro\"."
+            : $"Causale CBI {riga.Originale.Codice}: gruppo \"{gruppo}\".", Severity.Success);
+        riga.Gruppo = gruppo;
+        Carica();
+    }
+}
