@@ -101,7 +101,7 @@
 <MudPaper Class="pa-4 mt-4" Elevation="1">
     @if (_righe.Count == 0)
     {
-        <MudText Typo="Typo.body2">Non ci sono ancora movimenti: importa un file CBI o XML dalla sezione Movimenti.</MudText>
+        <MudText Typo="Typo.body2">Non ci sono ancora movimenti: importali dalla sezione Movimenti, con Importa movimenti.</MudText>
     }
     else
     {
@@ -143,6 +143,19 @@
                                 @c.Totale.ToString("N2", Italiano)
                             </MudText>
                         </td>
+                        @if (c.Causale == CausaliCbi.Fittizia)
+                        {
+                            @* la causale fittizia dei file Excel resta senza gruppo: un gruppo qui varrebbe per tutti
+                               i movimenti non riconosciuti, qualunque cosa siano. Si sceglie la causale di ognuno. *@
+                            <td colspan="4">
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                    Movimenti dei file Excel di cui il programma non ha riconosciuto il tipo. Non le si dà un gruppo:
+                                    in Movimenti scegli la causale giusta di ognuno, dal menu del movimento o selezionandone più di uno.
+                                </MudText>
+                            </td>
+                        }
+                        else
+                        {
                         <td>
                             <MudAutocomplete T="string" @bind-Value="riga.Gruppo" SearchFunc="CercaGruppi"
                                              CoerceValue="true" MaxLength="40" Placeholder="Altro"
@@ -164,6 +177,7 @@
                                        Disabled="@(!riga.Modificata || string.IsNullOrWhiteSpace(riga.Gruppo))"
                                        OnClick="@(() => Salva(riga))">Salva</MudButton>
                         </td>
+                        }
                         <td>
                             <MudTooltip Text="@($"Dove finisce: apre il dettaglio di {PaginaDettaglioIndicatore.Titolo(Destinazione(c))}, su tutto il periodo, filtrato sul gruppo")">
                                 <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowForward))" Size="Size.Small"

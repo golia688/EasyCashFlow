@@ -1,0 +1,632 @@
+@using System.Globalization
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+@inject ImportazioneService Importazione
+@inject ImpostazioniService Impostazioni
+
+@* Importazione di un file "Excel" della banca (dal 09/11/2026), in due passi.
+   1. L'anteprima del file, come in Excel: l'utente clicca la riga delle intestazioni delle colonne. Serve
+      perché molte banche mettono sopra la tabella logo, data, conto e saldi (BPER, per esempio), e la riga
+      trovata dal programma può essere sbagliata; il programma ne evidenzia una, da confermare.
+   2. A sinistra le colonne del file, a destra le caselle del modello del programma. L'utente trascina ogni
+      colonna nella sua casella (oppure clicca la colonna e poi la casella), sceglie il conto e vede sotto
+      l'anteprima dei movimenti. Il programma propone l'abbinamento dai nomi delle colonne.
+   Per un file con le stesse intestazioni di uno già importato si parte dal passo 2, con l'abbinamento
+   dell'ultima volta. *@
+<MudDialog>
+    <DialogContent>
+        @if (_passo == 1)
+        {
+            <MudText Typo="Typo.body2" Class="mb-1">
+                <b>@NomeFile</b> · @Tabella.Tipo · @Tabella.Righe.Count.ToString("N0") righe.
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                <b>Passo 1 di 2.</b> Clicca la riga con le <b>intestazioni delle colonne</b>, per esempio "Data", "Descrizione",
+                "Importo": sotto devono esserci i movimenti. Le righe sopra (logo, data, conto, saldi) non contano.
+            </MudText>
+            <div class="anteprima-file">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="numero"></th>
+                            @foreach (var c in _colonneDelFile)
+                            {
+                                <th>@Lettera(c)</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var r = 0; r < RigheInAnteprima; r++)
+                        {
+                            var riga = r;
+                            <tr class="@ClasseRiga(riga)" @onclick="() => _rigaScelta = riga" title="Clicca se è la riga delle intestazioni">
+                                <td class="numero">@(riga + 1)</td>
+                                @foreach (var c in _colonneDelFile)
+                                {
+                                    <td>@Corta(Tabella.Cella(riga, c))</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <MudText Typo="Typo.body2" Class="mt-3">
+                Intestazioni alla riga <b>@(_rigaScelta + 1)</b>: @RiassuntoRiga(_rigaScelta)
+            </MudText>
+            @if (!SembraIntestazione(_rigaScelta))
+            {
+                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-warning)">
+                    Sotto questa riga non ci sono date: probabilmente non è quella delle intestazioni.
+                </MudText>
+            }
+        }
+        else
+        {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            <b>@NomeFile</b> · intestazioni alla riga @(_riga + 1).
+            <b>Passo 2 di 2.</b> Trascina ogni colonna del file nella casella giusta a destra, oppure clicca la colonna e poi la casella.
+        </MudText>
+
+        @if (_ricordato)
+        {
+            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                Ho riconosciuto il file: le colonne sono abbinate come l'ultima volta. Controlla l'anteprima e premi Importa.
+            </MudAlert>
+        }
+
+        <MudGrid Spacing="2" Class="mb-1">
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" Value="_conto" ValueChanged="CambiaConto" Label="Conto" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Dense="true">
+                    @foreach (var c in _conti)
+                    {
+                        <MudSelectItem T="string" Value="@c.Codice">@c.Nome</MudSelectItem>
+                    }
+                    <MudSelectItem T="string" Value="@ContoNuovo">+ Nuovo conto…</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            @if (_conto == ContoNuovo)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_nomeNuovo" Immediate="true" Label="Nome del nuovo conto"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_ibanNuovo" Immediate="true" Label="IBAN (facoltativo)"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Error="@(ErroreIban is not null)" ErrorText="@ErroreIban" />
+                </MudItem>
+            }
+        </MudGrid>
+        @if (_movimentiCbi > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                Questo conto ha già @_movimentiCbi.ToString("N0") movimenti importati da file CBI o XML. Un file Excel non ha i
+                riferimenti della banca: i movimenti dello stesso periodo verrebbero contati due volte. Per un conto usa un solo
+                tipo di file, oppure importa dall'Excel solo i giorni che il file CBI non ha.
+            </MudAlert>
+        }
+
+        <div class="abbinamento">
+            <div>
+                <MudText Typo="Typo.subtitle2" Class="mb-1">Colonne del file</MudText>
+                @foreach (var i in _colonneUtili)
+                {
+                    var colonna = i;
+                    var usata = _colonne.Values.Any(v => v.Contains(colonna));
+                    <div class="@($"colonna-excel{(usata ? " usata" : "")}{(_selezionata == colonna ? " selezionata" : "")}")"
+                         draggable="true" title="Trascina nella casella a destra"
+                         @ondragstart="() => _trascinata = colonna" @ondragend="() => { _trascinata = null; _sopra = null; }"
+                         @onclick="() => _selezionata = _selezionata == colonna ? null : colonna">
+                        <div class="nome">@NomeColonna(colonna)</div>
+                        <div class="esempi">@Esempi(colonna)</div>
+                    </div>
+                }
+            </div>
+            <div class="freccia">
+                <MudIcon Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowForward))" Color="Color.Default" />
+            </div>
+            <div>
+                <MudText Typo="Typo.subtitle2" Class="mb-1">Modello di EasyCashFlow</MudText>
+                @foreach (var casella in Caselle)
+                {
+                    var campo = casella.Campo;
+                    var piene = _colonne.GetValueOrDefault(campo) ?? [];
+                    <div class="@($"casella-modello{(piene.Count > 0 ? " piena" : "")}{(_sopra == campo ? " sopra" : "")}")"
+                         @ondragover:preventDefault="true" @ondragover="() => _sopra = campo"
+                         @ondragleave="() => { if (_sopra == campo) _sopra = null; }"
+                         @ondrop="() => Lascia(campo)" @onclick="() => Clic(campo)">
+                        <div class="nome">
+                            @casella.Nome
+                            @if (casella.Obbligatoria)
+                            {
+                                <span class="obbligatoria">*</span>
+                            }
+                        </div>
+                        @if (piene.Count > 0)
+                        {
+                            <div>
+                                @foreach (var c in piene)
+                                {
+                                    var colonna = c;
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="ml-0 mr-1"
+                                             OnClose="() => Togli(campo, colonna)">@NomeColonna(colonna)</MudChip>
+                                }
+                            </div>
+                        }
+                        else if (casella.Aiuto is not null)
+                        {
+                            <div class="aiuto">@casella.Aiuto</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (!Abbinamento.Di(CampoExcel.Saldo).Any() && Abbinamento.Completo)
+        {
+            <MudTextField T="string" @bind-Value="_saldoFinale" Immediate="true" Class="mt-3" Style="max-width: 420px"
+                          Label="@($"Saldo del conto dopo l'ultimo movimento{(_ultimaData is { } u ? $" ({u:dd/MM/yyyy})" : "")} (facoltativo)")"
+                          HelperText="Il file non ha i saldi: con questo il programma li ricava per tutti i giorni"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Error="@(ErroreSaldo is not null)" ErrorText="@ErroreSaldo" />
+        }
+
+        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Anteprima</MudText>
+        @if (!Abbinamento.Completo)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Trascina le colonne nelle caselle con l'asterisco: data contabile, descrizione e importo (oppure uscite ed entrate).
+            </MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Elevation="0" Class="anteprima-excel">
+                <thead>
+                    <tr><th>Riga</th><th>Contabile</th><th>Valuta</th><th>Descrizione</th><th class="destra">Importo</th><th>Causale</th>
+                        @if (Abbinamento.Di(CampoExcel.Saldo).Any())
+                        {
+                            <th class="destra">Saldo</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _anteprima)
+                    {
+                        <tr>
+                            <td class="mud-text-secondary">@(r.Riga + 1)</td>
+                            @if (r.Errore is not null)
+                            {
+                                <td colspan="6" style="color: var(--mud-palette-error)">@r.Errore</td>
+                            }
+                            else
+                            {
+                                <td>@r.DataContabile?.ToString("dd/MM/yyyy")</td>
+                                <td>@r.DataValuta?.ToString("dd/MM/yyyy")</td>
+                                <td class="descrizione">@r.Descrizione</td>
+                                <td class="destra" style="@($"color: var(--mud-palette-{(r.Importo < 0 ? "error" : "success")})")">@r.Importo?.ToString("N2")</td>
+                                <td class="mud-text-secondary">@NomeCausale(r.Causale)</td>
+                                @if (Abbinamento.Di(CampoExcel.Saldo).Any())
+                                {
+                                    <td class="destra">@r.Saldo?.ToString("N2")</td>
+                                }
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+            <MudText Typo="Typo.body2" Class="mt-2" Style="@($"color: var(--mud-palette-{(_validi > 0 ? "success" : "error")})")">
+                @if (_validi > 0)
+                {
+                    <span>@_validi.ToString("N0") movimenti da importare, dal @_primaData?.ToString("dd/MM/yyyy") al @_ultimaData?.ToString("dd/MM/yyyy").</span>
+                }
+                else
+                {
+                    <span>Nessun movimento riconosciuto: controlla la riga delle intestazioni e le colonne di data e importo.</span>
+                }
+                @if (_nonValide > 0)
+                {
+                    <span style="color: var(--mud-palette-warning)"> @_nonValide.ToString("N0") righe non si possono leggere e non verranno importate.</span>
+                }
+            </MudText>
+        }
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_passo == 1)
+        {
+            <MudSpacer />
+            <MudButton Variant="Variant.Text" OnClick="() => Dialogo.Cancel()">Annulla</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Avanti">Avanti</MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Text" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowBack))"
+                       OnClick="Indietro">Indietro</MudButton>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2">@MotivoNonPronto</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Text" OnClick="() => Dialogo.Cancel()">Annulla</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(MotivoNonPronto is not null)" OnClick="Importa">Importa</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .abbinamento {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .abbinamento .freccia {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .colonna-excel, .casella-modello {
+        border-radius: 6px;
+        padding: 6px 10px;
+        margin-bottom: 6px;
+        font-size: 0.85rem;
+    }
+
+    .colonna-excel {
+        border: 1px solid var(--mud-palette-lines-inputs);
+        cursor: grab;
+        background: var(--mud-palette-surface);
+    }
+
+    .colonna-excel.usata { opacity: 0.45; }
+    .colonna-excel.selezionata { border: 2px solid var(--mud-palette-primary); }
+
+    .casella-modello {
+        border: 1px dashed var(--mud-palette-lines-inputs);
+        min-height: 40px;
+        cursor: pointer;
+    }
+
+    .casella-modello.piena {
+        border-style: solid;
+        border-color: var(--mud-palette-success);
+        background: var(--mud-palette-success-hover);
+    }
+
+    .casella-modello.sopra { background: var(--mud-palette-primary-hover); }
+    .colonna-excel .nome, .casella-modello .nome { font-weight: 600; }
+    .colonna-excel .esempi, .casella-modello .aiuto { color: var(--mud-palette-text-secondary); font-size: 0.78rem; }
+    .casella-modello .obbligatoria { color: var(--mud-palette-error); }
+    .anteprima-excel .destra { text-align: right; white-space: nowrap; }
+    .anteprima-excel .descrizione { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .anteprima-file {
+        max-height: 52vh;
+        overflow: auto;
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 6px;
+    }
+
+    .anteprima-file table { border-collapse: collapse; font-size: 0.8rem; width: max-content; min-width: 100%; }
+    .anteprima-file th, .anteprima-file td {
+        border-bottom: 1px solid var(--mud-palette-lines-default);
+        padding: 3px 8px;
+        white-space: nowrap;
+        text-align: left;
+    }
+    .anteprima-file thead th {
+        position: sticky;
+        top: 0;
+        background: var(--mud-palette-background-gray);
+        color: var(--mud-palette-text-secondary);
+        font-weight: 500;
+        z-index: 1;
+    }
+    .anteprima-file .numero { color: var(--mud-palette-text-secondary); text-align: right; }
+    .anteprima-file tbody tr { cursor: pointer; }
+    .anteprima-file tbody tr:hover { background: var(--mud-palette-action-default-hover); }
+    .anteprima-file tr.sopra td { color: var(--mud-palette-text-disabled); }
+    .anteprima-file tr.scelta td {
+        background: var(--mud-palette-primary);
+        color: var(--mud-palette-primary-text);
+        font-weight: 600;
+    }
+    .anteprima-file tr.dati td:not(.numero) { background: var(--mud-palette-primary-hover); }
+</style>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string NomeFile { get; set; } = "";
+    [Parameter, EditorRequired] public TabellaExcel Tabella { get; set; } = default!;
+
+    private const string ContoNuovo = "__nuovo__";
+
+    private record Casella(CampoExcel Campo, string Nome, bool Obbligatoria, string? Aiuto);
+
+    private static readonly Casella[] Caselle =
+    [
+        new(CampoExcel.DataContabile, "Data contabile", true, null),
+        new(CampoExcel.DataValuta, "Data valuta", false, "se vuota: uguale alla data contabile"),
+        new(CampoExcel.Descrizione, "Descrizione", true, "anche più colonne, per esempio descrizione e note"),
+        new(CampoExcel.Importo, "Importo con segno", false, "oppure Uscite ed Entrate"),
+        new(CampoExcel.Uscite, "Uscite (dare)", false, null),
+        new(CampoExcel.Entrate, "Entrate (avere)", false, null),
+        new(CampoExcel.Causale, "Causale / tipo operazione", false, "se vuota: dedotta dalla descrizione"),
+        new(CampoExcel.Saldo, "Saldo", false, "se vuota: dal saldo finale, se lo indichi")
+    ];
+
+    private List<ContoCorrente> _conti = [];
+    private string? _conto;
+    private string? _nomeNuovo;
+    private string? _ibanNuovo;
+    private string? _saldoFinale;
+    private int _movimentiCbi;
+    private bool _ricordato;
+
+    private int _passo = 1;
+    private int _rigaScelta;            // la riga cliccata al passo 1
+    private List<int> _colonneDelFile = [];   // le colonne con almeno un valore (BPER lascia vuota la A)
+    private List<int> _colonneUtili = [];     // al passo 2: con l'intestazione o dei valori sotto
+
+    private const int RigheMinime = 60;
+
+    private int _riga;
+    private Dictionary<CampoExcel, List<int>> _colonne = [];
+    private int? _trascinata;
+    private int? _selezionata;
+    private CampoExcel? _sopra;
+
+    private List<RigaExcel> _anteprima = [];
+    private int _validi, _nonValide;
+    private DateOnly? _primaData, _ultimaData;
+
+    private AbbinamentoExcel Abbinamento =>
+        new(_riga, _colonne.ToDictionary(c => c.Key, c => (IReadOnlyList<int>)c.Value));
+
+    /// <summary>Apre la finestra; null se l'utente annulla.</summary>
+    public static async Task<RichiestaExcel?> ApriAsync(IDialogService dialoghi, string nomeFile, TabellaExcel tabella)
+    {
+        var parametri = new DialogParameters<DialogoAbbinamentoExcel>
+        {
+            { d => d.NomeFile, nomeFile },
+            { d => d.Tabella, tabella }
+        };
+        var finestra = await dialoghi.ShowAsync<DialogoAbbinamentoExcel>("Importa file Excel", parametri, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            BackdropClick = false,
+            CloseOnEscapeKey = true
+        });
+        var risultato = await finestra.Result;
+        return risultato is { Canceled: false, Data: RichiestaExcel richiesta } ? richiesta : null;
+    }
+
+    protected override void OnInitialized()
+    {
+        _conti = Database.ElencoConti();
+        _colonneDelFile = Enumerable.Range(0, Tabella.Colonne)
+            .Where(c => Tabella.Righe.Any(r => c < r.Length && r[c] != "")).ToList();
+
+        if (Importazione.AbbinamentoSalvato(Tabella) is { } salvato)
+        {
+            // file già visto: si parte dalle colonne, con l'abbinamento dell'ultima volta
+            _ricordato = true;
+            _passo = 2;
+            _riga = _rigaScelta = salvato.Abbinamento.RigaIntestazioni;
+            _colonne = salvato.Abbinamento.Colonne.ToDictionary(c => c.Key, c => c.Value.ToList());
+            if (_conti.Any(c => c.Codice == salvato.Conto)) _conto = salvato.Conto;
+        }
+        else
+        {
+            _riga = _rigaScelta = ExcelParser.TrovaIntestazioni(Tabella);
+            _colonne = ExcelParser.Proponi(Tabella, _riga).Colonne.ToDictionary(c => c.Key, c => c.Value.ToList());
+        }
+        AggiornaColonneUtili();
+
+        if (_conto is null && _conti.Count == 0) _conto = ContoNuovo;
+        CambiaConto(_conto);
+        Ricalcola();
+    }
+
+    // ---- passo 1: la riga delle intestazioni ----
+
+    // almeno 60 righe, e comunque fino a qualche riga sotto quella scelta
+    private int RigheInAnteprima => Math.Min(Tabella.Righe.Count, Math.Max(RigheMinime, _rigaScelta + 15));
+
+    private string ClasseRiga(int riga) => riga == _rigaScelta ? "scelta" : riga < _rigaScelta ? "sopra" : "dati";
+
+    private static string Corta(string testo) => testo.Length > 40 ? testo[..40] + "…" : testo;
+
+    private string RiassuntoRiga(int riga)
+    {
+        var celle = Tabella.Righe[riga].Where(c => c != "").Select(c => $"\"{Corta(c)}\"").ToList();
+        return celle.Count == 0 ? "riga vuota" : string.Join(", ", celle.Take(8)) + (celle.Count > 8 ? "…" : "");
+    }
+
+    // nelle righe subito sotto c'è almeno una data
+    private bool SembraIntestazione(int riga) =>
+        Tabella.Righe.Skip(riga + 1).Take(5).Any(r => r.Any(c => ExcelParser.LeggiData(c) is not null));
+
+    private void Avanti()
+    {
+        if (_rigaScelta != _riga)
+        {
+            _riga = _rigaScelta;
+            _colonne = ExcelParser.Proponi(Tabella, _riga).Colonne.ToDictionary(c => c.Key, c => c.Value.ToList());
+            _ricordato = false;
+        }
+        AggiornaColonneUtili();
+        Ricalcola();
+        _passo = 2;
+    }
+
+    private void Indietro()
+    {
+        _rigaScelta = _riga;
+        _passo = 1;
+    }
+
+    private void AggiornaColonneUtili() =>
+        _colonneUtili = Enumerable.Range(0, Tabella.Colonne)
+            .Where(c => Tabella.Righe.Skip(_riga).Any(r => c < r.Length && r[c] != "")).ToList();
+
+    // ---- colonne e caselle ----
+
+    private string NomeColonna(int colonna)
+    {
+        var nome = Tabella.Cella(_riga, colonna);
+        return nome != "" ? nome : $"Colonna {Lettera(colonna)}";
+    }
+
+    private static string Lettera(int colonna) =>
+        colonna < 26 ? ((char)('A' + colonna)).ToString() : Lettera(colonna / 26 - 1) + (char)('A' + colonna % 26);
+
+    private string Esempi(int colonna)
+    {
+        var valori = Enumerable.Range(_riga + 1, Math.Max(0, Tabella.Righe.Count - _riga - 1))
+            .Select(r => Tabella.Cella(r, colonna)).Where(v => v != "").Take(2)
+            .Select(v => v.Length > 30 ? v[..30] + "…" : v).ToList();
+        return valori.Count > 0 ? string.Join(" · ", valori) : "(vuota)";
+    }
+
+    private void Lascia(CampoExcel campo)
+    {
+        if (_trascinata is { } colonna) Metti(campo, colonna);
+        _trascinata = null;
+        _sopra = null;
+    }
+
+    private void Clic(CampoExcel campo)
+    {
+        if (_selezionata is not { } colonna) return;
+        Metti(campo, colonna);
+        _selezionata = null;
+    }
+
+    // Una colonna va in una casella sola; la descrizione può averne più di una. Importo con segno e
+    // uscite/entrate sono alternativi.
+    private void Metti(CampoExcel campo, int colonna)
+    {
+        foreach (var lista in _colonne.Values) lista.Remove(colonna);
+        if (campo == CampoExcel.Importo) { _colonne.Remove(CampoExcel.Uscite); _colonne.Remove(CampoExcel.Entrate); }
+        if (campo is CampoExcel.Uscite or CampoExcel.Entrate) _colonne.Remove(CampoExcel.Importo);
+
+        if (campo == CampoExcel.Descrizione && _colonne.TryGetValue(campo, out var descrizione))
+            descrizione.Add(colonna);
+        else
+            _colonne[campo] = [colonna];
+
+        foreach (var vuota in _colonne.Where(c => c.Value.Count == 0).Select(c => c.Key).ToList()) _colonne.Remove(vuota);
+        _ricordato = false;
+        Ricalcola();
+    }
+
+    private void Togli(CampoExcel campo, int colonna)
+    {
+        if (_colonne.TryGetValue(campo, out var lista)) lista.Remove(colonna);
+        if (lista is { Count: 0 }) _colonne.Remove(campo);
+        _ricordato = false;
+        Ricalcola();
+    }
+
+    private void CambiaConto(string? conto)
+    {
+        _conto = conto;
+        _movimentiCbi = conto is null or ContoNuovo ? 0 : Database.ContaMovimentiNonExcel(conto);
+    }
+
+    // ---- anteprima ----
+
+    private void Ricalcola()
+    {
+        var a = Abbinamento;
+        if (!a.Completo)
+        {
+            _anteprima = [];
+            _validi = _nonValide = 0;
+            _primaData = _ultimaData = null;
+            return;
+        }
+
+        var righe = ExcelParser.Righe(Tabella, a).Where(r => !r.Ignorata).ToList();
+        var valide = righe.Where(r => r.Errore is null).ToList();
+        _validi = valide.Count;
+        _nonValide = righe.Count - valide.Count;
+        _primaData = valide.Count > 0 ? valide.Min(r => r.DataContabile) : null;
+        _ultimaData = valide.Count > 0 ? valide.Max(r => r.DataContabile) : null;
+
+        // le prime righe, più le prime righe non valide se ce ne sono più avanti
+        _anteprima = righe.Take(6).Concat(righe.Skip(6).Where(r => r.Errore is not null).Take(3)).ToList();
+    }
+
+    private static string NomeCausale(string causale)
+    {
+        if (causale == ExcelParser.CausaleSconosciuta) return "da classificare";
+        var descrizione = CausaliCbi.Descrizione(causale);
+        if (descrizione is null) return causale;
+        return descrizione.Length > 32 ? descrizione[..32] + "…" : descrizione;
+    }
+
+    // ---- conferma ----
+
+    private string? ErroreIban
+    {
+        get
+        {
+            var iban = Iban;
+            if (iban == "") return null;
+            return iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban) ? null
+                : "Non è un IBAN italiano valido: lascialo vuoto se non lo sai";
+        }
+    }
+
+    private string Iban => (_ibanNuovo ?? "").Replace(" ", "").ToUpperInvariant();
+
+    private decimal? SaldoFinale => string.IsNullOrWhiteSpace(_saldoFinale) ? null : ExcelParser.LeggiImporto(_saldoFinale);
+
+    private string? ErroreSaldo => !string.IsNullOrWhiteSpace(_saldoFinale) && SaldoFinale is null
+        ? "Scrivi un importo, per esempio 1.234,56 o -50,00" : null;
+
+    private string? MotivoNonPronto =>
+        _conto is null ? "Scegli il conto" :
+        _conto == ContoNuovo && string.IsNullOrWhiteSpace(_nomeNuovo) ? "Scrivi il nome del nuovo conto" :
+        _conto == ContoNuovo && ErroreIban is not null ? "Correggi l'IBAN" :
+        !Abbinamento.Completo ? "Riempi le caselle con l'asterisco" :
+        _validi == 0 ? "Nessun movimento da importare" :
+        ErroreSaldo is not null ? "Correggi il saldo" : null;
+
+    private void Importa()
+    {
+        if (MotivoNonPronto is not null) return;
+
+        ContoCorrente conto;
+        bool nuovo;
+        if (_conto == ContoNuovo)
+        {
+            var iban = Iban;
+            var codice = iban != "" ? iban[5..] : NuovoCodice();
+            var esistente = _conti.FirstOrDefault(c => c.Codice == codice);
+            nuovo = esistente is null;
+            conto = esistente ?? new ContoCorrente(codice, iban, iban != "" ? iban[5..10] : "", "EUR", _nomeNuovo!.Trim());
+        }
+        else
+        {
+            conto = _conti.First(c => c.Codice == _conto);
+            nuovo = false;
+        }
+
+        Dialogo.Close(DialogResult.Ok(new RichiestaExcel(Tabella, Abbinamento, conto, nuovo, SaldoFinale)));
+    }
+
+    // un conto senza IBAN: "EXCEL001", "EXCEL002"...
+    private string NuovoCodice()
+    {
+        for (var n = 1; ; n++)
+        {
+            var codice = $"EXCEL{n:000}";
+            if (_conti.All(c => c.Codice != codice)) return codice;
+        }
+    }
+}

@@ -105,9 +105,16 @@ programma li legge entrambi:
  - file XML CBI: .xml, con gli stessi movimenti e qualche informazione
    in piu', per esempio chi ti ha fatto un bonifico (standard
    STRN-MO-001, "Rendicontazioni XML", su ISO 20022 camt.053).
-Puoi usarli anche alternati: i movimenti non si duplicano. Il formato
-Excel invece non va bene: non ha causali, riferimenti e saldi. Il
+Puoi usarli anche alternati: i movimenti non si duplicano. Il
 manuale spiega cosa cercare (capitolo "Scaricare l'export dalla banca").
+
+Se la tua banca fa esportare i movimenti solo in Excel, puoi importare
+anche quello: il programma apre una finestra in cui trascini ogni
+colonna del file nella casella giusta (data, descrizione, importo...),
+e la volta dopo se lo ricorda. Al file Excel mancano la causale, che il
+programma ricava dalla descrizione, e spesso i saldi. Per lo stesso
+conto usa sempre lo stesso tipo di file: CBI ed Excel insieme
+duplicherebbero i movimenti (capitolo "Importare un file Excel").
 
 EasyCashFlow e' compatibile al 100% con Relax Banking, l'Home Banking
 del gruppo Iccrea: e' stato provato sui file veri, di testo e XML. In
@@ -229,8 +236,9 @@ ATTENZIONE: i dati attuali vengono sostituiti da quelli della copia.
 
  * L'importazione dice che il file non sembra un export CBI
    Il file scaricato non e' nel formato giusto: in home banking scegli il
-   formato CBI ("Saldi e movimenti"), di testo o XML, non PDF, Excel
-   o CSV.
+   formato CBI ("Saldi e movimenti"), di testo o XML, oppure Excel; non
+   il PDF. Un file del vecchio Excel 97-2003 va aperto con Excel e
+   salvato come .xlsx.
 
  * L'importazione mostra degli avvisi
    Non e' un errore: il programma segnala qualcosa di strano nel file.

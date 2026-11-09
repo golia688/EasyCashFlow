@@ -42,8 +42,10 @@
                 </MudButton>
             }
             <MudSpacer />
-            <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))"
-                       OnClick="Importa">Importa file CBI o XML</MudButton>
+            <MudTooltip Text="@ImportazioneService.FormatiAccettati">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))"
+                           OnClick="Importa">@ImportazioneService.NomePulsante</MudButton>
+            </MudTooltip>
         </Pulsanti>
     </PannelloFiltriMovimenti>
 </MudPaper>
@@ -77,14 +79,15 @@
                 <MenuMovimento Straordinario="context.Item.Straordinario" TipoForzato="context.Item.TipoForzato"
                                TipoDelGruppo="@_tipiDelGruppo.GetValueOrDefault(context.Item.Causale)"
                                CambiaStraordinario="@(v => CambiaStraordinario(context.Item, v))"
-                               CambiaTipo="@(t => CambiaTipo(context.Item, t))" />
+                               CambiaTipo="@(t => CambiaTipo(context.Item, t))"
+                               Causale="@context.Item.Causale" CambiaCausale="@(() => ScegliCausale([context.Item]))" />
             </CellTemplate>
         </TemplateColumn>
     </Columns>
     <NoRecordsContent>
         <MudText Class="pa-4">
-            Nessun movimento da mostrare. Importa un file CBI di testo o XML con il pulsante "Importa file CBI o XML"
-            oppure dal menu Dati > Importa file CBI o XML.
+            Nessun movimento da mostrare. Importa un file CBI (testo o XML) o un file Excel con il pulsante "Importa movimenti"
+            oppure dal menu Dati > Importa movimenti.
         </MudText>
     </NoRecordsContent>
     <PagerContent>
@@ -95,7 +98,9 @@
 </MudDataGrid>
 
 <BarraSelezione Importi="@_selezionati.Select(m => m.Importo).ToList()" OnDeseleziona="Deseleziona"
-                OnStraordinari="StraordinariSelezionati" />
+                OnStraordinari="StraordinariSelezionati"
+                MovimentiExcel="@_selezionati.Count(m => CausaliCbi.DaExcel(m.Causale))"
+                OnCausale="@(() => ScegliCausale(_selezionati.ToList()))" />
 
 @code {
     private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
@@ -242,6 +247,23 @@
     private async Task CambiaTipo(MovimentoCbi movimento, TipoGruppo? tipo)
     {
         Database.ImpostaTipoForzato(movimento.Chiave, tipo);
+        if (_griglia is not null) await _griglia.ReloadServerData();
+    }
+
+    // La causale di movimenti importati da un file Excel (dal menu del movimento o dalla barra di selezione):
+    // quelli dei file CBI e XML restano come sono. Poi si ricaricano i tipi dei gruppi, perché la nuova
+    // causale può aver ricevuto un gruppo.
+    private async Task ScegliCausale(IReadOnlyCollection<MovimentoCbi> movimenti)
+    {
+        var excel = movimenti.Where(m => CausaliCbi.DaExcel(m.Causale)).ToList();
+        if (excel.Count == 0) return;
+
+        var attuale = excel.Select(m => m.Causale).Distinct().Count() == 1 ? excel[0].Causale : CausaliCbi.Fittizia;
+        if (await DialogoCausaleExcel.ApriAsync(Dialoghi, excel.Count, attuale) is not { } causale) return;
+
+        Database.ImpostaCausaleExcel(excel.Select(m => m.Chiave), causale);
+        _tipiDelGruppo = Database.ElencoGruppiCausali().Where(g => g.Gruppo is not null)
+                                 .ToDictionary(g => g.Causale, g => g.Tipo);
         if (_griglia is not null) await _griglia.ReloadServerData();
     }
 

@@ -1,0 +1,73 @@
+@using MudBlazor
+@using EasyCashFlow.Models
+
+@* La causale di uno o più movimenti importati da un file Excel (dal 09/11): il programma l'ha dedotta dalla
+   descrizione, oppure, se non ha riconosciuto il tipo, ha messo la causale fittizia 00XL senza gruppo.
+   L'utente sceglie la causale CBI giusta; il movimento prende quel codice con "XL" in fondo, e il gruppo
+   proposto per quella causale. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            @(Quanti == 1 ? "Il movimento viene" : $"I {Quanti} movimenti vengono") da un file Excel, che non ha la causale:
+            @(CausaleAttuale == CausaliCbi.Fittizia
+                ? "il programma non ne ha riconosciuto il tipo e ha messo la causale fittizia 00XL, senza gruppo."
+                : "il programma l'ha dedotta dalla descrizione.")
+            Scegli quella giusta: il gruppo arriva con lei, e lo puoi cambiare in Gruppi di causali.
+        </MudText>
+        <MudAutocomplete T="string" @bind-Value="_scelta" SearchFunc="Cerca" ToStringFunc="Testo"
+                         Label="Causale" Placeholder="Scrivi per cercare, per esempio bonifico, POS, utenze"
+                         Variant="Variant.Outlined" Margin="Margin.Dense" MaxItems="null" Clearable="true"
+                         ResetValueOnEmptyText="true" AutoFocus="true" />
+        @if (_scelta is { } codice)
+        {
+            <MudText Typo="Typo.body2" Class="mt-3 mud-text-secondary">
+                Nuova causale <b>@(codice)XL</b> ·
+                @(CausaliCbi.GruppoDiRipiego(codice) is { } g
+                    ? $"gruppo proposto: {g.Gruppo}"
+                    : "nessun gruppo proposto: lo scegli in Gruppi di causali")
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="() => Dialogo.Cancel()">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_scelta is null)"
+                   OnClick="() => Dialogo.Close(DialogResult.Ok(_scelta + ExcelSuffisso))">Applica</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter] public int Quanti { get; set; } = 1;
+    [Parameter] public string CausaleAttuale { get; set; } = CausaliCbi.Fittizia;
+
+    private const string ExcelSuffisso = "XL";
+    private string? _scelta;
+
+    /// <summary>Apre la finestra; restituisce la nuova causale (codice CBI + "XL") o null se l'utente annulla.</summary>
+    public static async Task<string?> ApriAsync(IDialogService dialoghi, int quanti, string causaleAttuale)
+    {
+        var parametri = new DialogParameters<DialogoCausaleExcel>
+        {
+            { d => d.Quanti, quanti },
+            { d => d.CausaleAttuale, causaleAttuale }
+        };
+        var finestra = await dialoghi.ShowAsync<DialogoCausaleExcel>("Scegli la causale", parametri,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var risultato = await finestra.Result;
+        return risultato is { Canceled: false, Data: string causale } ? causale : null;
+    }
+
+    private static string Testo(string? codice) =>
+        codice is null ? "" : $"{codice} · {CausaliCbi.Descrizione(codice)}";
+
+    private Task<IEnumerable<string>> Cerca(string? testo, CancellationToken _)
+    {
+        var elenco = CausaliCbi.Scegliibili.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(testo))
+            elenco = elenco.Where(c => c.Codice.StartsWith(testo.Trim(), StringComparison.OrdinalIgnoreCase)
+                                       || c.Descrizione.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase)
+                                       || (CausaliCbi.GruppoDiRipiego(c.Codice)?.Gruppo.Contains(testo.Trim(), StringComparison.CurrentCultureIgnoreCase) ?? false));
+        return Task.FromResult(elenco.Select(c => c.Codice));
+    }
+}

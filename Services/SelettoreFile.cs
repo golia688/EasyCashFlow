@@ -18,8 +18,10 @@ public class SelettoreFile
     {
         var dialogo = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Importa file CBI o XML",
-            Filter = "File CBI di testo o XML (*.txt;*.cbi;*.xml)|*.txt;*.cbi;*.xml|Tutti i file (*.*)|*.*"
+            Title = "Importa file CBI, XML o Excel",
+            Filter = "File CBI, XML o Excel (*.txt;*.cbi;*.xml;*.xlsx;*.xls;*.csv)|*.txt;*.cbi;*.xml;*.xlsx;*.xls;*.csv|" +
+                     "File CBI di testo o XML (*.txt;*.cbi;*.xml)|*.txt;*.cbi;*.xml|" +
+                     "File Excel (*.xlsx;*.xls;*.csv)|*.xlsx;*.xls;*.csv|Tutti i file (*.*)|*.*"
         };
         return dialogo.ShowDialog(Application.Current.MainWindow) == true ? dialogo.FileName : null;
     });

@@ -4,8 +4,15 @@
 @inject ImpostazioniService Impostazioni
 
 @* Etichette e menu di un singolo movimento: "straordinario" e il tipo scelto al posto di quello del
-   gruppo. Usato nella griglia Movimenti e nelle tabelle di dettaglio delle analisi. *@
+   gruppo. Usato nella griglia Movimenti e nelle tabelle di dettaglio delle analisi. Nella griglia Movimenti,
+   per un movimento importato da un file Excel, anche "causale fittizia" e la scelta della causale. *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.FlexEnd">
+    @if (Causale == CausaliCbi.Fittizia)
+    {
+        <MudTooltip Text="Il programma non ha riconosciuto il tipo di questo movimento del file Excel: ha la causale fittizia 00XL e nessun gruppo. Scegli la causale giusta dal menu ⋮.">
+            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">causale fittizia</MudChip>
+        </MudTooltip>
+    }
     @if (Straordinario)
     {
         <MudTooltip Text="Movimento straordinario: non si ripeterà. Si può escludere da analisi e simulazione.">
@@ -20,6 +27,12 @@
     }
     <MudMenu Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.MoreVert))" Size="Size.Small" Dense="true"
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" title="Straordinario e tipo del movimento">
+        @if (CambiaCausale.HasDelegate && Causale is { } causale && CausaliCbi.DaExcel(causale))
+        {
+            <MudMenuItem Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Label))" OnClick="() => CambiaCausale.InvokeAsync()">
+                Scegli la causale…
+            </MudMenuItem>
+        }
         <MudMenuItem Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Flag))"
                      OnClick="() => CambiaStraordinario.InvokeAsync(!Straordinario)">
             @(Straordinario ? "Non è straordinario" : "Segna come straordinario")
@@ -42,6 +55,11 @@
     [Parameter] public TipoGruppo TipoDelGruppo { get; set; }
     [Parameter] public EventCallback<bool> CambiaStraordinario { get; set; }
     [Parameter] public EventCallback<TipoGruppo?> CambiaTipo { get; set; }
+
+    /// <summary>La causale del movimento: se è di un file Excel (finisce con "XL") e c'è CambiaCausale, il
+    /// menu offre di sceglierla; la causale fittizia ha la sua etichetta.</summary>
+    [Parameter] public string? Causale { get; set; }
+    [Parameter] public EventCallback CambiaCausale { get; set; }
 
     // la voce scelta ha la spunta
     private string? Spunta(bool scelta) => scelta ? Impostazioni.Icona(nameof(Icons.Material.Filled.Check)) : null;

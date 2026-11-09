@@ -30,6 +30,15 @@
 
             <MudSpacer />
 
+            @if (OnCausale.HasDelegate && MovimentiExcel > 0)
+            {
+                <MudTooltip Text="@($"Sceglie la causale dei {MovimentiExcel} movimenti selezionati importati da file Excel; gli altri restano come sono")">
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                               StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Label))"
+                               OnClick="() => OnCausale.InvokeAsync()">Scegli la causale</MudButton>
+                </MudTooltip>
+            }
+
             @if (OnStraordinari.HasDelegate)
             {
                 <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Warning"
@@ -56,6 +65,11 @@
 
     /// <summary>Se presente, la barra offre di segnare le righe selezionate come straordinarie (true) o no (false).</summary>
     [Parameter] public EventCallback<bool> OnStraordinari { get; set; }
+
+    /// <summary>Se presente e tra le righe selezionate ci sono movimenti di file Excel (MovimentiExcel), la
+    /// barra offre di sceglierne la causale.</summary>
+    [Parameter] public EventCallback OnCausale { get; set; }
+    [Parameter] public int MovimentiExcel { get; set; }
 
     private decimal Entrate => Importi.Where(i => i > 0).Sum();
     private decimal Uscite => Importi.Where(i => i < 0).Sum();

@@ -1220,6 +1220,53 @@ public class DatabaseService
         return elenco.OrderBy(c => c.Descrizione, italiano).ThenBy(c => c.Causale).ToList();
     }
 
+    /// <summary>Cambia la causale di movimenti importati da un file Excel (riferimento "XL...", dal 09/11): la
+    /// causale l'ha dedotta il programma, e l'utente sceglie quella giusta, di solito per i movimenti con la
+    /// causale fittizia. I movimenti dei file CBI e XML hanno la causale della banca e non si toccano. Le
+    /// causali nuove ricevono il gruppo proposto dalla causale CBI. Restituisce quanti movimenti sono cambiati.
+    /// Reimportare lo stesso file non riporta la causale dedotta: per questi movimenti una causale diversa non
+    /// è un contenuto diverso (HaContenutoDiverso).</summary>
+    public int ImpostaCausaleExcel(IEnumerable<ChiaveMovimento> movimenti, string causale)
+    {
+        var cambiati = 0;
+        using (var connessione = Apri())
+        using (var transazione = connessione.BeginTransaction())
+        {
+            using var comando = ComandoSuMovimento(connessione, transazione,
+                "UPDATE Movimenti SET Causale = $causale");
+            comando.CommandText += " AND Riferimento LIKE 'XL%'";
+            comando.Parameters.AddWithValue("$causale", causale);
+            foreach (var m in movimenti)
+                cambiati += EseguiSuMovimento(comando, m);
+            transazione.Commit();
+        }
+        _log.Info($"Causale {causale} scelta per {cambiati} movimenti importati da file Excel");
+        AssegnaGruppiDiRipiego();
+        return cambiati;
+    }
+
+    /// <summary>Quanti movimenti di un conto vengono da file CBI o XML e non da un file Excel (il cui
+    /// riferimento comincia con "XL", ExcelParser): servono ad avvisare che i due tipi di file per lo stesso
+    /// conto duplicano i movimenti.</summary>
+    public int ContaMovimentiNonExcel(string conto)
+    {
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        comando.CommandText = "SELECT COUNT(*) FROM Movimenti WHERE Conto = $conto AND Riferimento NOT LIKE 'XL%'";
+        comando.Parameters.AddWithValue("$conto", conto);
+        return Convert.ToInt32(comando.ExecuteScalar());
+    }
+
+    /// <summary>Quanti movimenti di un conto vengono da un file Excel.</summary>
+    public int ContaMovimentiExcel(string conto)
+    {
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        comando.CommandText = "SELECT COUNT(*) FROM Movimenti WHERE Conto = $conto AND Riferimento LIKE 'XL%'";
+        comando.Parameters.AddWithValue("$conto", conto);
+        return Convert.ToInt32(comando.ExecuteScalar());
+    }
+
     /// <summary>Numero di righe nella tabella degli scarti.</summary>
     public int ContaScarti()
     {
@@ -1458,7 +1505,8 @@ public class DatabaseService
             SELECT 1 FROM Movimenti
             WHERE Conto = $conto AND DataContabile = $dataContabile
               AND Riferimento = $riferimento AND ImportoCentesimi = $importo
-              AND (DataValuta <> $dataValuta OR Causale <> $causale)
+              AND (DataValuta <> $dataValuta
+                   OR (Causale <> $causale AND Riferimento NOT LIKE 'XL%'))
             LIMIT 1
             """;
         comando.Parameters.AddWithValue("$conto", m.Conto);

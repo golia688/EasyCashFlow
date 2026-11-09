@@ -11,6 +11,8 @@ I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **moviment
 
 Il programma riconosce da solo il formato, e i due si possono alternare: lo stesso movimento non si duplica.
 
+Se la banca fa esportare i movimenti **solo in Excel**, si importa anche quello: in una finestra si trascina ogni colonna del file nella casella giusta del modello del programma (data, descrizione, importo…), e l'abbinamento resta ricordato per i file successivi della stessa banca. La causale, che l'Excel non ha, si ricava dalla descrizione.
+
 > **Compatibile al 100% con Relax Banking** (Home Banking del gruppo Iccrea): provato sui file veri, di testo e XML, che si importano con tutti i movimenti, le causali e i saldi, senza avvisi; i due formati danno esattamente gli stessi movimenti.
 
 Siccome i file CBI sono uguali per tutte le banche, EasyCashFlow è anche un **aggregatore**: si importano i movimenti di più conti, anche in banche diverse, e li si analizza uno alla volta o tutti insieme, come se fossero un conto solo.
@@ -24,6 +26,7 @@ Funziona **senza internet e senza account**: è portable (si avvia da una cartel
 ## Cosa fa
 
 - **Importazione CBI**, del file di testo secondo la specifica CBI-RND-001 e del file **XML** secondo la STRN-MO-001 (ISO 20022 camt.053), anche alternati per gli stessi giorni: controlli formali sul file (un file che non è un export CBI si rifiuta senza salvare niente), quadratura e continuità dei saldi, deduplica dei movimenti già importati, riepilogo dell'importazione con gli avvisi raggruppati.
+- **Importazione Excel** dell'elenco dei movimenti di qualsiasi banca (`.xlsx`, `.csv`, oppure `.xls` che sono testo o pagine HTML), con l'abbinamento delle colonne per trascinamento, la causale CBI ricavata dalla descrizione, i saldi dalla colonna del saldo o dal saldo finale, e l'abbinamento ricordato per i file successivi.
 - **Più conti e più banche**: ogni conto si riconosce da solo dal file; Home, Movimenti e Analisi lavorano su un conto, su alcuni o su tutti. Le **causali CBI** (comuni a tutte le banche) danno un gruppo anche alle causali di una banca nuova.
 - **Analisi**: entrate, uscite, flusso netto, tasso di risparmio, investito netto e saldo, con il dettaglio di ogni indicatore; grafici per mese e per gruppo di causali, spese ricorrenti e variabili, flusso cumulato, movimenti straordinari escludibili.
 - **Simulazione del saldo** nei mesi futuri, **grafico personalizzato** dei movimenti scelti e **report Excel** con formule e grafici.

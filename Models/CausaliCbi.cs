@@ -11,9 +11,30 @@ public static class CausaliCbi
     /// <summary>La causale CBI di una causale a 4 caratteri (null se è più corta).</summary>
     public static string? Di(string causale) => causale.Length >= 2 ? causale[..2] : null;
 
+    /// <summary>La causale fittizia dei movimenti di un file Excel di cui il programma non riconosce il tipo
+    /// (dal 09/11): non è una causale CBI e non ha gruppo. L'utente sceglie per ogni movimento la causale
+    /// vera (Movimenti, menu del movimento o barra di selezione).</summary>
+    public const string Fittizia = "00XL";
+
+    /// <summary>Le causali dei movimenti dei file Excel finiscono con "XL" (ExcelParser): sono dedotte dal
+    /// programma, non date dalla banca, e l'utente le può cambiare.</summary>
+    public static bool DaExcel(string causale) => causale.EndsWith("XL", StringComparison.Ordinal) && causale.Length == 4;
+
     /// <summary>Descrizione della causale CBI secondo lo standard, o null se il codice non è nella tabella.</summary>
     public static string? Descrizione(string causale) =>
+        causale == Fittizia ? "Causale fittizia: tipo non riconosciuto nel file Excel" :
         Di(causale) is { } cbi && Descrizioni.TryGetValue(cbi, out var testo) ? testo : null;
+
+    /// <summary>Le causali CBI che l'utente può scegliere per un movimento di un file Excel, in ordine di
+    /// descrizione: senza i codici "per accordo tra le parti" e senza il saldo.</summary>
+    // calcolato al primo uso: un inizializzatore qui girerebbe prima di quello di Descrizioni, più sotto
+    public static IReadOnlyList<(string Codice, string Descrizione)> Scegliibili => _scegliibili ??=
+        Descrizioni.Where(d => !d.Value.StartsWith("Valore ammesso") && d.Key != "62")
+                   .Select(d => (d.Key, d.Value))
+                   .OrderBy(d => d.Value, StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("it-IT"), true))
+                   .ToList();
+
+    private static List<(string Codice, string Descrizione)>? _scegliibili;
 
     // CBI-STD-001 6.10, Appendice B "Tabella causali CBI": tutti i codici, nell'ordine della tabella
     private static readonly Dictionary<string, string> Descrizioni = new()

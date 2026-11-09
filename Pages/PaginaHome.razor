@@ -43,11 +43,12 @@
             Tre passi per avere movimenti e analisi pronti. Ognuno si segna come fatto da solo.
         </MudText>
 
-        @Passo(1, "Importa il primo file CBI o XML",
-            "Scarica dall'home banking l'export \"Saldi e movimenti\" in formato CBI, di testo o XML, e importalo. "
+        @Passo(1, "Importa i primi movimenti",
+            "Scarica dall'home banking i movimenti del conto, in formato CBI (testo o XML) o in formato Excel, e importali. "
             + "Puoi importare più file, anche con periodi sovrapposti: i movimenti già presenti non si duplicano.",
             _ciSonoMovimenti, _ciSonoMovimenti ? "Movimenti importati" : null,
-            "Importa file CBI o XML", Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile)), Importa)
+            ImportazioneService.NomePulsante, Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile)), Importa,
+            ImportazioneService.FormatiAccettati)
 
         @Passo(2, "Dai un nome ai conti",
             "Ogni conto si registra da solo con un nome provvisorio, come \"ABI 12345 - c/c ...6789\". "
@@ -225,8 +226,10 @@
                         </MudText>
                     }
                 }
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3"
-                           StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))" OnClick="Importa">Importa file CBI o XML</MudButton>
+                <MudTooltip Text="@ImportazioneService.FormatiAccettati">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-3"
+                               StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.UploadFile))" OnClick="Importa">@ImportazioneService.NomePulsante</MudButton>
+                </MudTooltip>
             </MudPaper>
         </MudItem>
 
@@ -544,7 +547,7 @@
 
     // Un passo della guida: numero (o spunta se fatto), titolo, spiegazione, stato e pulsante.
     private RenderFragment Passo(int numero, string titolo, string spiegazione, bool fatto, string? stato,
-                                 string testoPulsante, string icona, Func<Task> azione) =>
+                                 string testoPulsante, string icona, Func<Task> azione, string? tooltip = null) =>
         @<div class="passo">
             <div class="numero-passo @(fatto ? "fatto" : null)">
                 @if (fatto)
@@ -564,7 +567,9 @@
                     <MudText Typo="Typo.body2" Color="@(fatto ? Color.Success : Color.Warning)" Class="mt-1">@stato</MudText>
                 }
             </div>
-            <MudButton Variant="@(fatto ? Variant.Text : Variant.Outlined)" Color="Color.Primary" StartIcon="@icona"
-                       OnClick="azione">@testoPulsante</MudButton>
+            <MudTooltip Text="@tooltip" Disabled="@(tooltip is null)">
+                <MudButton Variant="@(fatto ? Variant.Text : Variant.Outlined)" Color="Color.Primary" StartIcon="@icona"
+                           OnClick="azione">@testoPulsante</MudButton>
+            </MudTooltip>
         </div>;
 }

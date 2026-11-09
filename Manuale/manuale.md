@@ -133,17 +133,17 @@ Alcuni consigli:
 
 Non serve aprire il file che scarichi: il Blocco note serve solo, se vuoi, a capire quale dei due formati hai.
 
-**Il formato Excel non va bene** (e nemmeno PDF o CSV). Molte banche offrono anche l'export in Excel: è comodo da guardare, ma contiene solo date, importo e descrizione. Mancano la causale (che serve a raggruppare i movimenti), il riferimento della banca (che serve a riconoscere i movimenti già importati) e i saldi. Se lo scegli, il programma te lo dice e non importa niente.
+**Se la tua banca non dà il file CBI.** Molte banche fanno esportare i movimenti solo in **Excel**. Anche quello si può importare, con un passaggio in più: gli dici tu cosa c'è in ogni colonna. Lo spiega il capitolo [Importare un file Excel](cap:excel). Quando la banca offre il file CBI, però, sceglilo: è più completo, perché ha la causale, il riferimento della banca e i saldi di ogni giorno. Il PDF non va mai bene.
 
 ## Importare i movimenti {#importare}
 
 Per importare un file:
 
 1. vai in [Movimenti](app:movimenti);
-2. premi **Importa file CBI o XML** (oppure usa il menu **Dati > Importa file CBI o XML**);
-3. scegli il file scaricato dalla banca, il file di testo CBI o il file XML: il programma riconosce da solo il formato.
+2. premi **Importa movimenti** (oppure usa il menu **Dati > Importa movimenti**); passando sopra il pulsante, un suggerimento ricorda i formati che vanno bene: CBI (testo o XML) o Excel;
+3. scegli il file scaricato dalla banca, il file di testo CBI o il file XML: il programma riconosce da solo il formato. Se è un file Excel, prima si apre la finestra per abbinare le colonne, descritta nel capitolo [Importare un file Excel](cap:excel).
 
-Si apre la finestra **Importa file CBI o XML**: mentre il programma legge il file vedi una barra che scorre, e dopo pochi secondi un riepilogo in tabella. Ecco cosa vogliono dire le righe:
+Si apre la finestra **Importa movimenti**: mentre il programma legge il file vedi una barra che scorre, e dopo pochi secondi un riepilogo in tabella. Ecco cosa vogliono dire le righe:
 
 - **Giornate nel file**: quanti giorni copre il file, dal primo all'ultimo.
 - **Movimenti nel file**: quanti movimenti contiene.
@@ -155,13 +155,54 @@ Si apre la finestra **Importa file CBI o XML**: mentre il programma legge il fil
 
 Gli **avvisi** sono sotto la tabella, raggruppati per tipo: per esempio "3 × il saldo iniziale non coincide…". Clicca su un avviso per vedere le date in cui capita. Un avviso non vuol dire che qualcosa si è rotto: il programma ti segnala una cosa strana nel file, e i movimenti letti sono stati importati comunque. L'avviso più comune riguarda le [operazioni non ancora contabilizzate](cap:domande). Altri dicono, per esempio, che i saldi di due giorni non si collegano (potrebbero mancare dei movimenti) o che il file sembra tagliato.
 
-**Se scegli il file sbagliato** (un PDF, un file Excel, un'immagine, un altro tipo di file CBI, un file XML che non è quello dei movimenti secondo lo standard CBI) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
+**Se scegli il file sbagliato** (un PDF, un'immagine, un altro tipo di file CBI, un file XML che non è quello dei movimenti secondo lo standard CBI) il programma se ne accorge prima di leggere i movimenti: la finestra lo dice in rosso, con il motivo, e **non salva niente**. Lo stesso se il file è rovinato. Un file tagliato a metà, invece, si importa con l'avviso che manca la fine: i movimenti che contiene sono veri, e quelli mancanti arriveranno con l'export successivo.
 
 Il pulsante **Apri il log** apre il file in cui il programma scrive cosa ha fatto: serve se devi segnalare un problema. **Chiudi** chiude la finestra.
 
 Alcuni movimenti già presenti possono ricevere una **descrizione più completa**: succede se importi l'XML degli stessi giorni di un file di testo già importato, o se importi di nuovo un file che avevi caricato con una versione precedente del programma. Il riepilogo te lo dice. I movimenti non vengono duplicati, e una descrizione non diventa mai meno completa.
 
 L'ultima importazione è riassunta anche nella [Home](app:home).
+
+## Importare un file Excel {#excel}
+
+Se la tua banca fa esportare i movimenti solo in Excel, puoi importare quel file. Si importa come gli altri (**Importa movimenti**, poi scegli il file): il programma si accorge che è un Excel e apre la finestra **Importa file Excel**, in cui gli spieghi dov'è la tabella e cosa c'è in ogni colonna. Ogni banca fa l'Excel a modo suo, e questo è l'unico modo per leggerli tutti. Si fa in due passi.
+
+**Passo 1: dov'è la tabella.** Molte banche mettono sopra la tabella dei movimenti il logo, la data, il conto, i saldi. La finestra mostra il file come in Excel, con le righe numerate: **clicca la riga con le intestazioni delle colonne**, quella con "Data", "Descrizione", "Importo" e simili. La riga si colora, quelle sopra si spengono e quelle sotto, i movimenti, si evidenziano. Il programma ne ha già scelta una: se è giusta, premi **Avanti**. Se sotto la riga scelta non ci sono date, la finestra ti avvisa che probabilmente non è quella giusta.
+
+**Passo 2: le colonne.**
+
+- **A sinistra** ci sono le colonne del file: per ognuna vedi l'intestazione e i primi valori, così capisci cosa contiene.
+- **A destra** c'è il modello di EasyCashFlow: le caselle dei dati che servono al programma.
+- **Trascina** ogni colonna di sinistra nella sua casella di destra. Se preferisci, clicca la colonna e poi la casella. La **x** su una casella toglie la colonna.
+
+Le caselle con l'asterisco sono obbligatorie:
+
+- **Data contabile** \*;
+- **Descrizione** \*: puoi metterci più colonne, per esempio la descrizione e le note, e si uniscono;
+- **Importo con segno**, oppure **Uscite** ed **Entrate** se la banca usa due colonne (a volte si chiamano Dare e Avere) \*;
+- **Data valuta**: se la lasci vuota, è uguale alla data contabile;
+- **Causale / tipo operazione**: se la lasci vuota, il programma la ricava dalla descrizione (vedi sotto);
+- **Saldo**: se il file ha una colonna con il saldo dopo ogni movimento.
+
+Quando apri la finestra il programma ha già fatto una **proposta**, dai nomi delle colonne: di solito basta controllarla. Sopra le caselle scegli il **conto** in cui importare, oppure **Nuovo conto…**, a cui dai un nome (l'IBAN è facoltativo). Se ti accorgi che la riga delle intestazioni non era quella giusta, **Indietro** ti riporta al passo 1.
+
+Sotto c'è l'**anteprima**: le prime righe come le importerà il programma, con le uscite in rosso e le entrate in verde, e il numero di movimenti trovati. Se una data o un importo non si leggono, la riga lo dice. **Importa** si accende quando è tutto pronto; poi vedi il riepilogo come per gli altri file.
+
+**La seconda volta è più veloce.** Il programma ricorda come hai abbinato le colonne. Quando importi un altro file della stessa banca, con le stesse intestazioni, la finestra si apre direttamente al passo 2, con le caselle già piene e il conto già scelto: basta premere Importa.
+
+**Cosa manca a un file Excel, e come si rimedia**
+
+- **La causale.** Se il file non ha una colonna con la causale, il programma la ricava dalla descrizione: "POS" o "PagoBancomat" diventano pagamenti con carta, "bonifico" un bonifico (fatto o ricevuto, secondo il segno), "prelievo" un prelievo, "stipendio" lo stipendio, e così via. Così i movimenti partono già con un gruppo. Le causali ricavate finiscono tutte con **XL**, così le distingui da quelle della banca. I movimenti di cui il programma non riconosce il tipo hanno la **causale fittizia 00XL**, senza gruppo, e in [Movimenti](cap:movimenti) l'etichetta rossa "causale fittizia". Per ognuno scegli la causale giusta: dal menu **⋮** del movimento, **Scegli la causale…**, oppure selezionandone più di uno e usando **Scegli la causale** nella barra in fondo. Il gruppo arriva con la causale. Allo stesso modo puoi correggere una causale ricavata male. Alla causale fittizia non si dà un gruppo in [I gruppi di causali](cap:gruppi): varrebbe per tutti i movimenti non riconosciuti, qualunque cosa siano.
+- **I saldi.** Se il file non ha la colonna del saldo, scrivi nel campo **Saldo del conto dopo l'ultimo movimento** quanto avevi sul conto quel giorno (lo trovi nell'home banking): il programma ricava i saldi di tutti i giorni. Se lo lasci vuoto, i movimenti si importano lo stesso, ma per quel periodo l'andamento del saldo resta vuoto.
+- **Il riferimento della banca**, che serve a riconoscere i movimenti già importati. Il programma ne costruisce uno da data, importo e descrizione: se importi di nuovo un periodo già importato dallo stesso tipo di file, i movimenti **non si duplicano**.
+
+**Un conto, un tipo di file.** Un movimento importato dal file CBI e lo stesso movimento importato dall'Excel hanno riferimenti diversi, e verrebbero contati **due volte**. Per ogni conto usa sempre lo stesso tipo di file. Se scegli un conto che ha già movimenti da file CBI o XML, la finestra te lo ricorda.
+
+**Altri casi.**
+
+- Il file può essere un vero `.xlsx`, un `.csv`, o un file `.xls` che in realtà è testo o una pagina web (molte banche fanno così): il programma li legge tutti.
+- Il vecchio formato di Excel 97-2003 non si legge: aprilo con Excel e salvalo come **Cartella di lavoro di Excel (.xlsx)**.
+- Puoi importare il file anche mentre è aperto in Excel.
 
 ## La pagina dei movimenti {#movimenti}
 
@@ -201,12 +242,13 @@ Il pulsante **⋮** in fondo a ogni riga apre un piccolo menu:
 
 - **Segna come straordinario**: il movimento resta quello che è, ma diventa *straordinario*. Nelle [Analisi](app:analisi) puoi escludere gli straordinari con un interruttore; nella simulazione del saldo sono esclusi già all'inizio. Accanto al movimento compare l'etichetta "straordinario".
 - **Tipo di questo movimento**: scegli un tipo diverso da quello del gruppo. Per esempio un bonifico verso un tuo altro conto è un **Giroconto**, uno verso un fondo è un **Investimento**. "Come il gruppo" torna al tipo del gruppo.
+- **Scegli la causale…**: c'è solo per i movimenti importati da un file Excel, la cui causale l'ha ricavata il programma (vedi [Importare un file Excel](cap:excel)). Cerchi la causale per nome o per gruppo, per esempio "bonifico" o "utenze", e il movimento prende quella causale e il suo gruppo. Serve soprattutto per quelli con l'etichetta "causale fittizia". I movimenti dei file CBI e XML hanno la causale della banca, che non si cambia.
 
-Per segnarne tanti insieme, selezionali con le caselle a sinistra e usa **Segna come straordinari** nella barra in fondo alla pagina.
+Per segnarne tanti insieme, selezionali con le caselle a sinistra e usa **Segna come straordinari** nella barra in fondo alla pagina. Se tra quelli selezionati ci sono movimenti dei file Excel, la barra offre anche **Scegli la causale**, che vale solo per quelli.
 
 Per **ritrovarli**, per esempio per togliere l'etichetta, usa il filtro **Straordinari e tipo scelto**: "Solo gli straordinari" mostra tutti quelli che hai segnato, "Solo con il tipo scelto a mano" quelli a cui hai cambiato il tipo. Poi dal menu **⋮** togli l'etichetta, oppure selezionali e usa **Non straordinari** nella barra in fondo.
 
-Lo stesso menu c'è anche negli elenchi di movimenti che si aprono dalle analisi. Le scelte restano anche se importi di nuovo lo stesso file.
+Lo stesso menu c'è anche negli elenchi di movimenti che si aprono dalle analisi (senza la scelta della causale). Le scelte, causale compresa, restano anche se importi di nuovo lo stesso file.
 
 ## I movimenti scartati {#scarti}
 
