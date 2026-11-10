@@ -219,6 +219,15 @@ public class DatabaseService
             -- come trattare i movimenti nelle analisi (dal 10/11): gruppo, tipo e se è una spesa ricorrente, per
             -- ogni causale CBI, le prime due cifre della causale, uguali per tutte le banche. Vale per tutte le
             -- causali che cominciano con quel codice. Una causale CBI senza riga non ha gruppo
+            -- le causali scelte dall'utente per i movimenti dei file Excel, per descrizione ridotta a parole
+            -- (dal 10/11): un movimento con la stessa descrizione, importato dopo, prende la stessa causale.
+            -- Restano anche se si elimina il conto
+            CREATE TABLE IF NOT EXISTS CausaliImparate (
+                Chiave     TEXT NOT NULL PRIMARY KEY,   -- ExcelParser.ChiaveDescrizione
+                Causale    TEXT NOT NULL,
+                ScelteIl   TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS GruppiCausaliCbi (
                 Codice     TEXT    NOT NULL PRIMARY KEY,
                 Gruppo     TEXT    NOT NULL,
@@ -237,6 +246,73 @@ public class DatabaseService
         comando.ExecuteNonQuery();
 
         PreparaGruppi(connessione);
+        RicordaCausaliGiaScelte(connessione);
+    }
+
+    private const string ChiaveCausaliImparate = "CausaliImparate.Versione";
+
+    // Una volta sola (dal 10/11): le causali scelte dall'utente per i movimenti Excel prima che il programma le
+    // ricordasse. Sono i movimenti Excel con una causale diversa sia dalla fittizia sia da quella che le regole
+    // ricavano dalla descrizione: la scelta finisce in CausaliImparate, come se fosse fatta adesso.
+    private void RicordaCausaliGiaScelte(SqliteConnection connessione)
+    {
+        using (var lettura = connessione.CreateCommand())
+        {
+            lettura.CommandText = "SELECT Valore FROM Impostazioni WHERE Chiave = $chiave";
+            lettura.Parameters.AddWithValue("$chiave", ChiaveCausaliImparate);
+            if (lettura.ExecuteScalar() is string versione && versione != "") return;
+        }
+
+        var scelte = new Dictionary<string, string>();
+        using (var cerca = connessione.CreateCommand())
+        {
+            cerca.CommandText = """
+                SELECT DescrizioneEstesa, Causale, ImportoCentesimi FROM Movimenti
+                WHERE Riferimento LIKE 'XL%' AND Causale <> $fittizia
+                """;
+            cerca.Parameters.AddWithValue("$fittizia", CausaliCbi.Fittizia);
+            using var lettore = cerca.ExecuteReader();
+            while (lettore.Read())
+            {
+                var descrizione = lettore.GetString(0);
+                var causale = lettore.GetString(1);
+                var chiave = ExcelParser.ChiaveDescrizione(descrizione);
+                if (chiave != "" && causale != ExcelParser.Causale("", descrizione, lettore.GetInt64(2) / 100m))
+                    scelte[chiave] = causale;
+            }
+        }
+
+        using var transazione = connessione.BeginTransaction();
+        using (var ricorda = connessione.CreateCommand())
+        {
+            ricorda.Transaction = transazione;
+            ricorda.CommandText = """
+                INSERT INTO CausaliImparate (Chiave, Causale, ScelteIl) VALUES ($chiave, $causale, $quando)
+                ON CONFLICT DO NOTHING
+                """;
+            var pChiave = ricorda.Parameters.Add("$chiave", SqliteType.Text);
+            var pCausale = ricorda.Parameters.Add("$causale", SqliteType.Text);
+            ricorda.Parameters.AddWithValue("$quando", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+            foreach (var (chiave, causale) in scelte)
+            {
+                pChiave.Value = chiave;
+                pCausale.Value = causale;
+                ricorda.ExecuteNonQuery();
+            }
+        }
+        using (var versione = connessione.CreateCommand())
+        {
+            versione.Transaction = transazione;
+            versione.CommandText = """
+                INSERT INTO Impostazioni (Chiave, Valore) VALUES ($chiave, '1')
+                ON CONFLICT (Chiave) DO UPDATE SET Valore = excluded.Valore
+                """;
+            versione.Parameters.AddWithValue("$chiave", ChiaveCausaliImparate);
+            versione.ExecuteNonQuery();
+        }
+        transazione.Commit();
+        if (scelte.Count > 0)
+            _log.Info($"Causali scelte prima per i movimenti Excel ricordate: {scelte.Count} descrizioni");
     }
 
     private const string ChiaveVersioneGruppi = "GruppiCausali.Versione";
@@ -941,6 +1017,8 @@ public class DatabaseService
                 {
                     RecordScartato scarto;
 
+                    CorreggiCausaleFittizia(connessione, transazione, m);
+
                     if (AggiornaDescrizioni(connessione, transazione, m, breveDellaBanca))
                     {
                         aggiornati++;
@@ -1186,22 +1264,101 @@ public class DatabaseService
     /// causali nuove ricevono il gruppo proposto dalla causale CBI. Restituisce quanti movimenti sono cambiati.
     /// Reimportare lo stesso file non riporta la causale dedotta: per questi movimenti una causale diversa non
     /// è un contenuto diverso (HaContenutoDiverso).</summary>
-    public int ImpostaCausaleExcel(IEnumerable<ChiaveMovimento> movimenti, string causale)
+    ///
+    /// La scelta si ricorda per la descrizione (tabella CausaliImparate, dal 10/11): i movimenti Excel con la
+    /// stessa descrizione importati dopo prendono questa causale, e quelli già nel database con la causale
+    /// fittizia la prendono subito. Restituisce quanti movimenti scelti sono cambiati e quanti altri, ancora
+    /// con la causale fittizia, hanno preso la stessa causale per la descrizione.
+    public (int Scelti, int Altri) ImpostaCausaleExcel(IEnumerable<MovimentoCbi> movimenti, string causale)
     {
-        var cambiati = 0;
-        using (var connessione = Apri())
-        using (var transazione = connessione.BeginTransaction())
+        var elenco = movimenti.ToList();
+        int scelti = 0, altri = 0;
+        using var connessione = Apri();
+        using var transazione = connessione.BeginTransaction();
+        using (var comando = ComandoSuMovimento(connessione, transazione, "UPDATE Movimenti SET Causale = $causale"))
         {
-            using var comando = ComandoSuMovimento(connessione, transazione,
-                "UPDATE Movimenti SET Causale = $causale");
             comando.CommandText += " AND Riferimento LIKE 'XL%'";
             comando.Parameters.AddWithValue("$causale", causale);
-            foreach (var m in movimenti)
-                cambiati += EseguiSuMovimento(comando, m);
-            transazione.Commit();
+            foreach (var m in elenco)
+                scelti += EseguiSuMovimento(comando, m.Chiave);
         }
-        _log.Info($"Causale {causale} scelta per {cambiati} movimenti importati da file Excel");
-        return cambiati;
+
+        // la scelta, per descrizione
+        var chiavi = elenco.Where(m => m.Riferimento.StartsWith("XL"))
+                           .Select(m => ExcelParser.ChiaveDescrizione(m.DescrizioneEstesa))
+                           .Where(c => c != "").Distinct().ToList();
+        using (var ricorda = connessione.CreateCommand())
+        {
+            ricorda.Transaction = transazione;
+            ricorda.CommandText = """
+                INSERT INTO CausaliImparate (Chiave, Causale, ScelteIl) VALUES ($chiave, $causale, $quando)
+                ON CONFLICT (Chiave) DO UPDATE SET Causale = excluded.Causale, ScelteIl = excluded.ScelteIl
+                """;
+            var pChiave = ricorda.Parameters.Add("$chiave", SqliteType.Text);
+            ricorda.Parameters.AddWithValue("$causale", causale);
+            ricorda.Parameters.AddWithValue("$quando", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+            foreach (var chiave in chiavi)
+            {
+                pChiave.Value = chiave;
+                ricorda.ExecuteNonQuery();
+            }
+        }
+
+        // gli altri movimenti ancora con la causale fittizia e la stessa descrizione
+        if (chiavi.Count > 0)
+        {
+            var imparate = new CausaliImparate(chiavi.ToDictionary(c => c, _ => causale));
+            var daSistemare = new List<ChiaveMovimento>();
+            using (var cerca = connessione.CreateCommand())
+            {
+                cerca.Transaction = transazione;
+                cerca.CommandText = """
+                    SELECT Conto, DataContabile, Riferimento, ImportoCentesimi, DescrizioneEstesa FROM Movimenti
+                    WHERE Causale = $fittizia AND Riferimento LIKE 'XL%'
+                    """;
+                cerca.Parameters.AddWithValue("$fittizia", CausaliCbi.Fittizia);
+                using var lettore = cerca.ExecuteReader();
+                while (lettore.Read())
+                    if (imparate.Cerca(lettore.GetString(4)) is not null)
+                        daSistemare.Add(new ChiaveMovimento(lettore.GetString(0), LeggiData(lettore.GetString(1)),
+                                                            lettore.GetString(2), lettore.GetInt64(3) / 100m));
+            }
+            using var sistema = ComandoSuMovimento(connessione, transazione, "UPDATE Movimenti SET Causale = $causale");
+            sistema.CommandText += " AND Causale = '" + CausaliCbi.Fittizia + "'";
+            sistema.Parameters.AddWithValue("$causale", causale);
+            foreach (var m in daSistemare)
+                altri += EseguiSuMovimento(sistema, m);
+        }
+
+        transazione.Commit();
+        _log.Info($"Causale {causale} scelta per {scelti} movimenti importati da file Excel, ricordata per {chiavi.Count} descrizioni; " +
+                  $"{altri} altri movimenti con la causale fittizia e la stessa descrizione l'hanno presa");
+        return (scelti, altri);
+    }
+
+    /// <summary>Le causali scelte per descrizione, per l'importazione dei file Excel.</summary>
+    public Dictionary<string, string> CausaliImparate()
+    {
+        var elenco = new Dictionary<string, string>();
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        comando.CommandText = "SELECT Chiave, Causale FROM CausaliImparate";
+        using var lettore = comando.ExecuteReader();
+        while (lettore.Read()) elenco[lettore.GetString(0)] = lettore.GetString(1);
+        return elenco;
+    }
+
+    // Un movimento Excel già presente con la causale fittizia prende quella del file reimportato, se ora il
+    // programma la riconosce (per esempio perché nel frattempo l'utente l'ha scelta per la stessa descrizione).
+    // La causale scelta dall'utente per quel movimento non si tocca: si cambia solo la fittizia.
+    private void CorreggiCausaleFittizia(SqliteConnection connessione, SqliteTransaction transazione, MovimentoCbi m)
+    {
+        if (!m.Riferimento.StartsWith("XL") || m.Causale == CausaliCbi.Fittizia) return;
+        using var comando = ComandoSuMovimento(connessione, transazione, "UPDATE Movimenti SET Causale = $causale");
+        comando.CommandText += " AND Causale = '" + CausaliCbi.Fittizia + "'";
+        comando.Parameters.AddWithValue("$causale", m.Causale);
+        if (EseguiSuMovimento(comando, m.Chiave) == 1)
+            _log.Debug($"Riga {m.RigaFile}: la causale fittizia del movimento già presente diventa {m.Causale}");
     }
 
     /// <summary>Quanti movimenti di un conto vengono da file CBI o XML e non da un file Excel (il cui

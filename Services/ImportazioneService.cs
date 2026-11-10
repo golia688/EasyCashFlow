@@ -121,7 +121,8 @@ public class ImportazioneService
         RisultatoImportCbi letto;
         if (richiesta is not null)
         {
-            letto = ExcelParser.Leggi(richiesta);
+            // le causali scelte dall'utente per descrizione valgono per i movimenti del file
+            letto = ExcelParser.Leggi(richiesta, new CausaliImparate(_database.CausaliImparate()));
             _log.Debug($"Excel: {letto.Movimenti.Count} movimenti, {letto.Scartati.Count} righe non valide, {letto.Saldi.Count} saldi giornalieri");
         }
         else if (formato == FormatoExport.Xml)

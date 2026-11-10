@@ -206,7 +206,7 @@
                                 <td>@r.DataValuta?.ToString("dd/MM/yyyy")</td>
                                 <td class="descrizione">@r.Descrizione</td>
                                 <td class="destra" style="@($"color: var(--mud-palette-{(r.Importo < 0 ? "error" : "success")})")">@r.Importo?.ToString("N2")</td>
-                                <td class="mud-text-secondary">@NomeCausale(r.Causale)</td>
+                                <td class="mud-text-secondary">@NomeCausale(r.Causale)@(r.CausaleImparata ? " (scelta da te)" : "")</td>
                                 @if (Abbinamento.Di(CampoExcel.Saldo).Any())
                                 {
                                     <td class="destra">@r.Saldo?.ToString("N2")</td>
@@ -357,6 +357,7 @@
     ];
 
     private List<ContoCorrente> _conti = [];
+    private CausaliImparate _imparate = CausaliImparate.Nessuna;    // le causali scelte prima, per descrizione
     private string? _conto;
     private string? _nomeNuovo;
     private string? _ibanNuovo;
@@ -406,6 +407,7 @@
     protected override void OnInitialized()
     {
         _conti = Database.ElencoConti();
+        _imparate = new CausaliImparate(Database.CausaliImparate());
         _colonneDelFile = Enumerable.Range(0, Tabella.Colonne)
             .Where(c => Tabella.Righe.Any(r => c < r.Length && r[c] != "")).ToList();
 
@@ -550,7 +552,7 @@
             return;
         }
 
-        var righe = ExcelParser.Righe(Tabella, a).Where(r => !r.Ignorata).ToList();
+        var righe = ExcelParser.Righe(Tabella, a, _imparate).Where(r => !r.Ignorata).ToList();
         var valide = righe.Where(r => r.Errore is null).ToList();
         _validi = valide.Count;
         _nonValide = righe.Count - valide.Count;

@@ -26,7 +26,7 @@ public record RichiestaExcel(TabellaExcel Tabella, AbbinamentoExcel Abbinamento,
 
 /// <summary>Una riga del file letta con l'abbinamento: per l'anteprima e per l'importazione.</summary>
 public record RigaExcel(int Riga, DateOnly? DataContabile, DateOnly? DataValuta, decimal? Importo, string Descrizione,
-                        string Causale, decimal? Saldo, string? Errore)
+                        string Causale, decimal? Saldo, string? Errore, bool CausaleImparata = false)
 {
     /// <summary>Una riga senza data e senza importo (vuota, un titolo, un totale): non è un movimento.</summary>
     public bool Ignorata => Errore is null && DataContabile is null;
@@ -113,13 +113,13 @@ public static class ExcelParser
 
     // ---- lettura delle righe ----
 
-    public static IEnumerable<RigaExcel> Righe(TabellaExcel tabella, AbbinamentoExcel abbinamento)
+    public static IEnumerable<RigaExcel> Righe(TabellaExcel tabella, AbbinamentoExcel abbinamento, CausaliImparate? imparate = null)
     {
         for (var r = abbinamento.RigaIntestazioni + 1; r < tabella.Righe.Count; r++)
-            yield return Riga(tabella, abbinamento, r);
+            yield return Riga(tabella, abbinamento, r, imparate);
     }
 
-    public static RigaExcel Riga(TabellaExcel tabella, AbbinamentoExcel a, int r)
+    public static RigaExcel Riga(TabellaExcel tabella, AbbinamentoExcel a, int r, CausaliImparate? imparate = null)
     {
         string Testo(CampoExcel campo) => string.Join(" ", a.Di(campo).Select(c => tabella.Cella(r, c)).Where(t => t != ""));
 
@@ -159,15 +159,24 @@ public static class ExcelParser
         else if (importo is null)
             errore = $"l'importo \"{(testoImporto != "" ? testoImporto : testoUscite + " " + testoEntrate).Trim()}\" non si riconosce";
 
-        var causale = importo is { } i ? Causale(testoCausale, descrizione, i) : "";
-        return new RigaExcel(r, data, valuta, importo, descrizione, causale, LeggiImporto(testoSaldo), errore);
+        // la causale: il codice CBI della colonna causale, se c'è; poi quella scelta dall'utente per un movimento
+        // con la stessa descrizione (CausaliImparate); poi le regole sul testo
+        var causale = "";
+        var imparata = false;
+        if (importo is { } i)
+        {
+            if (CodiceDellaColonna(testoCausale) is { } codice) causale = codice;
+            else if (imparate?.Cerca(descrizione) is { } scelta) { causale = scelta; imparata = true; }
+            else causale = Causale(testoCausale, descrizione, i);
+        }
+        return new RigaExcel(r, data, valuta, importo, descrizione, causale, LeggiImporto(testoSaldo), errore, imparata);
     }
 
     /// <summary>I movimenti del file per il conto scelto, con i saldi giornalieri che si possono ricavare.</summary>
-    public static RisultatoImportCbi Leggi(RichiestaExcel richiesta)
+    public static RisultatoImportCbi Leggi(RichiestaExcel richiesta, CausaliImparate? imparate = null)
     {
         var conto = richiesta.Conto.Codice;
-        var righe = Righe(richiesta.Tabella, richiesta.Abbinamento).ToList();
+        var righe = Righe(richiesta.Tabella, richiesta.Abbinamento, imparate).ToList();
         var scartati = new List<RecordScartato>();
         var avvisi = new List<string>();
 
@@ -199,6 +208,10 @@ public static class ExcelParser
         if (saldi.Count == 0 && movimenti.Count > 0)
             avvisi.Add("Il file non ha la colonna del saldo e non hai indicato il saldo del conto: per questo periodo " +
                        "il programma non conosce il saldo, e l'andamento del saldo di questo conto resta vuoto.");
+
+        var riprese = valide.Count(r => r.CausaleImparata);
+        if (riprese > 0)
+            avvisi.Add($"{riprese} movimenti hanno ripreso la causale che avevi scelto per movimenti con la stessa descrizione.");
 
         var sconosciute = movimenti.Count(m => m.Causale == CausaleSconosciuta);
         if (sconosciute > 0)
@@ -318,9 +331,7 @@ public static class ExcelParser
     /// quella dedotta dal testo della colonna causale e della descrizione.</summary>
     public static string Causale(string testoCausale, string descrizione, decimal importo)
     {
-        var codice = testoCausale.Trim().ToUpperInvariant();
-        if (Regex.IsMatch(codice, @"^[0-9A-Z]{4}$") && CausaliCbi.Descrizione(codice) is not null) return codice;
-        if (Regex.IsMatch(codice, @"^[0-9A-Z]{2}$") && CausaliCbi.Descrizione(codice) is not null) return codice + SuffissoCausale;
+        if (CodiceDellaColonna(testoCausale) is { } codice) return codice;
 
         var testo = $"{testoCausale} {descrizione}";
         foreach (var (regola, entrata, uscita) in Regole)
@@ -330,6 +341,23 @@ public static class ExcelParser
             if (cbi is not null) return cbi + SuffissoCausale;
         }
         return CausaleSconosciuta;
+    }
+
+    // la colonna causale contiene un codice CBI (due o quattro caratteri della tabella)
+    private static string? CodiceDellaColonna(string testoCausale)
+    {
+        var codice = testoCausale.Trim().ToUpperInvariant();
+        if (Regex.IsMatch(codice, @"^[0-9A-Z]{4}$") && CausaliCbi.Descrizione(codice) is not null) return codice;
+        if (Regex.IsMatch(codice, @"^[0-9A-Z]{2}$") && CausaliCbi.Descrizione(codice) is not null) return codice + SuffissoCausale;
+        return null;
+    }
+
+    /// <summary>La descrizione di un movimento ridotta a parole: maiuscole, senza cifre e segni (date, numeri
+    /// di carta, importi e codici cambiano da un movimento all'altro). Vuota se restano meno di 3 lettere.</summary>
+    public static string ChiaveDescrizione(string descrizione)
+    {
+        var parole = Regex.Replace(descrizione.ToUpperInvariant(), @"[^\p{L}]+", " ").Trim();
+        return parole.Count(char.IsLetter) < 3 ? "" : parole;
     }
 
     // ---- date e importi ----
@@ -397,5 +425,48 @@ public static class ExcelParser
 
         if (!decimal.TryParse(cifre, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var valore)) return null;
         return negativo ? -valore : valore;
+    }
+}
+
+/// <summary>
+/// Le causali scelte dall'utente per i movimenti dei file Excel (dal 10/11), per descrizione: quando arriva un
+/// movimento con la stessa descrizione, prende la stessa causale invece di quella dedotta (o della fittizia).
+/// La descrizione si confronta ridotta a parole (ExcelParser.ChiaveDescrizione): prima uguale, poi con le stesse
+/// prime quattro parole, la causale scelta più spesso. Non troverà sempre il movimento giusto, ma spesso sì.
+/// </summary>
+public sealed class CausaliImparate
+{
+    private const int ParoleIniziali = 4;
+    private readonly Dictionary<string, string> _esatte;
+    private readonly Dictionary<string, string> _perInizio;
+
+    public static CausaliImparate Nessuna { get; } = new(new Dictionary<string, string>());
+
+    public CausaliImparate(IReadOnlyDictionary<string, string> perChiave)
+    {
+        _esatte = perChiave.Where(c => c.Key != "").ToDictionary(c => c.Key, c => c.Value);
+        _perInizio = _esatte
+            .Select(c => (Inizio: Inizio(c.Key), Causale: c.Value))
+            .Where(c => c.Inizio is not null)
+            .GroupBy(c => c.Inizio!)
+            .ToDictionary(g => g.Key, g => g.GroupBy(c => c.Causale).OrderByDescending(v => v.Count()).ThenBy(v => v.Key).First().Key);
+    }
+
+    public int Numero => _esatte.Count;
+
+    /// <summary>La causale scelta per un movimento con questa descrizione, o null.</summary>
+    public string? Cerca(string descrizione)
+    {
+        var chiave = ExcelParser.ChiaveDescrizione(descrizione);
+        if (chiave == "") return null;
+        if (_esatte.TryGetValue(chiave, out var causale)) return causale;
+        return Inizio(chiave) is { } inizio && _perInizio.TryGetValue(inizio, out var simile) ? simile : null;
+    }
+
+    // le prime quattro parole, se ce ne sono almeno quattro
+    private static string? Inizio(string chiave)
+    {
+        var parole = chiave.Split(' ');
+        return parole.Length >= ParoleIniziali ? string.Join(' ', parole.Take(ParoleIniziali)) : null;
     }
 }

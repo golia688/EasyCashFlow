@@ -10,6 +10,7 @@
 @inject AnalisiService Analisi
 @inject StatoMovimenti Stato
 @inject IDialogService Dialoghi
+@inject ISnackbar Snackbar
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
     <MudText Typo="Typo.h4">Movimenti</MudText>
@@ -261,7 +262,10 @@
         var attuale = excel.Select(m => m.Causale).Distinct().Count() == 1 ? excel[0].Causale : CausaliCbi.Fittizia;
         if (await DialogoCausaleExcel.ApriAsync(Dialoghi, excel.Count, attuale) is not { } causale) return;
 
-        Database.ImpostaCausaleExcel(excel.Select(m => m.Chiave), causale);
+        var (scelti, altri) = Database.ImpostaCausaleExcel(excel, causale);
+        Snackbar.Add($"Causale {causale} per {(scelti == 1 ? "il movimento" : $"{scelti} movimenti")}." +
+                     (altri > 0 ? $" Anche {altri} altri movimenti con la stessa descrizione e la causale fittizia l'hanno presa." : "") +
+                     " Varrà anche per i movimenti con la stessa descrizione che importerai.", Severity.Success);
         _tipiDelGruppo = Database.ElencoGruppiCausali().Where(g => g.Gruppo is not null)
                                  .ToDictionary(g => g.Causale, g => g.Tipo);
         if (_griglia is not null) await _griglia.ReloadServerData();
