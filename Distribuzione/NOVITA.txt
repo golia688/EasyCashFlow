@@ -5,6 +5,111 @@
 
 
 -------------------------------------------------------------------------------
+ VERSIONE 1.2.0 (10 novembre 2026)
+-------------------------------------------------------------------------------
+
+ 1. NUOVO: SI IMPORTA ANCHE IL FILE EXCEL DELLA BANCA
+ ----------------------------------------------------
+
+ Molte banche fanno esportare i movimenti solo in Excel. Ora si importa
+ anche quello, con il pulsante che adesso si chiama "Importa movimenti"
+ (passandoci sopra, ricorda i formati che vanno bene). Ogni banca fa
+ l'Excel a modo suo, quindi si apre una finestra in due passi:
+
+ - passo 1: il file come in Excel; clicchi la riga con le intestazioni
+   delle colonne (le righe sopra, con logo, conto e saldi, non contano);
+
+ - passo 2: trascini ogni colonna del file nella casella giusta (data,
+   descrizione, importo o uscite ed entrate, saldo...) e scegli il
+   conto. Sotto vedi l'anteprima dei movimenti.
+
+ Il programma propone gia' la riga e le colonne, e la volta dopo, con
+ un file della stessa banca, si ricorda tutto. Legge .xlsx, .csv e i
+ file .xls che sono testo o pagine web, anche mentre sono aperti in
+ Excel, e le date scritte in lettere ("7 novembre 2026").
+
+ All'Excel mancano dei dati del file CBI:
+
+ - la causale: il programma la ricava dalla descrizione (POS, bonifico,
+   prelievo, stipendio...). Quella che non riconosce e' la "causale
+   fittizia" 00XL: in Movimenti la trovi con il filtro Etichette, e dal
+   menu di ogni movimento scegli quella giusta. Il programma ricorda la
+   scelta per la descrizione e la usa per i movimenti simili, anche
+   per quelli che importerai;
+
+ - i saldi: dalla colonna del saldo, se c'e', oppure dal saldo del conto
+   che scrivi all'importazione;
+
+ - l'IBAN: lo puoi scrivere tu in Impostazioni > Conti correnti.
+
+
+ 2. UN CONTO, UN FORMATO
+ -----------------------
+
+ Lo stesso movimento importato dal file CBI e dall'Excel verrebbe
+ contato due volte. Per questo ogni conto si importa sempre con lo
+ stesso tipo di file, CBI (di testo o XML, che vanno bene insieme)
+ oppure Excel: lo decide la prima importazione, e il programma non
+ accetta l'altro. Il formato lo vedi in Impostazioni, accanto al conto.
+
+
+ 3. I GRUPPI SI SCELGONO PER CAUSALE CBI
+ ---------------------------------------
+
+ La pagina Gruppi di causali ha una riga per ogni causale CBI (le prime
+ due cifre della causale, uguali per tutte le banche): il gruppo che
+ scegli vale per tutti i movimenti con quel codice, di qualunque banca
+ e file. La pagina c'e' anche prima di importare, con quanti movimenti
+ ha ogni causale e il loro totale.
+
+ Attenzione, se usi la BCC: la causale 31 (gli addebiti diretti SDD)
+ parte senza gruppo. Daglielo tu. Se tra gli SDD ci sono dei PAC,
+ cercali in Movimenti, selezionali e usa "Tipo > Investimento".
+
+
+ 4. ALTRE NOVITA'
+ ----------------
+
+ - In Movimenti, selezionando dei movimenti, il menu "Tipo" nella
+   barra in fondo da' a tutti lo stesso tipo: Ordinario, Investimento,
+   Giroconto, oppure come il gruppo.
+
+ - La ricerca della pagina Movimenti ("Cerca") trova anche la causale,
+   il gruppo e l'importo scritto all'italiana ("325,40").
+
+ - Il filtro "Etichette" della pagina Movimenti ha la voce "Solo con la
+   causale fittizia"; una notifica avvisa se ce ne sono.
+
+ - La causale di un movimento Excel si sceglie anche dagli elenchi dei
+   movimenti delle analisi.
+
+ - Il file dei gruppi esportato con le versioni precedenti si importa
+   ancora: ogni causale CBI prende il gruppo piu' usato.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE DALLA VERSIONE 1.0.0, 1.0.1 O 1.1.0
+-------------------------------------------------------------------------------
+
+I tuoi dati restano: la 1.2.0 usa la stessa cartella "dati" e la stessa
+password. Prima di aggiornare fai un backup (Impostazioni > Dati >
+Backup): al primo avvio il programma prepara i gruppi delle causali CBI.
+Le scelte fatte prima per le singole causali complete non contano piu':
+controlla i gruppi in Impostazioni > Dati > Gruppi di causali. Se vieni
+da una versione precedente alla 1.0.0, segui prima anche le sue
+istruzioni, piu' sotto.
+
+ 1. Chiudi EasyCashFlow.
+
+ 2. Estrai il nuovo .zip nella STESSA cartella del programma e conferma di
+    sostituire i file. Il .zip non contiene le cartelle "dati" e "log",
+    quindi i tuoi movimenti, la password e le impostazioni restano.
+
+ 3. Avvia EasyCashFlow, scrivi la password e controlla in
+    Aiuto > Informazioni che la versione sia la 1.2.0.
+
+
+-------------------------------------------------------------------------------
  VERSIONE 1.1.0 (8 novembre 2026)
 -------------------------------------------------------------------------------
 
