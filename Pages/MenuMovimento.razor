@@ -4,8 +4,9 @@
 @inject ImpostazioniService Impostazioni
 
 @* Etichette e menu di un singolo movimento: "straordinario" e il tipo scelto al posto di quello del
-   gruppo. Usato nella griglia Movimenti e nelle tabelle di dettaglio delle analisi. Nella griglia Movimenti,
-   per un movimento importato da un file Excel, anche "causale fittizia" e la scelta della causale. *@
+   gruppo. Usato nella griglia Movimenti e nelle tabelle di dettaglio delle analisi. Per un movimento importato
+   da un file Excel, anche "causale fittizia" e la scelta della causale (nella griglia Movimenti e, dal 10/11,
+   nelle tabelle delle analisi). *@
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Justify="Justify.FlexEnd">
     @if (Causale == CausaliCbi.Fittizia)
     {

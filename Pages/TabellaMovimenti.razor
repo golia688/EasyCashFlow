@@ -4,6 +4,8 @@
 @using EasyCashFlow.Services
 @inject ImpostazioniService Impostazioni
 @inject DatabaseService Database
+@inject IDialogService Dialoghi
+@inject ISnackbar Snackbar
 
 @* Griglia dei movimenti delle pagine di dettaglio delle analisi: ordinabile cliccando le intestazioni,
    con la paginazione. Sopra, due filtri veloci (testo e intervallo di date) con il conteggio e il totale
@@ -54,7 +56,8 @@
                                TipoForzato="@(context.Item.TipoForzato ? context.Item.Tipo : null)"
                                TipoDelGruppo="context.Item.TipoDelGruppo"
                                CambiaStraordinario="@(v => CambiaStraordinario(context.Item, v))"
-                               CambiaTipo="@(t => CambiaTipo(context.Item, t))" />
+                               CambiaTipo="@(t => CambiaTipo(context.Item, t))"
+                               Causale="@context.Item.Causale" CambiaCausale="@(() => ScegliCausale(context.Item))" />
             </CellTemplate>
         </TemplateColumn>
         @if (Motivi is not null)
@@ -91,6 +94,22 @@
     private async Task CambiaTipo(MovimentoAnalisi movimento, TipoGruppo? tipo)
     {
         Database.ImpostaTipoForzato(movimento.Chiave, tipo);
+        await Modificato.InvokeAsync();
+    }
+
+    // la causale di un movimento importato da un file Excel (dal 10/11, come nella pagina Movimenti): la
+    // scelta si ricorda per la descrizione, e la pagina ricalcola i numeri perché può cambiare il gruppo
+    private async Task ScegliCausale(MovimentoAnalisi m)
+    {
+        if (!CausaliCbi.DaExcel(m.Causale)) return;
+        if (await DialogoCausaleExcel.ApriAsync(Dialoghi, 1, m.Causale) is not { } causale) return;
+
+        var movimento = new MovimentoCbi(m.Conto, m.Data, m.Data, m.Importo, m.Causale, m.Riferimento,
+                                         m.DescrizioneBreve, m.DescrizioneEstesa);
+        var (_, altri) = Database.ImpostaCausaleExcel([movimento], causale);
+        Snackbar.Add($"Causale {causale} per il movimento." +
+                     (altri > 0 ? $" Anche {altri} altri movimenti con la stessa descrizione e la causale fittizia l'hanno presa." : "") +
+                     " Varrà anche per i movimenti con la stessa descrizione che importerai.", Severity.Success);
         await Modificato.InvokeAsync();
     }
 

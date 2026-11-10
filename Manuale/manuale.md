@@ -260,7 +260,7 @@ Per segnarne tanti insieme, selezionali con le caselle a sinistra e usa **Segna 
 
 Per **ritrovarli**, per esempio per togliere l'etichetta, usa il filtro **Etichette**: "Solo gli straordinari" mostra tutti quelli che hai segnato, "Solo con il tipo scelto a mano" quelli a cui hai cambiato il tipo. Poi dal menu **⋮** togli l'etichetta, oppure selezionali e usa **Non straordinari** nella barra in fondo.
 
-Lo stesso menu c'è anche negli elenchi di movimenti che si aprono dalle analisi (senza la scelta della causale). Le scelte, causale compresa, restano anche se importi di nuovo lo stesso file.
+Lo stesso menu c'è anche negli elenchi di movimenti che si aprono dalle analisi, come **Movimenti inclusi**, compresa la scelta della causale per i movimenti Excel: i numeri della pagina si ricalcolano subito. Le scelte, causale compresa, restano anche se importi di nuovo lo stesso file.
 
 ## I movimenti scartati {#scarti}
 
