@@ -1,21 +1,20 @@
 # EasyCashFlow
 
-**Analisi del cash flow dei tuoi conti correnti, anche di banche diverse, a partire dai movimenti che esporti dall'home banking della tua banca.**
+**Analisi del cash flow dei tuoi conti correnti, anche di banche diverse, a partire dai movimenti che esporti dall'home banking: file CBI (di testo o XML) oppure Excel.**
 
 EasyCashFlow è un programma per Windows che legge i movimenti dei tuoi conti e mostra entrate, uscite, saldo e grafici, mese per mese.
 
-I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **movimenti del conto** e li **esporti nel formato CBI**. Di solito c'è una voce come "Esporta movimenti" o "Saldi e movimenti", in cui si sceglie il formato CBI; per esempio in **Relax Banking**, l'home banking del gruppo Iccrea, sono le voci **Esporta CBI** ed **Esporta XML** del pulsante **Esporta** sopra la lista dei movimenti. I file CBI ("saldi e movimenti") sono i file standard con cui le banche italiane rendicontano i movimenti dei conti. Sono di due tipi, che seguono tutti e due gli standard CBI, ed EasyCashFlow li legge **entrambi**:
+I dati li prendi dalla tua banca: entri nell'**home banking**, vai ai **movimenti del conto** e li **esporti**. EasyCashFlow legge **tre tipi di file**, e riconosce da solo quale hai scelto:
 
-- **file di testo CBI** (`.txt`): il formato classico, righe di 120 caratteri, secondo lo standard **CBI-RND-001** "Rendicontazione saldi e movimenti di conti correnti";
-- **file XML CBI** (`.xml`): la rendicontazione in XML, standard **STRN-MO-001** "Rendicontazioni XML" (v.00.01.02, costruito su ISO 20022 camt.053), con gli stessi movimenti e qualche informazione in più.
+- **file di testo CBI** (`.txt`): il formato classico delle banche italiane, righe di 120 caratteri, secondo lo standard **CBI-RND-001** "Rendicontazione saldi e movimenti di conti correnti";
+- **file XML CBI** (`.xml`): la stessa rendicontazione in XML, standard **STRN-MO-001** "Rendicontazioni XML" (v.00.01.02, costruito su ISO 20022 camt.053), con gli stessi movimenti e qualche informazione in più. Testo e XML si possono alternare: lo stesso movimento non si duplica;
+- **file Excel** (`.xlsx`, `.csv`, oppure `.xls`): per le banche che non danno il CBI. Ogni banca lo fa a modo suo, quindi in una finestra si sceglie la riga delle intestazioni e si trascina ogni colonna nella casella giusta (data, descrizione, importo…); il programma lo propone e se lo ricorda per i file successivi della stessa banca. La causale, che l'Excel non ha, si ricava dalla descrizione, e quella scelta dall'utente si ricorda per i movimenti simili.
 
-Il programma riconosce da solo il formato, e i due si possono alternare: lo stesso movimento non si duplica.
+Quando la banca lo offre, conviene il **file CBI**: ha la causale, il riferimento della banca e i saldi di ogni giorno. Ogni conto si importa sempre con lo stesso tipo di file, CBI oppure Excel, per non contare due volte gli stessi movimenti.
 
-Se la banca fa esportare i movimenti **solo in Excel**, si importa anche quello: in una finestra si trascina ogni colonna del file nella casella giusta del modello del programma (data, descrizione, importo…), e l'abbinamento resta ricordato per i file successivi della stessa banca. La causale, che l'Excel non ha, si ricava dalla descrizione.
+> **Compatibile al 100% con Relax Banking** (Home Banking del gruppo Iccrea): in Relax Banking sono le voci **Esporta CBI** ed **Esporta XML** del pulsante **Esporta** sopra la lista dei movimenti. Provato sui file veri, di testo e XML, che si importano con tutti i movimenti, le causali e i saldi, senza avvisi; i due formati danno esattamente gli stessi movimenti.
 
-> **Compatibile al 100% con Relax Banking** (Home Banking del gruppo Iccrea): provato sui file veri, di testo e XML, che si importano con tutti i movimenti, le causali e i saldi, senza avvisi; i due formati danno esattamente gli stessi movimenti.
-
-Siccome i file CBI sono uguali per tutte le banche, EasyCashFlow è anche un **aggregatore**: si importano i movimenti di più conti, anche in banche diverse, e li si analizza uno alla volta o tutti insieme, come se fossero un conto solo.
+EasyCashFlow è anche un **aggregatore**: si importano i movimenti di più conti, anche in banche diverse, e li si analizza uno alla volta o tutti insieme, come se fossero un conto solo. I gruppi delle analisi si scelgono per **causale CBI**, le prime due cifre della causale, uguali per tutte le banche.
 
 Funziona **senza internet e senza account**: è portable (si avvia da una cartella, senza installazione) e i dati restano sul computer, **cifrati** con una password.
 
