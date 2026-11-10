@@ -227,7 +227,7 @@ In [Movimenti](app:movimenti) trovi l'elenco di tutti i movimenti importati, dal
 
 **Cercare un movimento**
 
-In alto ci sono i filtri: conto, date, tipo (entrate o uscite), importo, testo nella descrizione, causale e **straordinari e tipo scelto** (vedi più sotto). Compila quelli che ti servono e premi **Applica filtri**. **Azzera** li toglie tutti. Per **ordinare** l'elenco clicca l'intestazione di una colonna (data, importo, descrizione…); cliccala di nuovo per invertire l'ordine. L'ordine vale per tutti i movimenti trovati, non solo per la pagina che vedi. I filtri e l'ordine restano finché il programma è aperto: se vai a un'altra pagina (per esempio i movimenti scartati o i gruppi di causali) e torni, li ritrovi come li avevi lasciati.
+In alto ci sono i filtri: conto, date, tipo (entrate o uscite), importo, **Cerca**, causale e **straordinari e tipo scelto** (vedi più sotto). In **Cerca** puoi scrivere una parola della descrizione, una causale (per esempio "4800" o "43XL"), il nome di un gruppo (per esempio "bonifici") o un importo scritto all'italiana (per esempio "325,40" o "1.234,56", senza segno). Compila quelli che ti servono e premi **Applica filtri**. **Azzera** li toglie tutti. Per **ordinare** l'elenco clicca l'intestazione di una colonna (data, importo, descrizione…); cliccala di nuovo per invertire l'ordine. L'ordine vale per tutti i movimenti trovati, non solo per la pagina che vedi. I filtri e l'ordine restano finché il programma è aperto: se vai a un'altra pagina (per esempio i movimenti scartati o i gruppi di causali) e torni, li ritrovi come li avevi lasciati.
 
 Il campo **Periodo** offre gli stessi periodi della pagina Analisi (ultimo mese completo, ultimi 3, 6 o 12 mesi completi, i singoli anni, tutto): sceglierne uno riempie le due date, che puoi poi ritoccare a mano. Se le date non corrispondono a nessun periodo, il campo mostra "Personalizzato".
 
@@ -237,7 +237,7 @@ Spunta la casella a sinistra delle righe che ti interessano: in fondo alla pagin
 
 Per selezionare tutti i movimenti trovati dai filtri, anche quelli nelle altre pagine, premi **Seleziona tutti i risultati**.
 
-Esempio: vuoi sapere quanto hai pagato quest'anno per la luce e il gas? Le bollette addebitate sul conto riportano il nome del fornitore nella descrizione. Scrivi il nome del fornitore in "Testo nella descrizione", scegli l'anno nel campo Periodo, premi **Applica filtri** e poi **Seleziona tutti i risultati**: la somma è in fondo.
+Esempio: vuoi sapere quanto hai pagato quest'anno per la luce e il gas? Le bollette addebitate sul conto riportano il nome del fornitore nella descrizione. Scrivi il nome del fornitore in "Cerca", scegli l'anno nel campo Periodo, premi **Applica filtri** e poi **Seleziona tutti i risultati**: la somma è in fondo.
 
 **Cosa non trovi nell'elenco**
 
@@ -385,7 +385,7 @@ Le analisi ragionano per gruppi di causali, ma a volte vuoi seguire una spesa pr
 
 **Come si usa**
 
-1. In alto ci sono gli stessi filtri della pagina dei movimenti. Compila quelli che ti servono: per esempio scrivi il nome del fornitore in **Testo nella descrizione**.
+1. In alto ci sono gli stessi filtri della pagina dei movimenti. Compila quelli che ti servono: per esempio scrivi il nome del fornitore in **Cerca**.
 2. Premi **Aggiungi al grafico**: tutti i movimenti che corrispondono ai filtri entrano nel grafico, anche quelli nelle altre pagine della griglia, e nella griglia compaiono spuntati.
 3. Controlla la griglia e **togli la spunta** ai movimenti che non c'entrano (per esempio un rimborso che contiene lo stesso nome). Puoi anche spuntarne altri a mano.
 4. Per aggiungere altri movimenti cambia i filtri e premi di nuovo **Aggiungi al grafico**: quelli di prima restano.

@@ -1587,7 +1587,22 @@ public class DatabaseService
         {
             var modello = "%" + f.Testo.Trim()
                 .Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_") + "%";
-            condizioni.Add(@"(DescrizioneBreve LIKE $testo ESCAPE '\' OR DescrizioneEstesa LIKE $testo ESCAPE '\')");
+            // come la ricerca delle tabelle di movimenti delle analisi (dal 10/11): descrizioni, causale, gruppo
+            // della causale e importo scritto all'italiana ("325,40" o "1.234,56", senza badare al segno)
+            var alternative = new List<string>
+            {
+                @"DescrizioneBreve LIKE $testo ESCAPE '\'",
+                @"DescrizioneEstesa LIKE $testo ESCAPE '\'",
+                @"Causale LIKE $testo ESCAPE '\'",
+                @"Causale IN (SELECT Causale FROM GruppiEffettivi WHERE Gruppo LIKE $testo ESCAPE '\')"
+            };
+            var cifre = f.Testo.Trim().Replace("€", "").Trim().TrimStart('-', '+').Trim();
+            if (cifre.Any(char.IsDigit) && cifre.All(c => char.IsDigit(c) || c is '.' or ','))
+            {
+                alternative.Add("printf('%.2f', ABS(ImportoCentesimi) / 100.0) LIKE $importo");
+                comando.Parameters.AddWithValue("$importo", "%" + cifre.Replace(".", "").Replace(',', '.') + "%");
+            }
+            condizioni.Add("(" + string.Join(" OR ", alternative) + ")");
             comando.Parameters.AddWithValue("$testo", modello);
         }
 
