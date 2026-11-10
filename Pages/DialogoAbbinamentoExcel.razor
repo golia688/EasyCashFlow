@@ -1,10 +1,13 @@
 @using System.Globalization
+@using Microsoft.JSInterop
 @using MudBlazor
 @using EasyCashFlow.Models
 @using EasyCashFlow.Services
 @inject DatabaseService Database
 @inject ImportazioneService Importazione
 @inject ImpostazioniService Impostazioni
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 @* Importazione di un file "Excel" della banca (dal 09/11/2026), in due passi.
    1. L'anteprima del file, come in Excel: l'utente clicca la riga delle intestazioni delle colonne. Serve
@@ -123,9 +126,10 @@
                 {
                     var colonna = i;
                     var usata = _colonne.Values.Any(v => v.Contains(colonna));
+                    @* il trascinamento lo gestisce wwwroot/js/trascina.js, che alla fine chiama LasciaColonna *@
                     <div class="@($"colonna-excel{(usata ? " usata" : "")}{(_selezionata == colonna ? " selezionata" : "")}")"
-                         draggable="true" title="Trascina nella casella a destra"
-                         @ondragstart="() => _trascinata = colonna" @ondragend="() => { _trascinata = null; _sopra = null; }"
+                         title="Trascina nella casella a destra, oppure clicca e poi clicca la casella"
+                         data-colonna="@colonna"
                          @onclick="() => _selezionata = _selezionata == colonna ? null : colonna">
                         <div class="nome">@NomeColonna(colonna)</div>
                         <div class="esempi">@Esempi(colonna)</div>
@@ -141,10 +145,8 @@
                 {
                     var campo = casella.Campo;
                     var piene = _colonne.GetValueOrDefault(campo) ?? [];
-                    <div class="@($"casella-modello{(piene.Count > 0 ? " piena" : "")}{(_sopra == campo ? " sopra" : "")}")"
-                         @ondragover:preventDefault="true" @ondragover="() => _sopra = campo"
-                         @ondragleave="() => { if (_sopra == campo) _sopra = null; }"
-                         @ondrop="() => Lascia(campo)" @onclick="() => Clic(campo)">
+                    <div class="@($"casella-modello{(piene.Count > 0 ? " piena" : "")}")"
+                         data-campo="@campo" @onclick="() => Clic(campo)">
                         <div class="nome">
                             @casella.Nome
                             @if (casella.Obbligatoria)
@@ -287,6 +289,17 @@
     }
 
     .colonna-excel.usata { opacity: 0.45; }
+
+    /* il trascinamento (wwwroot/js/trascina.js): niente selezione del testo, e la copia che segue il cursore */
+    .colonna-excel { user-select: none; touch-action: none; }
+    .copia-trascinata {
+        position: fixed;
+        z-index: 20000;
+        pointer-events: none;
+        opacity: 0.9;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+    body.trascinamento-colonna, body.trascinamento-colonna * { cursor: grabbing !important; user-select: none; }
     .colonna-excel.selezionata { border: 2px solid var(--mud-palette-primary); }
 
     .casella-modello {
@@ -384,9 +397,7 @@
 
     private int _riga;
     private Dictionary<CampoExcel, List<int>> _colonne = [];
-    private int? _trascinata;
     private int? _selezionata;
-    private CampoExcel? _sopra;
 
     private List<RigaExcel> _anteprima = [];
     private int _validi, _nonValide;
@@ -504,11 +515,33 @@
         return valori.Count > 0 ? string.Join(" · ", valori) : "(vuota)";
     }
 
-    private void Lascia(CampoExcel campo)
+    // la finestra si fa conoscere allo script del trascinamento, che a rilascio avvenuto chiama LasciaColonna
+    private DotNetObjectReference<DialogoAbbinamentoExcel>? _riferimento;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_trascinata is { } colonna) Metti(campo, colonna);
-        _trascinata = null;
-        _sopra = null;
+        if (!firstRender) return;
+        _riferimento = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("trascinaColonne.registra", _riferimento);
+    }
+
+    [JSInvokable]
+    public void LasciaColonna(int colonna, string campo)
+    {
+        if (!Enum.TryParse<CampoExcel>(campo, out var casella) || colonna < 0 || colonna >= Tabella.Colonne) return;
+        Metti(casella, colonna);
+        _selezionata = null;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("trascinaColonne.togli");
+        }
+        catch (JSDisconnectedException) { }
+        _riferimento?.Dispose();
     }
 
     private void Clic(CampoExcel campo)
