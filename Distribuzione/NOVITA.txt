@@ -5,6 +5,32 @@
 
 
 -------------------------------------------------------------------------------
+ VERSIONE 1.2.1 (10 novembre 2026)
+-------------------------------------------------------------------------------
+
+ CORREZIONE
+ ----------
+
+ - Nella finestra di importazione dei file Excel le colonne non si
+   potevano trascinare nelle caselle: funzionava solo il clic sulla
+   colonna e poi sulla casella. Ora il trascinamento funziona: mentre
+   trascini, una copia della colonna segue il cursore.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE
+-------------------------------------------------------------------------------
+
+Dalla 1.2.0: chiudi EasyCashFlow, estrai il nuovo .zip nella STESSA
+cartella del programma e conferma di sostituire i file. Dati, password e
+impostazioni restano. Controlla in Aiuto > Informazioni che la versione
+sia la 1.2.1.
+
+Da una versione precedente alla 1.2.0: segui prima le istruzioni della
+1.2.0, qui sotto (backup, poi controllo dei gruppi di causali).
+
+
+-------------------------------------------------------------------------------
  VERSIONE 1.2.0 (10 novembre 2026)
 -------------------------------------------------------------------------------
 

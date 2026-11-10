@@ -9,7 +9,7 @@
 
     <!-- Versione: si cambia solo Version, gli altri numeri ne derivano. Le 0.x erano versioni di prova;
          la 1.0.0 (07/11/2026) è la prima definitiva, pubblicata su GitHub. -->
-    <Version>1.2.0</Version>
+    <Version>1.2.1</Version>
     <AssemblyVersion>$(Version).0</AssemblyVersion>
     <FileVersion>$(Version).0</FileVersion>
     <!-- Data e ora della build, automatiche: distinguono due compilazioni con la stessa versione.

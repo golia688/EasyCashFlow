@@ -18,7 +18,7 @@ EasyCashFlow è anche un **aggregatore**: si importano i movimenti di più conti
 
 Funziona **senza internet e senza account**: è portable (si avvia da una cartella, senza installazione) e i dati restano sul computer, **cifrati** con una password.
 
-> Versione **1.2.0**. Interfaccia e documentazione sono in italiano.
+> Versione **1.2.1**. Interfaccia e documentazione sono in italiano.
 >
 > **[Scarica EasyCashFlow](https://github.com/golia688/EasyCashFlow/releases/latest)**: lo zip pronto da usare, per Windows 10 e 11 a 64 bit. Non serve installare niente.
 
