@@ -4,8 +4,9 @@ namespace EasyCashFlow.Models;
 
 public enum TipoFiltro { Tutti, Entrate, Uscite }
 
-/// <summary>Filtro sulle scelte fatte dall'utente sul singolo movimento (menu ⋮).</summary>
-public enum FiltroEtichette { Tutti, Straordinari, NonStraordinari, TipoScelto }
+/// <summary>Filtro sulle etichette del singolo movimento: le scelte fatte con il menu ⋮ e, dal 10/11, la
+/// causale fittizia dei movimenti Excel di cui il programma non ha riconosciuto il tipo.</summary>
+public enum FiltroEtichette { Tutti, Straordinari, NonStraordinari, TipoScelto, CausaleFittizia }
 
 public class FiltriMovimenti
 {

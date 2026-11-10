@@ -1569,6 +1569,7 @@ public class DatabaseService
         if (f.Etichette == FiltroEtichette.Straordinari) condizioni.Add("Straordinario = 1");
         else if (f.Etichette == FiltroEtichette.NonStraordinari) condizioni.Add("Straordinario = 0");
         else if (f.Etichette == FiltroEtichette.TipoScelto) condizioni.Add("TipoForzato IS NOT NULL");
+        else if (f.Etichette == FiltroEtichette.CausaleFittizia) condizioni.Add($"Causale = '{CausaliCbi.Fittizia}'");
 
         // gli importi dei filtri si confrontano in valore assoluto
         if (f.ImportoDa is decimal minimo)
