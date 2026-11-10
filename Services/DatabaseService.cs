@@ -386,15 +386,25 @@ public class DatabaseService
     /// <summary>Sceglie il tipo di un movimento al posto di quello del suo gruppo (null = torna al gruppo).</summary>
     public void ImpostaTipoForzato(ChiaveMovimento movimento, TipoGruppo? tipo)
     {
+        ImpostaTipoForzato([movimento], tipo);
+        _log.Info($"Movimento {Mascherato.Chiave(movimento)}: tipo {(tipo is { } scelto ? scelto.ToString() : "del gruppo")}");
+    }
+
+    /// <summary>Il tipo scelto per più movimenti insieme (dalla barra di selezione, dal 10/11); null = torna
+    /// quello del gruppo. Restituisce quanti movimenti sono cambiati.</summary>
+    public int ImpostaTipoForzato(IEnumerable<ChiaveMovimento> movimenti, TipoGruppo? tipo)
+    {
         using var connessione = Apri();
         using var transazione = connessione.BeginTransaction();
         using var comando = ComandoSuMovimento(connessione, transazione,
             "UPDATE Movimenti SET TipoForzato = $tipo");
         comando.Parameters.AddWithValue("$tipo", tipo is { } t ? t.ToString() : DBNull.Value);
-        EseguiSuMovimento(comando, movimento);
+        var modificati = 0;
+        foreach (var m in movimenti)
+            modificati += EseguiSuMovimento(comando, m);
         transazione.Commit();
-
-        _log.Info($"Movimento {Mascherato.Chiave(movimento)}: tipo {(tipo is { } scelto ? scelto.ToString() : "del gruppo")}");
+        _log.Debug($"Tipo {(tipo is { } scelto ? scelto.ToString() : "del gruppo")} per {modificati} movimenti");
+        return modificati;
     }
 
     // un UPDATE sulla riga con questa chiave primaria; i parametri della chiave si impostano per ogni movimento
@@ -943,6 +953,20 @@ public class DatabaseService
         _log.Info($"Conto {Mascherato.Conto(codice)} eliminato: {prima.Movimenti} movimenti, {prima.Giornate} giornate di saldo, " +
                   $"{prima.Scartati} movimenti scartati");
         return prima;
+    }
+
+    /// <summary>L'IBAN di un conto, scritto dall'utente (dal 10/11, per i conti dei file Excel, che non lo
+    /// hanno); vuoto lo toglie. Anche il codice della banca (ABI) viene dall'IBAN.</summary>
+    public void ImpostaIban(string codice, string iban)
+    {
+        using var connessione = Apri();
+        using var comando = connessione.CreateCommand();
+        comando.CommandText = "UPDATE Conti SET Iban = $iban, Abi = $abi WHERE Conto = $conto";
+        comando.Parameters.AddWithValue("$conto", codice);
+        comando.Parameters.AddWithValue("$iban", iban);
+        comando.Parameters.AddWithValue("$abi", iban.Length == 27 ? iban[5..10] : "");
+        comando.ExecuteNonQuery();
+        _log.Info($"Conto {Mascherato.Conto(codice)}: IBAN {(iban == "" ? "tolto" : Mascherato.Iban(iban))}");
     }
 
     public void RinominaConto(string codice, string nome)

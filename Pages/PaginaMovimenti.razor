@@ -101,7 +101,8 @@
 <BarraSelezione Importi="@_selezionati.Select(m => m.Importo).ToList()" OnDeseleziona="Deseleziona"
                 OnStraordinari="StraordinariSelezionati"
                 MovimentiExcel="@_selezionati.Count(m => CausaliCbi.DaExcel(m.Causale))"
-                OnCausale="@(() => ScegliCausale(_selezionati.ToList()))" />
+                OnCausale="@(() => ScegliCausale(_selezionati.ToList()))"
+                OnTipo="TipoSelezionati" />
 
 @code {
     private static readonly CultureInfo Italiano = CultureInfo.GetCultureInfo("it-IT");
@@ -268,6 +269,16 @@
                      " Varrà anche per i movimenti con la stessa descrizione che importerai.", Severity.Success);
         _tipiDelGruppo = Database.ElencoGruppiCausali().Where(g => g.Gruppo is not null)
                                  .ToDictionary(g => g.Causale, g => g.Tipo);
+        if (_griglia is not null) await _griglia.ReloadServerData();
+    }
+
+    // dalla barra di selezione: il tipo di tutte le righe selezionate (null = come il gruppo)
+    private async Task TipoSelezionati(TipoGruppo? tipo)
+    {
+        var cambiati = Database.ImpostaTipoForzato(_selezionati.Select(m => m.Chiave), tipo);
+        Snackbar.Add(tipo is { } t
+            ? $"{cambiati} movimenti di tipo {t}."
+            : $"{cambiati} movimenti tornati al tipo del loro gruppo.", Severity.Success);
         if (_griglia is not null) await _griglia.ReloadServerData();
     }
 

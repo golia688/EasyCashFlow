@@ -30,6 +30,22 @@
 
             <MudSpacer />
 
+            @if (OnTipo.HasDelegate)
+            {
+                @* il tipo dei movimenti selezionati, come dal menu ⋮ di ognuno (dal 10/11) *@
+                <MudMenu Label="Tipo" Variant="Variant.Outlined" Size="Size.Small" Dense="true"
+                         StartIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Category))"
+                         EndIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.ArrowDropUp))"
+                         AnchorOrigin="Origin.TopLeft" TransformOrigin="Origin.BottomLeft">
+                    <MudMenuItem Disabled="true"><MudText Typo="Typo.caption">Tipo dei movimenti selezionati</MudText></MudMenuItem>
+                    <MudMenuItem OnClick="() => OnTipo.InvokeAsync(null)">Come il gruppo</MudMenuItem>
+                    @foreach (var t in Enum.GetValues<EasyCashFlow.Models.TipoGruppo>())
+                    {
+                        <MudMenuItem OnClick="() => OnTipo.InvokeAsync(t)">@t</MudMenuItem>
+                    }
+                </MudMenu>
+            }
+
             @if (OnCausale.HasDelegate && MovimentiExcel > 0)
             {
                 <MudTooltip Text="@($"Sceglie la causale dei {MovimentiExcel} movimenti selezionati importati da file Excel; gli altri restano come sono")">
@@ -69,6 +85,9 @@
     /// <summary>Se presente e tra le righe selezionate ci sono movimenti di file Excel (MovimentiExcel), la
     /// barra offre di sceglierne la causale.</summary>
     [Parameter] public EventCallback OnCausale { get; set; }
+
+    /// <summary>Se presente, la barra offre di scegliere il tipo delle righe selezionate (null = come il gruppo).</summary>
+    [Parameter] public EventCallback<EasyCashFlow.Models.TipoGruppo?> OnTipo { get; set; }
     [Parameter] public int MovimentiExcel { get; set; }
 
     private decimal Entrate => Importi.Where(i => i > 0).Sum();

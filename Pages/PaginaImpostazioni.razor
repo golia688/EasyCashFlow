@@ -57,10 +57,17 @@
                                           Error="@(Errore(c) is not null)" ErrorText="@Errore(c)" />
                         </td>
                         <td style="font-family: monospace;">
-                            @if (c.Iban == "")
+                            @if (IbanAMano(c))
+                            {
+                                @* un file Excel non ha l'IBAN: per un conto Excel lo scrive l'utente, se vuole (dal 10/11) *@
+                                <MudTextField T="string" @bind-Value="_iban[c.Codice]" Immediate="true" MaxLength="34"
+                                              Placeholder="IBAN (facoltativo)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                              Error="@(ErroreIban(c) is not null)" ErrorText="@ErroreIban(c)" />
+                            }
+                            else if (c.Iban == "")
                             {
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                                    non disponibile (si completa alla prossima importazione)
+                                    non disponibile (si completa alla prossima importazione di un file CBI o XML)
                                 </MudText>
                             }
                             else
@@ -82,7 +89,7 @@
                         <td>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                           Disabled="@(!Modificato(c) || Errore(c) is not null)"
+                                           Disabled="@(!Modificato(c) || Errore(c) is not null || ErroreIban(c) is not null)"
                                            OnClick="@(() => Salva(c))">Salva</MudButton>
                                 <MudTooltip Text="Elimina il conto con tutti i suoi dati">
                                     <MudIconButton Icon="@Impostazioni.Icona(nameof(Icons.Material.Filled.DeleteOutline))"
@@ -107,6 +114,25 @@
     private List<ContoCorrente> _conti = new();
     private Dictionary<string, string> _nomi = new();   // nomi nei campi, per codice del conto
     private Dictionary<string, FormatoConto> _formati = new();
+    private Dictionary<string, string?> _iban = new();   // IBAN nei campi, per i conti Excel
+
+    // l'IBAN si scrive a mano per i conti dei file Excel, che non lo hanno; quello dei file CBI e XML viene dal file
+    private bool IbanAMano(ContoCorrente c) =>
+        _formati.GetValueOrDefault(c.Codice, FormatoConto.Nessuno) == FormatoConto.Excel;
+
+    private string IbanScritto(ContoCorrente c) => (_iban.GetValueOrDefault(c.Codice) ?? "").Replace(" ", "").ToUpperInvariant();
+
+    private string? ErroreIban(ContoCorrente c)
+    {
+        if (!IbanAMano(c)) return null;
+        var iban = IbanScritto(c);
+        if (iban == "") return null;
+        if (!(iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban)))
+            return "Non è un IBAN italiano valido";
+        return _conti.FirstOrDefault(a => a.Codice != c.Codice && (a.Iban == iban || a.Codice == iban[5..])) is { } altro
+            ? $"È l'IBAN del conto {altro.Nome}"
+            : null;
+    }
 
     private static string TestoFormato(FormatoConto formato) => formato switch
     {
@@ -123,9 +149,11 @@
         _conti = Database.ElencoConti();
         _nomi = _conti.ToDictionary(c => c.Codice, c => c.Nome);
         _formati = Database.FormatiDeiConti();
+        _iban = _conti.ToDictionary(c => c.Codice, c => (string?)c.Iban);
     }
 
-    private bool Modificato(ContoCorrente c) => (_nomi[c.Codice] ?? "").Trim() != c.Nome;
+    private bool Modificato(ContoCorrente c) =>
+        (_nomi[c.Codice] ?? "").Trim() != c.Nome || (IbanAMano(c) && IbanScritto(c) != c.Iban);
 
     // Il nome deve esserci e non deve ripetersi, altrimenti nei filtri due conti non si distinguono.
     private string? Errore(ContoCorrente c)
@@ -141,8 +169,16 @@
     private void Salva(ContoCorrente c)
     {
         var nome = _nomi[c.Codice].Trim();
-        Database.RinominaConto(c.Codice, nome);
-        Snackbar.Add($"Conto rinominato in \"{nome}\".", Severity.Success);
+        if (nome != c.Nome)
+        {
+            Database.RinominaConto(c.Codice, nome);
+            Snackbar.Add($"Conto rinominato in \"{nome}\".", Severity.Success);
+        }
+        if (IbanAMano(c) && IbanScritto(c) != c.Iban)
+        {
+            Database.ImpostaIban(c.Codice, IbanScritto(c));
+            Snackbar.Add(IbanScritto(c) == "" ? $"IBAN del conto \"{nome}\" tolto." : $"IBAN del conto \"{nome}\" salvato.", Severity.Success);
+        }
         Carica();
     }
 

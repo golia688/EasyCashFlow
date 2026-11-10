@@ -593,7 +593,7 @@
             if (!(iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban)))
                 return "Non è un IBAN italiano valido: lascialo vuoto se non lo sai";
             // l'IBAN di un conto già registrato con file CBI o XML: quel conto resta così
-            return _conti.FirstOrDefault(c => c.Codice == iban[5..]) is { } esistente && Formato(esistente.Codice) == FormatoConto.Cbi
+            return _conti.FirstOrDefault(c => c.Codice == iban[5..] || c.Iban == iban) is { } esistente && Formato(esistente.Codice) == FormatoConto.Cbi
                 ? $"È l'IBAN del conto {esistente.Nome}, che si importa con file CBI o XML"
                 : null;
         }
@@ -624,7 +624,8 @@
         {
             var iban = Iban;
             var codice = iban != "" ? iban[5..] : NuovoCodice();
-            var esistente = _conti.FirstOrDefault(c => c.Codice == codice);
+            // un conto con lo stesso IBAN, anche se l'IBAN gli è stato scritto a mano dopo, è quello
+            var esistente = _conti.FirstOrDefault(c => c.Codice == codice || (iban != "" && c.Iban == iban));
             nuovo = esistente is null;
             conto = esistente ?? new ContoCorrente(codice, iban, iban != "" ? iban[5..10] : "", "EUR", _nomeNuovo!.Trim());
         }
