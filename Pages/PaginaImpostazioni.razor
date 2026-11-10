@@ -25,6 +25,9 @@
         I conti vengono registrati da soli alla prima importazione di un loro file. Dai a ciascuno
         un nome che riconosci: è quello che compare nelle griglie e nei filtri. Con il cestino elimini
         un conto con tutti i suoi movimenti.
+        Il <b>formato</b> è il tipo di file con cui si importano i movimenti del conto: lo decide la prima importazione,
+        e poi resta quello. File CBI di testo e XML vanno bene insieme; file Excel no, per non contare due volte gli
+        stessi movimenti.
     </MudText>
 
     @if (_conti.Count == 0)
@@ -40,6 +43,7 @@
                     <th>IBAN</th>
                     <th>ABI</th>
                     <th>Divisa</th>
+                    <th>Formato</th>
                     <th></th>
                 </tr>
             </thead>
@@ -67,6 +71,15 @@
                         <td>@c.Abi</td>
                         <td>@(c.Divisa == "" ? "-" : c.Divisa)</td>
                         <td>
+                            @{ var formato = _formati.GetValueOrDefault(c.Codice, FormatoConto.Nessuno); }
+                            <MudTooltip Text="@TestoFormato(formato)">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                         Color="@(formato == FormatoConto.Misto ? Color.Warning : formato == FormatoConto.Nessuno ? Color.Default : Color.Primary)">
+                                    @FormatiConto.Nome(formato)
+                                </MudChip>
+                            </MudTooltip>
+                        </td>
+                        <td>
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                            Disabled="@(!Modificato(c) || Errore(c) is not null)"
@@ -93,6 +106,15 @@
 
     private List<ContoCorrente> _conti = new();
     private Dictionary<string, string> _nomi = new();   // nomi nei campi, per codice del conto
+    private Dictionary<string, FormatoConto> _formati = new();
+
+    private static string TestoFormato(FormatoConto formato) => formato switch
+    {
+        FormatoConto.Cbi => "Per questo conto importa file CBI, di testo o XML: i file Excel non si accettano.",
+        FormatoConto.Excel => "Per questo conto importa file Excel: i file CBI e XML non si accettano. Per passare ai file CBI, elimina il conto e reimportalo con quelli.",
+        FormatoConto.Misto => "Il conto ha movimenti importati sia da file CBI o XML sia da file Excel, da prima che il programma lo impedisse: alcuni movimenti potrebbero essere contati due volte. Conviene eliminarlo e reimportarlo con un solo tipo di file.",
+        _ => "Il conto non ha movimenti: il formato lo deciderà la prossima importazione."
+    };
 
     protected override void OnInitialized() => Carica();
 
@@ -100,6 +122,7 @@
     {
         _conti = Database.ElencoConti();
         _nomi = _conti.ToDictionary(c => c.Codice, c => c.Nome);
+        _formati = Database.FormatiDeiConti();
     }
 
     private bool Modificato(ContoCorrente c) => (_nomi[c.Codice] ?? "").Trim() != c.Nome;

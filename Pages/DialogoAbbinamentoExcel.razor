@@ -82,10 +82,19 @@
                            Margin="Margin.Dense" Dense="true">
                     @foreach (var c in _conti)
                     {
-                        <MudSelectItem T="string" Value="@c.Codice">@c.Nome</MudSelectItem>
+                        @* un conto importato con file CBI o XML resta così: non si sceglie (dal 10/11) *@
+                        <MudSelectItem T="string" Value="@c.Codice" Disabled="@(Formato(c.Codice) == FormatoConto.Cbi)">
+                            @c.Nome@(Formato(c.Codice) == FormatoConto.Cbi ? " (si importa con file CBI o XML)" : "")
+                        </MudSelectItem>
                     }
                     <MudSelectItem T="string" Value="@ContoNuovo">+ Nuovo conto…</MudSelectItem>
                 </MudSelect>
+                @if (_conti.Any(c => Formato(c.Codice) == FormatoConto.Cbi))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        I conti importati con file CBI o XML non si possono scegliere: per loro continua a importare quei file.
+                    </MudText>
+                }
             </MudItem>
             @if (_conto == ContoNuovo)
             {
@@ -99,12 +108,11 @@
                 </MudItem>
             }
         </MudGrid>
-        @if (_movimentiCbi > 0)
+        @if (_conto is { } scelto && Formato(scelto) == FormatoConto.Misto)
         {
             <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
-                Questo conto ha già @_movimentiCbi.ToString("N0") movimenti importati da file CBI o XML. Un file Excel non ha i
-                riferimenti della banca: i movimenti dello stesso periodo verrebbero contati due volte. Per un conto usa un solo
-                tipo di file, oppure importa dall'Excel solo i giorni che il file CBI non ha.
+                Questo conto ha già movimenti importati sia da file CBI o XML sia da file Excel (prima che il programma lo
+                impedisse): i movimenti dello stesso periodo potrebbero essere contati due volte.
             </MudAlert>
         }
 
@@ -362,7 +370,9 @@
     private string? _nomeNuovo;
     private string? _ibanNuovo;
     private string? _saldoFinale;
-    private int _movimentiCbi;
+    private Dictionary<string, FormatoConto> _formati = [];
+
+    private FormatoConto Formato(string codice) => _formati.GetValueOrDefault(codice, FormatoConto.Nessuno);
     private bool _ricordato;
 
     private int _passo = 1;
@@ -407,6 +417,7 @@
     protected override void OnInitialized()
     {
         _conti = Database.ElencoConti();
+        _formati = Database.FormatiDeiConti();
         _imparate = new CausaliImparate(Database.CausaliImparate());
         _colonneDelFile = Enumerable.Range(0, Tabella.Colonne)
             .Where(c => Tabella.Righe.Any(r => c < r.Length && r[c] != "")).ToList();
@@ -418,7 +429,7 @@
             _passo = 2;
             _riga = _rigaScelta = salvato.Abbinamento.RigaIntestazioni;
             _colonne = salvato.Abbinamento.Colonne.ToDictionary(c => c.Key, c => c.Value.ToList());
-            if (_conti.Any(c => c.Codice == salvato.Conto)) _conto = salvato.Conto;
+            if (_conti.Any(c => c.Codice == salvato.Conto) && Formato(salvato.Conto) != FormatoConto.Cbi) _conto = salvato.Conto;
         }
         else
         {
@@ -536,7 +547,7 @@
     private void CambiaConto(string? conto)
     {
         _conto = conto;
-        _movimentiCbi = conto is null or ContoNuovo ? 0 : Database.ContaMovimentiNonExcel(conto);
+
     }
 
     // ---- anteprima ----
@@ -579,8 +590,12 @@
         {
             var iban = Iban;
             if (iban == "") return null;
-            return iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban) ? null
-                : "Non è un IBAN italiano valido: lascialo vuoto se non lo sai";
+            if (!(iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban)))
+                return "Non è un IBAN italiano valido: lascialo vuoto se non lo sai";
+            // l'IBAN di un conto già registrato con file CBI o XML: quel conto resta così
+            return _conti.FirstOrDefault(c => c.Codice == iban[5..]) is { } esistente && Formato(esistente.Codice) == FormatoConto.Cbi
+                ? $"È l'IBAN del conto {esistente.Nome}, che si importa con file CBI o XML"
+                : null;
         }
     }
 

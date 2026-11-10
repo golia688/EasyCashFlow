@@ -112,9 +112,11 @@ Se la tua banca fa esportare i movimenti solo in Excel, puoi importare
 anche quello: il programma apre una finestra in cui trascini ogni
 colonna del file nella casella giusta (data, descrizione, importo...),
 e la volta dopo se lo ricorda. Al file Excel mancano la causale, che il
-programma ricava dalla descrizione, e spesso i saldi. Per lo stesso
-conto usa sempre lo stesso tipo di file: CBI ed Excel insieme
-duplicherebbero i movimenti (capitolo "Importare un file Excel").
+programma ricava dalla descrizione, e spesso i saldi. Ogni conto si
+importa sempre con lo stesso tipo di file, CBI (testo o XML) oppure
+Excel: lo decide la prima importazione, e il programma non accetta
+l'altro, che duplicherebbe i movimenti (capitolo "Importare un file
+Excel").
 
 EasyCashFlow e' compatibile al 100% con Relax Banking, l'Home Banking
 del gruppo Iccrea: e' stato provato sui file veri, di testo e XML. In

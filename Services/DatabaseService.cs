@@ -1361,26 +1361,26 @@ public class DatabaseService
             _log.Debug($"Riga {m.RigaFile}: la causale fittizia del movimento già presente diventa {m.Causale}");
     }
 
-    /// <summary>Quanti movimenti di un conto vengono da file CBI o XML e non da un file Excel (il cui
-    /// riferimento comincia con "XL", ExcelParser): servono ad avvisare che i due tipi di file per lo stesso
-    /// conto duplicano i movimenti.</summary>
-    public int ContaMovimentiNonExcel(string conto)
+    /// <summary>Il formato dei conti che hanno movimenti (dal 10/11), dai loro riferimenti: quelli dei file
+    /// Excel cominciano con "XL" (ExcelParser), quelli dei file CBI e XML sono della banca. Un conto senza
+    /// movimenti non c'è (FormatoConto.Nessuno).</summary>
+    public Dictionary<string, FormatoConto> FormatiDeiConti()
     {
+        var formati = new Dictionary<string, FormatoConto>();
         using var connessione = Apri();
         using var comando = connessione.CreateCommand();
-        comando.CommandText = "SELECT COUNT(*) FROM Movimenti WHERE Conto = $conto AND Riferimento NOT LIKE 'XL%'";
-        comando.Parameters.AddWithValue("$conto", conto);
-        return Convert.ToInt32(comando.ExecuteScalar());
-    }
-
-    /// <summary>Quanti movimenti di un conto vengono da un file Excel.</summary>
-    public int ContaMovimentiExcel(string conto)
-    {
-        using var connessione = Apri();
-        using var comando = connessione.CreateCommand();
-        comando.CommandText = "SELECT COUNT(*) FROM Movimenti WHERE Conto = $conto AND Riferimento LIKE 'XL%'";
-        comando.Parameters.AddWithValue("$conto", conto);
-        return Convert.ToInt32(comando.ExecuteScalar());
+        comando.CommandText = """
+            SELECT Conto, SUM(Riferimento LIKE 'XL%'), SUM(Riferimento NOT LIKE 'XL%')
+            FROM Movimenti GROUP BY Conto
+            """;
+        using var lettore = comando.ExecuteReader();
+        while (lettore.Read())
+        {
+            var excel = lettore.GetInt64(1) > 0;
+            var cbi = lettore.GetInt64(2) > 0;
+            formati[lettore.GetString(0)] = excel && cbi ? FormatoConto.Misto : excel ? FormatoConto.Excel : FormatoConto.Cbi;
+        }
+        return formati;
     }
 
     /// <summary>Numero di righe nella tabella degli scarti.</summary>

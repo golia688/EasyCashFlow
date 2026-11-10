@@ -31,6 +31,23 @@ public record SaldoGiornaliero(string Conto, DateOnly Data, decimal SaldoInizial
 
 // Un conto corrente. Codice = ABI + CAB + numero di conto, lo stesso valore di MovimentoCbi.Conto.
 // Iban è vuoto se non è stato possibile ricavarlo dal file; Nome è scelto dall'utente.
+/// <summary>Con che tipo di file si importano i movimenti di un conto (dal 10/11): lo decide la prima
+/// importazione, e poi resta quello. CBI vale per il file di testo e per l'XML, che danno gli stessi movimenti
+/// con gli stessi riferimenti; Excel ha riferimenti costruiti dal programma, e mescolarli duplicherebbe i
+/// movimenti. Misto: un conto che ha già movimenti di tutti e due (importati prima del 10/11).</summary>
+public enum FormatoConto { Nessuno, Cbi, Excel, Misto }
+
+public static class FormatiConto
+{
+    public static string Nome(FormatoConto formato) => formato switch
+    {
+        FormatoConto.Cbi => "CBI (testo o XML)",
+        FormatoConto.Excel => "Excel",
+        FormatoConto.Misto => "CBI ed Excel insieme",
+        _ => "nessun movimento"
+    };
+}
+
 public record ContoCorrente(string Codice, string Iban, string Abi, string Divisa, string Nome)
 {
     // Nome assegnato alla registrazione, finché l'utente non ne sceglie uno.

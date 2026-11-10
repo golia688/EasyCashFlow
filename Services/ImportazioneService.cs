@@ -151,6 +151,14 @@ public class ImportazioneService
                 _log.NomeFileCorrente, "Nessuna giornata riconosciuta: il file non sembra un export CBI valido, di testo o XML.");
         }
 
+        // un conto si importa sempre con lo stesso tipo di file (dal 10/11): file CBI o XML, oppure Excel. I due
+        // hanno riferimenti diversi, e lo stesso movimento verrebbe contato due volte
+        if (ContoDiUnAltroFormato(letto, formato) is { } errore)
+        {
+            _log.Errore($"Importazione di {nomeFile} rifiutata: {errore}");
+            return new EsitoImportazione(nomeFile, 0, 0, 0, 0, Array.Empty<string>(), _log.NomeFileCorrente, errore);
+        }
+
         var avvisi = letto.Avvisi.ToList();
 
         // prima dei movimenti, così ogni movimento salvato ha il suo conto registrato
@@ -208,6 +216,25 @@ public class ImportazioneService
         _database.RegistraImportazione(esito, dal, al);
 
         return esito;
+    }
+
+    // il messaggio per l'utente se il file è di un tipo diverso da quello con cui si importa un suo conto
+    private string? ContoDiUnAltroFormato(RisultatoImportCbi letto, FormatoExport formato)
+    {
+        var formati = _database.FormatiDeiConti();
+        var nomi = _database.ElencoConti().ToDictionary(c => c.Codice, c => c.Nome);
+        var atteso = formato == FormatoExport.Excel ? FormatoConto.Excel : FormatoConto.Cbi;
+        var diversi = letto.Movimenti.Select(m => m.Conto).Distinct()
+            .Where(c => formati.GetValueOrDefault(c, FormatoConto.Nessuno) is var f && f != FormatoConto.Nessuno && f != FormatoConto.Misto && f != atteso)
+            .ToList();
+        if (diversi.Count == 0) return null;
+
+        var quali = string.Join(", ", diversi.Select(c => nomi.GetValueOrDefault(c, c)));
+        return formato == FormatoExport.Excel
+            ? $"Il conto {quali} si importa con file CBI o XML: per non avere movimenti doppi, per questo conto continua a importare quei file."
+            : $"{(diversi.Count == 1 ? "Il conto" : "I conti")} {quali} si {(diversi.Count == 1 ? "importa" : "importano")} con file Excel: " +
+              "per non avere movimenti doppi, continua a importare file Excel. Se vuoi passare ai file CBI o XML, elimina il conto " +
+              "(Impostazioni > Dati > Conti correnti) e reimportalo con quei file.";
     }
 
     // ---- abbinamenti delle colonne dei file Excel ----

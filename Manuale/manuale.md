@@ -203,7 +203,12 @@ Due descrizioni valgono come uguali se, tolti numeri e segni, sono identiche opp
 - **I saldi.** Se il file non ha la colonna del saldo, scrivi nel campo **Saldo del conto dopo l'ultimo movimento** quanto avevi sul conto quel giorno (lo trovi nell'home banking): il programma ricava i saldi di tutti i giorni. Se lo lasci vuoto, i movimenti si importano lo stesso, ma per quel periodo l'andamento del saldo resta vuoto.
 - **Il riferimento della banca**, che serve a riconoscere i movimenti già importati. Il programma ne costruisce uno da data, importo e descrizione: se importi di nuovo un periodo già importato dallo stesso tipo di file, i movimenti **non si duplicano**.
 
-**Un conto, un tipo di file.** Un movimento importato dal file CBI e lo stesso movimento importato dall'Excel hanno riferimenti diversi, e verrebbero contati **due volte**. Per ogni conto usa sempre lo stesso tipo di file. Se scegli un conto che ha già movimenti da file CBI o XML, la finestra te lo ricorda.
+**Un conto, un tipo di file.** Un movimento importato dal file CBI e lo stesso movimento importato dall'Excel hanno riferimenti diversi, e verrebbero contati **due volte**. Per questo ogni conto ha un **formato**, deciso dalla sua prima importazione, e il programma non accetta l'altro:
+
+- un conto importato con file CBI (di testo o XML, che vanno bene insieme) non si può scegliere nella finestra dell'Excel, e nemmeno creare di nuovo con il suo IBAN;
+- un file CBI o XML con i movimenti di un conto importato con file Excel viene rifiutato, senza salvare niente.
+
+Il formato di ogni conto lo vedi in [Impostazioni](app:impostazioni), accanto al conto. Se vuoi passare da un formato all'altro, elimina il conto e reimportalo con l'altro tipo di file.
 
 **Altri casi.**
 
@@ -444,7 +449,7 @@ Serve quando riparti da zero, per esempio con il programma in una cartella nuova
 
 **I conti**
 
-In [Impostazioni](app:impostazioni) trovi i conti importati, di qualunque banca: per ognuno IBAN, codice della banca (ABI) e divisa, letti dal file. Il nome che scegli compare in tutto il programma; premi **Salva** dopo averlo cambiato. Con un nome chiaro per ogni conto ("Conto di casa", "Conto online") la scelta dei conti nelle pagine si legge al volo.
+In [Impostazioni](app:impostazioni) trovi i conti importati, di qualunque banca: per ognuno IBAN, codice della banca (ABI) e divisa, letti dal file, e il **formato**, cioè il tipo di file con cui si importano i suoi movimenti: **CBI (testo o XML)** oppure **Excel**. Il formato lo decide la prima importazione, e poi il programma accetta solo quello, per non contare due volte gli stessi movimenti (vedi [Importare un file Excel](cap:excel)). Un conto con movimenti di tutti e due, importati prima che il programma lo impedisse, ha il formato "CBI ed Excel insieme" in giallo: conviene eliminarlo e reimportarlo con un tipo di file solo. Il nome che scegli compare in tutto il programma; premi **Salva** dopo averlo cambiato. Con un nome chiaro per ogni conto ("Conto di casa", "Conto online") la scelta dei conti nelle pagine si legge al volo.
 
 Un conto che non ti interessa più si elimina con il **cestino** in fondo alla sua riga, insieme a tutti i suoi dati: movimenti, saldi giornalieri, movimenti scartati e le scelte fatte sui singoli movimenti (straordinari e tipo). Prima di eliminare, la finestra di conferma mostra quanti movimenti ha il conto e di quale periodo, e per confermare devi scrivere il nome del conto. **Non si può annullare**: se pensi che i dati ti possano servire, fai prima un [backup](app:backup). Restano i gruppi di causali, che valgono per tutti i conti. Se poi importi di nuovo un file di quel conto, il conto ricompare con il nome provvisorio, come la prima volta.
 
