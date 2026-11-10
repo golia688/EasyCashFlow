@@ -57,10 +57,10 @@ Verifica fatta il 31/10 su una copia del database, per Ultimi 12 mesi, Anno 2026
 ## 2. Regole di calcolo
 
 - Le date sono quelle **contabili**: un movimento appartiene al mese in cui la banca lo registra.
-- Ogni causale appartiene a un **gruppo** con un **tipo** (tabella `GruppiCausali`, sezione 3):
+- Ogni movimento appartiene al **gruppo** della sua causale CBI, con un **tipo** (tabella `GruppiCausaliCbi` e vista `GruppiEffettivi`, dal 10/11; sezione 3):
   - **Ordinario**: entrata o uscita secondo il segno. Solo questi movimenti entrano in entrate, uscite, flusso netto e grafici per gruppo.
   - **Investimento**: soldi spostati verso gli investimenti o rientrati da essi (sottoscrizione di fondi, PAC, vendita di titoli). Non sono né spese né entrate: se lo fossero, il tasso di risparmio di un mese con un PAC sembrerebbe più basso di quello reale. Si sommano a parte nell'indicatore **Investito netto** (acquisti meno vendite e rimborsi).
-  - **Giroconto**: spostamenti tra conti propri, esclusi da tutto. Oggi nessuna causale è di questo tipo, perché c'è un solo conto; un singolo movimento può però diventarlo con il tipo scelto a mano (sezione 6).
+  - **Giroconto**: spostamenti tra conti propri, esclusi da tutto. Di partenza sono di questo tipo le causali CBI 34, 79 e Z1 (giroconti); un singolo movimento può diventarlo con il tipo scelto a mano (sezione 6).
 - Il tipo che conta è quello **effettivo**: il tipo scelto per il singolo movimento, se c'è, altrimenti quello del gruppo. Con l'esclusione attiva, i movimenti straordinari non entrano in nessun indicatore né grafico (sezione 6).
 - **Tasso di risparmio** = flusso netto / entrate. Può essere negativo: vuol dire che nel periodo si è speso più di quanto è entrato, attingendo al saldo.
 - **Uscita media mensile** = uscite / numero di mesi del periodo (anche i mesi senza movimenti).
@@ -84,7 +84,7 @@ I file importati prima di questa tabella non hanno lasciato saldi. Per avere lo 
 
 ### Gruppi di causali
 
-Tabella `GruppiCausali` (causale, gruppo, tipo, ricorrente). Al primo avvio viene riempita con una mappatura predefinita delle causali osservate negli export (`InserisciGruppiPredefiniti` in `DatabaseService`). Le voci già presenti non vengono mai sovrascritte, così le modifiche future dell'utente restano. Una causale senza gruppo finisce in **"Altro"**, di tipo Ordinario e variabile.
+Fino al 09/11: tabella `GruppiCausali` (causale, gruppo, tipo, ricorrente). Al primo avvio veniva riempita con una mappatura predefinita delle causali osservate negli export (`InserisciGruppiPredefiniti` in `DatabaseService`, tolto il 10/11). Le voci già presenti non venivano mai sovrascritte. Una causale senza gruppo finisce in **"Altro"**, di tipo Ordinario e variabile.
 
 **Gruppi di ripiego** (dal 05/11): la mappatura predefinita ha 28 causali a 4 cifre, quelle della BCC. Le prime due cifre di ogni causale sono la **causale CBI**, uguale per tutte le banche; le altre due la causale interna della banca ([05-formato-cbi.md](05-formato-cbi.md), sezione 7). Una causale dei movimenti che non ha ancora un gruppo riceve quello proposto per la sua causale CBI (`CausaliCbi.GruppoDiRipiego`, 42 causali CBI su 108: 48 → Bonifici ricevuti, 34 e 79 → Giroconti di tipo Giroconto, 83 → Investimenti…), all'avvio e dopo ogni importazione (`DatabaseService.AssegnaGruppiDiRipiego`). Così anche le causali di un'altra banca partono con un gruppo. Le causali CBI che possono essere cose diverse (storni, rettifiche, la 31 che la BCC usa per gli SDD) non hanno un ripiego e restano senza gruppo. Il gruppo resta per causale a 4 cifre perché la causale interna distingue cose che la causale CBI mette insieme: 3122 (SDD di utenze) e 3126 (PAC, un investimento) sono entrambe CBI 31.
 
@@ -95,36 +95,33 @@ Tabella `GruppiCausali` (causale, gruppo, tipo, ricorrente). Al primo avvio vien
 - si perdono le distinzioni delle causali interne: 3122 (SDD di utenze) e 3126 (PAC) sono entrambe 31, e la 31 parte senza gruppo perché la BCC la usa per gli SDD e lo standard per gli effetti ritirati. Un movimento diverso dagli altri della sua causale si corregge con il tipo del singolo movimento;
 - il file dei gruppi, versione 2, ha solo codici di 2 caratteri; un file di versione 1 (causali complete) si legge ancora, e ogni causale CBI prende il gruppo più usato dalle sue causali.
 
-**Esportazione e importazione** (dal 06/11): i pulsanti **Esporta** e **Importa** della pagina dei gruppi salvano in un file e riprendono tutta la tabella `GruppiCausali`, così su un'installazione nuova i gruppi non si rifanno a mano. Il file (`FileGruppiCausali`) è JSON, non cifrato perché non ha né movimenti né importi:
+**Esportazione e importazione** (dal 06/11; dal 10/11 per causale CBI): i pulsanti **Esporta** e **Importa** della pagina dei gruppi salvano in un file e riprendono i gruppi delle causali CBI, così su un'installazione nuova non si rifanno a mano. Il file (`FileGruppiCausali`) è JSON, non cifrato perché non ha né movimenti né importi:
 
 ```json
 {
   "formato": "EasyCashFlow.GruppiCausali",
-  "versione": 1,
-  "esportatoIl": "2026-11-06T18:30:00",
+  "versione": 2,
+  "esportatoIl": "2026-11-10T18:30:00",
   "gruppi": [
-    { "causale": "2611", "gruppo": "Bonifici effettuati", "tipo": "Ordinario", "ricorrente": false,
-      "descrizioneBanca": "Bonifico tramite Internet Banking" }
+    { "causale": "26", "gruppo": "Bonifici effettuati", "tipo": "Ordinario", "ricorrente": false,
+      "descrizioneBanca": "Vostra disposizione a favore di" }
   ]
 }
 ```
 
-- Si esportano **tutte** le righe della tabella, anche le predefinite e quelle di causali senza movimenti, con la descrizione della banca se ci sono movimenti (solo per chi legge il file: all'importazione si ignora).
-- All'importazione (`DatabaseService.ImportaGruppiCausali`, in una transazione) una causale del file prende gruppo, tipo e ricorrenza del file; quelle che il file non ha restano come sono. Prima di scrivere, la finestra di conferma (`DialogoImportaGruppi.razor`) mostra **esattamente** cosa cambia: la tabella delle causali che cambiano (causale, descrizione della banca, gruppo, tipo, spesa ricorrente o variabile; del valore diverso quello attuale barrato e quello del file evidenziato), quella delle causali che si aggiungono, il numero delle uguali e il motivo di ogni riga non valida. Il pulsante dice quante causali si importano. Fino al pomeriggio del 06/11 la conferma mostrava solo i conteggi.
-- Controlli: il formato e la versione del file (un file di un'altra versione più recente si rifiuta); per ogni riga la causale di 4 caratteri, il gruppo non vuoto (al massimo 60 caratteri) e il tipo tra Ordinario, Investimento e Giroconto. Una riga sbagliata si scarta da sola, e la conferma le elenca una per una con il motivo.
-- Su un database nuovo i gruppi importati prima dei movimenti valgono appena arrivano i movimenti: né i gruppi predefiniti (`ON CONFLICT DO NOTHING`) né quelli di ripiego (solo per le causali senza riga) li sovrascrivono.
-- Prova (programma `provagruppi`, con i sorgenti veri e database cifrati nuovi): esportazione di 29 causali, importazione su un database nuovo (1 nuova, 1 cambiata, 27 uguali), reimportazione senza cambiamenti, ripiego che non tocca i gruppi importati, righe sbagliate scartate una a una, file di un altro formato, non JSON o di una versione futura rifiutati.
+- Si esportano le causali CBI che hanno un gruppo, con la descrizione dello standard (solo per chi legge il file: all'importazione si ignora).
+- All'importazione (`DatabaseService.ImportaGruppiCausali`) una causale CBI del file prende gruppo, tipo e ricorrenza del file; quelle che il file non ha restano come sono. Prima di scrivere, la finestra di conferma (`DialogoImportaGruppi.razor`) mostra **esattamente** cosa cambia: la tabella delle causali CBI che cambiano (codice, descrizione, gruppo, tipo, spesa ricorrente o variabile; del valore diverso quello attuale barrato e quello del file evidenziato), quella delle causali che si aggiungono, il numero delle uguali e il motivo di ogni riga non valida.
+- Controlli: il formato e la versione del file (un file di una versione più recente si rifiuta); per ogni riga la causale di 2 o 4 caratteri, il gruppo non vuoto (al massimo 60 caratteri) e il tipo tra Ordinario, Investimento e Giroconto. Una riga sbagliata si scarta da sola. Un file di versione 1 ha le causali complete di 4 caratteri: ogni causale CBI prende il gruppo più usato dalle sue causali nel file.
+- Prove: programma `provagruppi` (06/11, versione 1) e `provaduetabelle` (10/11, versione 2 e conversione della 1).
 
-I gruppi si modificano da **Impostazioni > Dati > Gruppi di causali** (`PaginaGruppiCausali.razor`). C'è una riga per ogni causale presente nei movimenti, con:
-- la descrizione della banca e, sotto, la causale CBI con la sua descrizione secondo lo standard (dal 05/11), il numero di movimenti e il totale;
-- il gruppo, con i suggerimenti dei gruppi esistenti oppure un nome nuovo. Un nome che differisce da uno esistente solo per le maiuscole prende quello esistente, così non nascono doppioni;
+I gruppi si modificano da **Impostazioni > Dati > Gruppi di causali** (`PaginaGruppiCausali.razor` con `TabellaCausaliCbi.razor`). Dal 10/11 c'è una riga per ogni causale CBI dello standard, con:
+- il codice, la descrizione dello standard, il numero dei movimenti con quel codice e il loro totale, e la freccia verso il dettaglio dell'indicatore in cui finiscono;
+- il gruppo, con i suggerimenti di tutti i gruppi usati oppure un nome nuovo (un nome che differisce da uno esistente solo per le maiuscole prende quello esistente); svuotarlo toglie il gruppo;
 - il tipo e l'indicazione "ricorrente".
 
-Sopra l'elenco ci sono i **filtri**: testo (cerca nel codice e nella descrizione della banca), gruppo (anche "Senza gruppo"), tipo e spesa ricorrente o variabile, con il pulsante Azzera e il conteggio "N causali su M". Si applicano subito e guardano i valori **salvati**: se guardassero quelli scritti e non ancora salvati, una riga sparirebbe mentre la si modifica. Salvando una riga, le modifiche non ancora salvate delle altre righe restano.
+Sopra l'elenco: la ricerca (codice, descrizione o gruppo), il filtro per gruppo (anche "Senza gruppo") e l'interruttore "Solo le causali dei miei movimenti", acceso all'inizio se ci sono movimenti. I filtri guardano i valori **salvati**: se guardassero quelli scritti e non ancora salvati, una riga sparirebbe mentre la si modifica.
 
-Le causali senza gruppo hanno l'etichetta "senza gruppo"; dal 04/11 l'elenco è in ordine alfabetico della descrizione della banca (prima le causali senza gruppo erano in cima), e per trovarle tutte c'è la voce "Senza gruppo" del filtro Gruppo. Il filtro di testo cerca anche nella descrizione della causale CBI.
-
-I nomi della tabella sotto sono quelli di partenza, scelti da me in base al testo delle causali; vanno presi come proposta. Per esempio "Lavori casa con detrazione" è dedotto dai riferimenti di legge dei bonifici per le detrazioni fiscali (art. 16 bis per le ristrutturazioni, L. 296/06 per l'ecobonus, L. 90/13 per il bonus mobili), ma tra i bonifici per il bonus mobili ci sono acquisti che non sono lavori: un nome più esatto è "Bonifici con detrazione fiscale".
+Fino al 09/11 la pagina aveva una riga per ogni causale completa dei movimenti, con la descrizione della banca. I nomi di partenza della tabella sotto, per le causali della BCC, li avevo scelti io in base al testo delle causali; dal 10/11 non si usano più (contano i gruppi delle causali CBI, `CausaliCbi.GruppiDiPartenza`), ma restano come riferimento. Per esempio "Lavori casa con detrazione" era dedotto dai riferimenti di legge dei bonifici per le detrazioni fiscali (art. 16 bis, L. 296/06, L. 90/13), e un nome più esatto sarebbe stato "Bonifici con detrazione fiscale".
 
 | Gruppo | Causali | Tipo | Ricorrente |
 |---|---|---|---|
@@ -143,6 +140,8 @@ I nomi della tabella sotto sono quelli di partenza, scelti da me in base al test
 | Lavori casa con detrazione | 2609, 2615, 2617 | Ordinario | no |
 | Imposte e tasse | 1905, 1906, 1985 | Ordinario | 1905 e 1906 |
 | Spese bancarie | 1640, 2210 | Ordinario | solo 2210 |
+
+Con i gruppi per causale CBI la 3126 (PAC) sta con gli altri SDD della causale 31: per farla contare come investimento si sceglie il tipo dei suoi movimenti, anche tutti insieme con il menu **Tipo** della barra di selezione in Movimenti (sezione 6).
 
 **Limite**: la causale è grossolana. "Bonifico tramite Internet Banking" o "Bonifici ricevuti" mettono insieme cose molto diverse, compresi eventuali trasferimenti da altri conti propri. Una divisione per categorie vere (spesa, casa, auto…) richiede regole sulla descrizione: è il passo successivo (menu "Categorie").
 
@@ -238,7 +237,7 @@ Il gruppo di una causale decide tipo e ricorrenza di tutti i suoi movimenti, ma 
 - **Dati**: due colonne nella tabella `Movimenti`: `Straordinario` (0/1) e `TipoForzato` (NULL = tipo del gruppo, altrimenti Ordinario, Investimento o Giroconto). Una reimportazione non le tocca, perché i movimenti già presenti non vengono riscritti.
 - **Tipo effettivo**: `MovimentiPerAnalisi` legge `COALESCE(TipoForzato, tipo del gruppo, 'Ordinario')`; tutte le analisi usano il tipo effettivo. `MovimentoAnalisi` porta anche `Straordinario`, `TipoForzato` (vero se il tipo è scelto per il movimento) e `TipoDelGruppo`.
 - **"Straordinario" non è un tipo**: il movimento resta Ordinario (o quello che è) e l'etichetta dice solo che non si ripeterà.
-- **Dove si sceglie**: il menu ⋮ a fine riga (`MenuMovimento.razor`) nella griglia Movimenti e nelle tabelle di dettaglio, con le etichette "straordinario" e del tipo scelto; nella griglia Movimenti anche per tutte le righe selezionate, dalla barra di selezione. Dopo una modifica la griglia si ricarica sulla stessa pagina e il dettaglio si ricalcola. `MovimentoCbi` ora si confronta per chiave primaria, così una riga resta selezionata anche dopo essere stata modificata.
+- **Dove si sceglie**: il menu ⋮ a fine riga (`MenuMovimento.razor`) nella griglia Movimenti e nelle tabelle di dettaglio, con le etichette "straordinario" e del tipo scelto; nella griglia Movimenti anche per tutte le righe selezionate, dalla barra di selezione ("Segna come straordinari" e, dal 10/11, il menu "Tipo"). Per i movimenti dei file Excel lo stesso menu ⋮ ha "Scegli la causale…" (dal 10/11 anche nelle tabelle di dettaglio), e il filtro Etichette della griglia ha "Solo con la causale fittizia". Dopo una modifica la griglia si ricarica sulla stessa pagina e il dettaglio si ricalcola. `MovimentoCbi` ora si confronta per chiave primaria, così una riga resta selezionata anche dopo essere stata modificata.
 - **Analisi**: interruttore "Escludi straordinari", spento all'inizio e ricordato come il periodo (`AnalisiService.EscludiStraordinari`). Acceso, gli straordinari non contano in indicatori, grafici e cumulato; il loro totale resta in `StraordinariEsclusi`, e la verifica e la riconciliazione del saldo lo aggiungono, perché il saldo della banca li comprende. Nel dettaglio vanno tra gli esclusi con il motivo. Il dettaglio aperto dai gruppi di causali non li esclude.
 - **Simulazione**: interruttore "Escludi i movimenti straordinari", acceso all'inizio, con il numero e il totale degli straordinari del periodo.
 - **Ritrovarli**: accanto agli interruttori, in Analisi e Simulazione, il pulsante "Vedi gli straordinari" apre `DialogoStraordinari.razor`, l'elenco degli straordinari del periodo (con la stessa tabella dei dettagli e il suo menu ⋮). Chiudendolo, Analisi ricalcola; la Simulazione ricalcola la base solo se qualcosa è cambiato, per non perdere le ipotesi. Nella griglia Movimenti il filtro "Straordinari e tipo scelto" (`FiltroEtichette`: tutti, solo straordinari, senza straordinari, solo con il tipo scelto a mano) li trova in qualunque periodo.

@@ -5,7 +5,7 @@ namespace EasyCashFlow.Services;
 public enum GravitaNotifica { Informazione, Avviso, Errore }
 
 /// <summary>Dove porta il pulsante di una notifica (lo esegue Main.razor).</summary>
-public enum AzioneNotifica { Importa, RiepilogoImportazione, GruppiCausali, Scarti, Conti, Backup }
+public enum AzioneNotifica { Importa, RiepilogoImportazione, GruppiCausali, Scarti, Conti, Backup, CausaliFittizie }
 
 /// <summary>Una notifica della campanella. Id è stabile per lo stesso fatto ("scarti", "backup"…), così
 /// una notifica nascosta resta nascosta finché il fatto non cambia.</summary>
@@ -117,9 +117,15 @@ public class NotificheService
                 "Vedi gli scarti", AzioneNotifica.Scarti));
 
         if (stat.CausaliSenzaGruppo > 0)
-            elenco.Add(new("causali", GravitaNotifica.Avviso, "Causali senza gruppo",
-                $"{stat.CausaliSenzaGruppo:N0} causali non hanno un gruppo: nei grafici finiscono in \"Altro\".",
+            elenco.Add(new("causali", GravitaNotifica.Avviso, "Causali CBI senza gruppo",
+                $"{stat.CausaliSenzaGruppo:N0} {(stat.CausaliSenzaGruppo == 1 ? "causale CBI dei tuoi movimenti non ha" : "causali CBI dei tuoi movimenti non hanno")} un gruppo: nei grafici finiscono in \"Altro\".",
                 "Assegna i gruppi", AzioneNotifica.GruppiCausali));
+
+        if (stat.MovimentiCausaleFittizia > 0)
+            elenco.Add(new("fittizie", GravitaNotifica.Avviso, "Movimenti con la causale fittizia",
+                $"{stat.MovimentiCausaleFittizia:N0} movimenti dei file Excel hanno la causale fittizia 00XL: il programma non ne ha " +
+                "riconosciuto il tipo. Scegli la loro causale, e il gruppo arriva con lei.",
+                "Vedi i movimenti", AzioneNotifica.CausaliFittizie));
 
         var provvisori = _database.ElencoConti().Count(c => c.Nome == ContoCorrente.NomeProvvisorio(c.Codice));
         if (provvisori > 0)

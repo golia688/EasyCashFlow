@@ -25,12 +25,13 @@ public record StatisticheDatabase(
     int Movimenti,
     (DateOnly Prima, DateOnly Ultima)? Intervallo,
     int Conti,
-    int Causali,
-    int CausaliSenzaGruppo,
+    int Causali,                // causali CBI dei movimenti (le prime due cifre), senza la fittizia dei file Excel
+    int CausaliSenzaGruppo,     // causali CBI dei movimenti senza gruppo, senza la fittizia
     int Gruppi,                 // gruppi usati dalle causali dei movimenti
     int GruppiInvestimento,
     int GiornateSaldo,
     int Scartati,
     int Importazioni,           // registrate (e recuperate dal log), anche ripetute sullo stesso file
     int FileImportati,          // nomi di file diversi
-    ImportazioneRegistrata? UltimaImportazione);
+    ImportazioneRegistrata? UltimaImportazione,
+    int MovimentiCausaleFittizia = 0);   // movimenti Excel di cui il programma non ha riconosciuto il tipo (00XL)

@@ -58,10 +58,10 @@
             "Vai ai conti", Impostazioni.Icona(nameof(Icons.Material.Filled.AccountBalance)), () => ApriConti.InvokeAsync())
 
         @Passo(3, "Controlla i gruppi di causali",
-            "Nelle analisi i movimenti si raggruppano per causale. Le causali più comuni hanno già un gruppo; "
-            + "quelle senza gruppo finiscono in \"Altro\" finché non gliene assegni uno.",
+            "Nelle analisi i movimenti si raggruppano per causale CBI, le prime due cifre della causale, uguali per tutte "
+            + "le banche. Le più comuni hanno già un gruppo; quelle senza gruppo finiscono in \"Altro\" finché non gliene assegni uno.",
             _ciSonoMovimenti && _stat.CausaliSenzaGruppo == 0,
-            _stat.CausaliSenzaGruppo > 0 ? $"{_stat.CausaliSenzaGruppo} {(_stat.CausaliSenzaGruppo == 1 ? "causale è" : "causali sono")} senza gruppo" : null,
+            _stat.CausaliSenzaGruppo > 0 ? $"{_stat.CausaliSenzaGruppo} {(_stat.CausaliSenzaGruppo == 1 ? "causale CBI è" : "causali CBI sono")} senza gruppo" : null,
             "Vai ai gruppi", Impostazioni.Icona(nameof(Icons.Material.Filled.Category)), () => ApriGruppi.InvokeAsync())
     </MudPaper>
 }
@@ -90,7 +90,7 @@
                 @if (_saldo.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
-                        Nessun saldo salvato negli ultimi @TestoGiorni: importa di nuovo i file CBI o XML per aggiungerli.
+                        Nessun saldo salvato negli ultimi @TestoGiorni: importa di nuovo i file della banca per aggiungerli.
                     </MudText>
                 }
                 else
@@ -186,8 +186,10 @@
                 _stat.Importazioni == 0 ? "nessuna registrata"
                 : $"{_stat.FileImportati} {(_stat.FileImportati == 1 ? "file" : "file diversi")}, l'ultima il {_stat.UltimaImportazione!.ImportatoIl:dd/MM/yyyy}", null)
             @Numero("Conti", _stat.Conti, _stat.Conti == 1 ? "conto corrente" : "conti correnti", () => ApriConti.InvokeAsync())
-            @Numero("Causali", _stat.Causali,
-                _stat.CausaliSenzaGruppo == 0 ? "tutte con un gruppo" : $"{_stat.CausaliSenzaGruppo} senza gruppo", () => ApriGruppi.InvokeAsync())
+            @Numero("Causali CBI", _stat.Causali,
+                (_stat.CausaliSenzaGruppo == 0 ? "tutte con un gruppo" : $"{_stat.CausaliSenzaGruppo} senza gruppo")
+                + (_stat.MovimentiCausaleFittizia > 0 ? $"; {_stat.MovimentiCausaleFittizia} movimenti con la causale fittizia" : ""),
+                () => ApriGruppi.InvokeAsync())
             @Numero("Gruppi", _stat.Gruppi,
                 _stat.GruppiInvestimento > 0 ? $"di cui {_stat.GruppiInvestimento} di investimento" : "di causali", () => ApriGruppi.InvokeAsync())
             @Numero("Giornate di saldo", _stat.GiornateSaldo, "saldi giornalieri salvati", null)

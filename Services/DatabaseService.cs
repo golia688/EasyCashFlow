@@ -647,9 +647,13 @@ public class DatabaseService
             Movimenti: (int)Numero("SELECT COUNT(*) FROM Movimenti"),
             Intervallo: IntervalloMovimenti(),
             Conti: (int)Numero("SELECT COUNT(*) FROM Conti"),
-            Causali: (int)Numero("SELECT COUNT(DISTINCT Causale) FROM Movimenti"),
-            CausaliSenzaGruppo: (int)Numero(
-                "SELECT COUNT(DISTINCT Causale) FROM Movimenti WHERE Causale NOT IN (SELECT Causale FROM GruppiEffettivi)"),
+            // per causale CBI (dal 10/11): è lì che si sceglie il gruppo. La fittizia dei file Excel non si conta:
+            // non ha un gruppo, si sceglie la causale di ogni movimento (MovimentiCausaleFittizia)
+            Causali: (int)Numero($"SELECT COUNT(DISTINCT substr(Causale, 1, 2)) FROM Movimenti WHERE Causale <> '{CausaliCbi.Fittizia}'"),
+            CausaliSenzaGruppo: (int)Numero($"""
+                SELECT COUNT(DISTINCT substr(Causale, 1, 2)) FROM Movimenti
+                WHERE Causale <> '{CausaliCbi.Fittizia}' AND substr(Causale, 1, 2) NOT IN (SELECT Codice FROM GruppiCausaliCbi)
+                """),
             // i gruppi effettivamente usati dai movimenti, non tutti quelli predefiniti
             Gruppi: (int)Numero("SELECT COUNT(DISTINCT Gruppo) FROM GruppiEffettivi"),
             GruppiInvestimento: (int)Numero("SELECT COUNT(DISTINCT Gruppo) FROM GruppiEffettivi WHERE Tipo = 'Investimento'"),
@@ -657,7 +661,8 @@ public class DatabaseService
             Scartati: (int)Numero("SELECT COUNT(*) FROM MovimentiScartati"),
             Importazioni: (int)Numero("SELECT COUNT(*) FROM Importazioni"),
             FileImportati: (int)Numero("SELECT COUNT(DISTINCT NomeFile) FROM Importazioni"),
-            UltimaImportazione: ultima);
+            UltimaImportazione: ultima,
+            MovimentiCausaleFittizia: (int)Numero($"SELECT COUNT(*) FROM Movimenti WHERE Causale = '{CausaliCbi.Fittizia}'"));
     }
 
     /// <summary>Gli ultimi movimenti per data contabile, i più recenti per primi.</summary>

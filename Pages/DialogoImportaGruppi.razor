@@ -9,7 +9,7 @@
     <DialogContent>
         <MudText Typo="Typo.body2">
             Il file <b>@NomeFile</b>@(EsportatoIl is { } quando ? $", esportato il {quando:dd/MM/yyyy} alle {quando:HH:mm}," : "")
-            contiene i gruppi di @(Cambiano.Count + Nuove.Count + Uguali) causali. Ecco cosa cambia importandolo;
+            contiene i gruppi di @(Cambiano.Count + Nuove.Count + Uguali) causali CBI. Ecco cosa cambia importandolo;
             le causali CBI che il file non ha restano come sono. Un file esportato con una versione di prima ha i gruppi
             delle causali complete: ogni causale CBI prende il gruppo più usato dalle sue causali.
         </MudText>
@@ -22,7 +22,7 @@
                 </MudText>
                 <MudSimpleTable Dense="true" Elevation="0" Class="tabella-differenze">
                     <thead>
-                        <tr><th>Causale</th><th>Descrizione della banca</th><th>Gruppo</th><th>Tipo</th><th>Spesa</th></tr>
+                        <tr><th>Causale CBI</th><th>Descrizione</th><th>Gruppo</th><th>Tipo</th><th>Spesa</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var (attuale, nuovo) in Cambiano)
@@ -46,7 +46,7 @@
                 </MudText>
                 <MudSimpleTable Dense="true" Elevation="0" Class="tabella-differenze">
                     <thead>
-                        <tr><th>Causale</th><th>Descrizione della banca</th><th>Gruppo</th><th>Tipo</th><th>Spesa</th></tr>
+                        <tr><th>Causale CBI</th><th>Descrizione</th><th>Gruppo</th><th>Tipo</th><th>Spesa</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var nuova in Nuove)

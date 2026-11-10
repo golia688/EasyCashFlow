@@ -66,7 +66,7 @@
         {
             <MudText Typo="Typo.body2">
                 Non si può fare: i saldi salvati non coprono l'inizio del periodo.
-                Importa di nuovo i file CBI o XML più vecchi per completarli.
+                Importa di nuovo i file della banca più vecchi per completarli.
             </MudText>
         }
         else
@@ -389,7 +389,7 @@
             </div>,
         _ =>
             @<div>
-                <p>Saldo contabile a fine giornata, come lo comunica la banca nei file CBI di testo o XML. Se i conti sono più di uno,
+                <p>Saldo contabile a fine giornata, come lo comunica la banca nei file CBI di testo o XML (per i file Excel, dalla colonna del saldo o dal saldo finale indicato all'importazione). Se i conti sono più di uno,
                    è la somma dei loro saldi.</p>
                 <p>Qui sotto la riconciliazione: dal saldo iniziale, sommando tutti i movimenti del periodo divisi per
                    tipo, si arriva al saldo finale. Se i conti tornano, nessun movimento manca.</p>

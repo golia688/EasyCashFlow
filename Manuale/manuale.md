@@ -4,7 +4,7 @@ EasyCashFlow ti aiuta a capire **dove vanno i tuoi soldi**, su un conto o su tut
 
 Funziona così:
 
-1. scarichi dall'home banking l'elenco dei movimenti di ogni tuo conto corrente, nel formato **CBI**: un **file di testo** oppure un **file XML**, vanno bene tutti e due;
+1. scarichi dall'home banking l'elenco dei movimenti di ogni tuo conto corrente, nel formato **CBI** (un **file di testo** oppure un **file XML**, vanno bene tutti e due) oppure, se la banca non lo dà, in **Excel**;
 2. lo importi in EasyCashFlow;
 3. il programma ti mostra entrate, uscite, saldo e grafici, mese per mese.
 
@@ -38,17 +38,17 @@ Poi bastano tre passi. Li trovi anche nella [Home](app:home), dove si segnano co
 
 **1. Importa il primo file**
 
-Scarica dall'home banking i movimenti del conto in un file CBI, di testo o XML, e importalo. Il capitolo [Scaricare l'export dalla banca](cap:export-banca) spiega cosa cercare.
+Scarica dall'home banking i movimenti del conto in un file CBI, di testo o XML, oppure in Excel, e importalo con **Importa movimenti**. Il capitolo [Scaricare l'export dalla banca](cap:export-banca) spiega cosa cercare; per un file Excel vedi anche [Importare un file Excel](cap:excel).
 
 **2. Dai un nome al conto**
 
 Il conto si registra da solo, con un nome provvisorio tipo "ABI 12345 - c/c ...6789". Cambialo con un nome che riconosci, per esempio "Conto di casa". Lo trovi in [Impostazioni](app:impostazioni).
 
-Hai altri conti, anche in altre banche? Importa il file CBI (di testo o XML) di ciascuno: ogni conto si aggiunge da solo, e dai un nome anche a quelli. Da quel momento puoi guardarli uno alla volta o tutti insieme.
+Hai altri conti, anche in altre banche? Importa il file di ciascuno (CBI di testo o XML, oppure Excel): ogni conto si aggiunge da solo, e dai un nome anche a quelli. Da quel momento puoi guardarli uno alla volta o tutti insieme.
 
 **3. Controlla i gruppi di causali**
 
-Ogni movimento ha una *causale*, cioè un codice della banca che dice che tipo di operazione è (bonifico, carta, stipendio…). Il programma raggruppa le causali per fare i grafici. Le più comuni sono già sistemate, anche quelle di altre banche; se ne resta qualcuna senza gruppo, assegnagliene uno in [Gruppi di causali](app:gruppi).
+Ogni movimento ha una *causale*, cioè un codice che dice che tipo di operazione è (bonifico, carta, stipendio…). Le prime due cifre, la *causale CBI*, sono uguali per tutte le banche, e il programma raggruppa i movimenti per causale CBI per fare i grafici. Le più comuni hanno già un gruppo; se ne resta qualcuna senza gruppo, assegnagliene uno in [Gruppi di causali](app:gruppi). Se hai importato un file Excel, controlla anche i movimenti con la *causale fittizia* (vedi [Importare un file Excel](cap:excel)).
 
 Fatto questo, apri le [Analisi](app:analisi).
 
@@ -74,7 +74,7 @@ Con più conti, ognuno è aggiornato fino al giorno del suo ultimo export: per e
 
 **I dati nel database**
 
-Quanti movimenti, importazioni, conti, causali, gruppi e saldi ci sono. Alcuni riquadri si possono cliccare e portano alla pagina relativa: per esempio "Causali" apre i gruppi di causali.
+Quanti movimenti, importazioni, conti, causali CBI, gruppi e saldi ci sono. Alcuni riquadri si possono cliccare e portano alla pagina relativa: per esempio "Causali CBI" apre i gruppi di causali; dice anche quante causali CBI sono senza gruppo e quanti movimenti hanno la causale fittizia.
 
 **Ultima importazione e ultimi movimenti**
 
@@ -90,7 +90,8 @@ In alto a destra, tra l'icona del log e quella dell'aiuto (il punto interrogativ
 
 - **Ultima importazione con avvisi** o **non riuscita**: riapre il riepilogo dell'importazione.
 - **Movimenti scartati da controllare**: porta ai movimenti scartati.
-- **Causali senza gruppo**: porta ai gruppi di causali.
+- **Causali CBI senza gruppo**: porta ai gruppi di causali.
+- **Movimenti con la causale fittizia**: porta ai movimenti, già filtrati, di cui scegliere la causale.
 - **Dai un nome ai conti**: porta ai conti correnti.
 - **Importa un export recente**, se l'ultimo movimento ha più di una settimana.
 - **Fai un backup**, se non l'hai mai fatto o l'ultimo ha più di 30 giorni.
@@ -258,7 +259,7 @@ Il pulsante **⋮** in fondo a ogni riga apre un piccolo menu:
 
 Per farlo con tanti movimenti insieme, selezionali con le caselle a sinistra e usa la barra in fondo alla pagina: **Segna come straordinari**, oppure **Tipo**, che dà a tutti i selezionati lo stesso tipo (Ordinario, Investimento, Giroconto) o li riporta a **Come il gruppo**. Per esempio, cerca la causale dei tuoi PAC, premi **Seleziona tutti i risultati** e scegli **Tipo → Investimento**. Se tra quelli selezionati ci sono movimenti dei file Excel, la barra offre anche **Scegli la causale**, che vale solo per quelli.
 
-Per **ritrovarli**, per esempio per togliere l'etichetta, usa il filtro **Etichette**: "Solo gli straordinari" mostra tutti quelli che hai segnato, "Solo con il tipo scelto a mano" quelli a cui hai cambiato il tipo. Poi dal menu **⋮** togli l'etichetta, oppure selezionali e usa **Non straordinari** nella barra in fondo.
+Per **ritrovarli**, per esempio per togliere l'etichetta, usa il filtro **Etichette**: "Solo gli straordinari" mostra tutti quelli che hai segnato, "Solo con il tipo scelto a mano" quelli a cui hai cambiato il tipo, "Solo con la causale fittizia" i movimenti Excel di cui scegliere la causale. Poi dal menu **⋮** togli l'etichetta, oppure selezionali e usa **Non straordinari** nella barra in fondo.
 
 Lo stesso menu c'è anche negli elenchi di movimenti che si aprono dalle analisi, come **Movimenti inclusi**, compresa la scelta della causale per i movimenti Excel: i numeri della pagina si ricalcolano subito. Le scelte, causale compresa, restano anche se importi di nuovo lo stesso file.
 
@@ -266,7 +267,7 @@ Lo stesso menu c'è anche negli elenchi di movimenti che si aprono dalle analisi
 
 Quando importi un file, il programma riconosce i movimenti già presenti e non li duplica.
 
-Raramente capita che un movimento del file sembri lo stesso di uno già salvato (stessa data, stesso importo, stesso riferimento) ma abbia **qualche dettaglio diverso**, per esempio la descrizione. In questo caso il programma non sa quale sia quello giusto: **tiene quello che aveva già** e mette l'altro tra gli scartati, così puoi controllarlo.
+Raramente capita che un movimento del file sembri lo stesso di uno già salvato (stessa data, stesso importo, stesso riferimento) ma abbia **qualche dettaglio diverso**: la data valuta o la causale. (Se cambia solo la descrizione, il programma tiene la più completa e non scarta niente.) In questo caso il programma non sa quale sia quello giusto: **tiene quello che aveva già** e mette l'altro tra gli scartati, così puoi controllarlo.
 
 Se ce ne sono, in [Movimenti](app:movimenti) compare un'etichetta rossa, "N movimenti scartati": cliccala per aprire l'elenco. Aprendo una riga vedi i due movimenti uno accanto all'altro, con le differenze in rosso.
 
@@ -299,7 +300,7 @@ L'interruttore **Escludi straordinari**, accanto al periodo, toglie da numeri e 
 Nella pagina che si apre:
 
 - la sezione **Per gruppo** divide i movimenti per gruppo: clicca un gruppo per vedere solo i suoi movimenti (la riga scelta si colora, le altre si attenuano); cliccalo di nuovo per tornare a vederli tutti;
-- sopra l'elenco dei movimenti puoi **cercare** una parola, una causale o un importo (per esempio "325,40") e scegliere un intervallo di **date**: accanto compaiono quanti movimenti hai trovato e il loro totale;
+- sopra l'elenco dei movimenti puoi **cercare** una parola, una causale, un gruppo o un importo (per esempio "325,40"), come in **Cerca** della pagina Movimenti, e scegliere un intervallo di **date**: accanto compaiono quanti movimenti hai trovato e il loro totale;
 - più in basso, chiusi, ci sono i **movimenti esclusi**: quelli del periodo che non entrano in quel numero, ciascuno con il motivo (per esempio un versamento in un fondo, che non è una spesa);
 - per il **saldo** c'è anche la **riconciliazione**: dal saldo di inizio periodo, sommando i movimenti, si deve arrivare al saldo della banca. Se c'è una differenza, probabilmente manca un file da importare.
 
@@ -503,7 +504,7 @@ Apri il programma con la password e vai in [Sicurezza](app:sicurezza): con la pa
 
 Nella schermata della password clicca **Ho dimenticato la password** e scrivi il **codice di recupero** che hai ricevuto quando l'hai creata (maiuscole, spazi e trattini non contano). Poi scegli una password nuova: riceverai anche un codice di recupero nuovo, perché quello usato non vale più. Conserva il nuovo come il primo.
 
-Se non hai più nemmeno il codice, i dati non si possono aprire: ricomincia da una cartella nuova e importa di nuovo i file CBI (di testo o XML) scaricati dalla banca.
+Se non hai più nemmeno il codice, i dati non si possono aprire: ricomincia da una cartella nuova e importa di nuovo i file scaricati dalla banca (CBI di testo o XML, oppure Excel).
 
 **Ho sbagliato la password più volte e devo aspettare.**
 
@@ -523,13 +524,13 @@ Sono pagamenti, di solito con la carta, che la banca ha già registrato ma non a
 
 **Perché il saldo nelle analisi è vuoto o parte da una certa data?**
 
-Il saldo si salva ogni volta che importi un file, per le giornate di quel file. Se vuoi lo storico completo, importa di nuovo anche i file più vecchi: i movimenti risulteranno "già presenti", ma i saldi verranno aggiunti.
+Il saldo si salva ogni volta che importi un file, per le giornate di quel file. Se vuoi lo storico completo, importa di nuovo anche i file più vecchi: i movimenti risulteranno "già presenti", ma i saldi verranno aggiunti. Un file Excel ha i saldi solo se ha la colonna del saldo, oppure se all'importazione scrivi il saldo del conto dopo l'ultimo movimento.
 
 **Un movimento finisce nel gruppo sbagliato. Come lo correggo?**
 
 Il gruppo dipende dalle prime due cifre della causale, la causale CBI. Vai in [Gruppi di causali](app:gruppi), cerca quella causale CBI e cambiale gruppo. Attenzione: la modifica vale per tutti i movimenti con quella causale CBI.
 
-Se invece è un solo movimento a fare eccezione, non serve cambiare il gruppo: dal menu **⋮** del movimento puoi sceglierne il tipo (per esempio Giroconto) o segnarlo come straordinario. Vedi [La pagina dei movimenti](cap:movimenti).
+Se invece è un solo movimento a fare eccezione, non serve cambiare il gruppo: dal menu **⋮** del movimento puoi sceglierne il tipo (per esempio Giroconto) o segnarlo come straordinario; se sono tanti, selezionali e usa **Tipo** nella barra in fondo. Per un movimento di un file Excel puoi anche sceglierne la causale. Vedi [La pagina dei movimenti](cap:movimenti).
 
 **Ho importato per sbaglio il file di un conto che non volevo. Come lo tolgo?**
 
@@ -577,7 +578,7 @@ Quando scrivi la password la chiave viene riaperta e resta **nella memoria del c
 
 **Cosa non è cifrato**
 
-- i **file CBI** (di testo o XML) che scarichi dalla banca: restano in chiaro dove li hai salvati (vedi sotto);
+- i **file** che scarichi dalla banca (CBI di testo o XML, oppure Excel): restano in chiaro dove li hai salvati (vedi sotto);
 - il file `preferenze.json`: contiene solo le scelte di [Aspetto](app:aspetto) e i giorni dei log, che servono prima della password e non dicono niente dei tuoi soldi;
 - i **log**: non sono cifrati, ma non contengono i dati dei tuoi movimenti (vedi più avanti).
 
@@ -601,7 +602,7 @@ Vale la stessa attenzione di sopra: la copia è cifrata, ma contiene tutti i tuo
 
 Ricorda che una copia si apre con la password che valeva **quando l'hai fatta**: se poi cambi la password, la copia vecchia continua ad aprirsi con quella vecchia. Se hai cambiato la password perché temevi che qualcuno la conoscesse, cancella le copie fatte prima e fanne una nuova.
 
-Quando non ti serve più un file CBI o XML scaricato dalla banca, cancellalo o mettilo nello stesso posto sicuro: contiene gli stessi dati.
+Quando non ti serve più un file scaricato dalla banca, cancellalo o mettilo nello stesso posto sicuro: contiene gli stessi dati.
 
 **Dove trovarli**
 

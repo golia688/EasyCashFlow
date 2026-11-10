@@ -15,6 +15,7 @@
 @inject PreferenzeService Preferenze
 @inject BloccoService Blocco
 @inject NotificheService Notifiche
+@inject StatoMovimenti StatoMovimenti
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
 
@@ -813,6 +814,13 @@
                 break;
             case AzioneNotifica.Backup:
                 Vai(Sezione.Backup);
+                break;
+            case AzioneNotifica.CausaliFittizie:
+                // i movimenti con la causale fittizia, già filtrati (filtro Etichette)
+                var filtri = new FiltriMovimenti { Etichette = FiltroEtichette.CausaleFittizia };
+                StatoMovimenti.Filtri = filtri;
+                StatoMovimenti.FiltriAttivi = filtri.Copia();
+                Vai(Sezione.Movimenti);
                 break;
         }
     }
