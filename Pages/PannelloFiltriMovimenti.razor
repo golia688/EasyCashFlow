@@ -81,11 +81,12 @@
            fittizia dei file Excel, per sceglierne la causale giusta *@
         <MudSelect T="FiltroEtichette" Label="Etichette" @bind-Value="Filtri.Etichette"
                    Variant="Variant.Outlined" Margin="Margin.Dense">
+            @* una voce per ogni etichetta che un movimento può mostrare nella griglia (dall'11/11) *@
             <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.Tutti">Tutti i movimenti</MudSelectItem>
-            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.Straordinari">Solo gli straordinari</MudSelectItem>
-            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.NonStraordinari">Senza gli straordinari</MudSelectItem>
-            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.TipoScelto">Solo con il tipo scelto a mano</MudSelectItem>
-            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.CausaleFittizia">Solo con la causale fittizia</MudSelectItem>
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.Investimento">Investimento</MudSelectItem>
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.Straordinari">Straordinario</MudSelectItem>
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.Giroconto">Giroconto</MudSelectItem>
+            <MudSelectItem T="FiltroEtichette" Value="FiltroEtichette.CausaleFittizia">Causale fittizia</MudSelectItem>
         </MudSelect>
     </MudItem>
 </MudGrid>

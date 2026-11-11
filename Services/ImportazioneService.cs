@@ -165,6 +165,10 @@ public class ImportazioneService
         _database.RegistraConti(letto.Conti);
         if (richiesta is { ContoNuovo: true })
             _database.RinominaConto(richiesta.Conto.Codice, richiesta.Conto.Nome);
+        // un conto Excel registrato senza IBAN riceve quello scritto nella finestra (obbligatorio dal 11/11)
+        else if (richiesta is { Conto.Iban: not "" } &&
+                 _database.ElencoConti().FirstOrDefault(c => c.Codice == richiesta.Conto.Codice) is { Iban: "" })
+            _database.ImpostaIban(richiesta.Conto.Codice, richiesta.Conto.Iban);
 
         // la descrizione breve è un campo della banca solo nel file a 120 caratteri; nell'XML è ricavata
         var risultato = _database.InserisciMovimenti(letto.Movimenti, nomeFile, breveDellaBanca: formato == FormatoExport.Cbi);

@@ -216,7 +216,7 @@ public static class ExcelParser
         var sconosciute = movimenti.Count(m => m.Causale == CausaleSconosciuta);
         if (sconosciute > 0)
             avvisi.Add($"{sconosciute} movimenti non hanno un tipo riconoscibile dalla descrizione: hanno la causale " +
-                       $"fittizia {CausaleSconosciuta}, senza gruppo. In Movimenti li trovi con il filtro Etichette, \"Solo con la causale fittizia\": " +
+                       $"fittizia {CausaleSconosciuta}, senza gruppo. In Movimenti li trovi con il filtro Etichette, \"Causale fittizia\": " +
                        "dal menu di ogni movimento (o selezionandone più di uno) puoi scegliere la causale giusta, e il gruppo arriva con lei.");
 
         return new RisultatoImportCbi(richiesta.ContoNuovo ? [richiesta.Conto] : [], movimenti, saldi, scartati, avvisi);

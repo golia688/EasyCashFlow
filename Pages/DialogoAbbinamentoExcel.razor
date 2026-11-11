@@ -105,8 +105,14 @@
                     <MudTextField T="string" @bind-Value="_nomeNuovo" Immediate="true" Label="Nome del nuovo conto"
                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
                 </MudItem>
+            }
+            @if (ServeIban)
+            {
+                @* l'IBAN è obbligatorio (dal 11/11): il file Excel non lo ha, e identifica il conto *@
                 <MudItem xs="12" sm="6">
-                    <MudTextField T="string" @bind-Value="_ibanNuovo" Immediate="true" Label="IBAN (facoltativo)"
+                    <MudTextField T="string" @bind-Value="_ibanNuovo" Immediate="true" Required="true"
+                                  Label="@(_conto == ContoNuovo ? "IBAN del nuovo conto" : "IBAN del conto (manca: scrivilo)")"
+                                  HelperText="Il file Excel non contiene l'IBAN: lo trovi nell'home banking o nell'estratto conto"
                                   Variant="Variant.Outlined" Margin="Margin.Dense" Error="@(ErroreIban is not null)" ErrorText="@ErroreIban" />
                 </MudItem>
             }
@@ -617,6 +623,11 @@
 
     // ---- conferma ----
 
+    // l'IBAN serve per un conto nuovo e per un conto già registrato che non lo ha (creato prima dell'11/11)
+    private bool ServeIban =>
+        _conto == ContoNuovo || (_conto is { } scelto && _conti.FirstOrDefault(c => c.Codice == scelto) is { Iban: "" });
+
+    // vuoto finché non si scrive niente: il motivo per cui Importa è spento lo dice MotivoNonPronto
     private string? ErroreIban
     {
         get
@@ -624,11 +635,14 @@
             var iban = Iban;
             if (iban == "") return null;
             if (!(iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban)))
-                return "Non è un IBAN italiano valido: lascialo vuoto se non lo sai";
+                return "Non è un IBAN italiano valido";
+            var altro = _conti.FirstOrDefault(c => c.Codice != _conto && (c.Codice == iban[5..] || c.Iban == iban));
+            if (altro is null) return null;
             // l'IBAN di un conto già registrato con file CBI o XML: quel conto resta così
-            return _conti.FirstOrDefault(c => c.Codice == iban[5..] || c.Iban == iban) is { } esistente && Formato(esistente.Codice) == FormatoConto.Cbi
-                ? $"È l'IBAN del conto {esistente.Nome}, che si importa con file CBI o XML"
-                : null;
+            if (Formato(altro.Codice) == FormatoConto.Cbi)
+                return $"È l'IBAN del conto {altro.Nome}, che si importa con file CBI o XML";
+            // per un conto esistente senza IBAN, l'IBAN di un altro conto è un errore; per uno nuovo si usa quel conto
+            return _conto == ContoNuovo ? null : $"È l'IBAN del conto {altro.Nome}";
         }
     }
 
@@ -642,7 +656,8 @@
     private string? MotivoNonPronto =>
         _conto is null ? "Scegli il conto" :
         _conto == ContoNuovo && string.IsNullOrWhiteSpace(_nomeNuovo) ? "Scrivi il nome del nuovo conto" :
-        _conto == ContoNuovo && ErroreIban is not null ? "Correggi l'IBAN" :
+        ServeIban && Iban == "" ? "Scrivi l'IBAN del conto" :
+        ServeIban && ErroreIban is not null ? "Correggi l'IBAN" :
         !Abbinamento.Completo ? "Riempi le caselle con l'asterisco" :
         _validi == 0 ? "Nessun movimento da importare" :
         ErroreSaldo is not null ? "Correggi il saldo" : null;
@@ -655,29 +670,23 @@
         bool nuovo;
         if (_conto == ContoNuovo)
         {
+            // il codice del conto è l'IBAN senza i primi cinque caratteri, come nei file CBI
             var iban = Iban;
-            var codice = iban != "" ? iban[5..] : NuovoCodice();
+            var codice = iban[5..];
             // un conto con lo stesso IBAN, anche se l'IBAN gli è stato scritto a mano dopo, è quello
-            var esistente = _conti.FirstOrDefault(c => c.Codice == codice || (iban != "" && c.Iban == iban));
+            var esistente = _conti.FirstOrDefault(c => c.Codice == codice || c.Iban == iban);
             nuovo = esistente is null;
-            conto = esistente ?? new ContoCorrente(codice, iban, iban != "" ? iban[5..10] : "", "EUR", _nomeNuovo!.Trim());
+            conto = esistente ?? new ContoCorrente(codice, iban, iban[5..10], "EUR", _nomeNuovo!.Trim());
         }
         else
         {
             conto = _conti.First(c => c.Codice == _conto);
+            // un conto registrato senza IBAN lo riceve adesso (ImportazioneService lo salva)
+            if (conto.Iban == "") conto = conto with { Iban = Iban, Abi = Iban[5..10] };
             nuovo = false;
         }
 
         Dialogo.Close(DialogResult.Ok(new RichiestaExcel(Tabella, Abbinamento, conto, nuovo, SaldoFinale)));
     }
 
-    // un conto senza IBAN: "EXCEL001", "EXCEL002"...
-    private string NuovoCodice()
-    {
-        for (var n = 1; ; n++)
-        {
-            var codice = $"EXCEL{n:000}";
-            if (_conti.All(c => c.Codice != codice)) return codice;
-        }
-    }
 }

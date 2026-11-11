@@ -59,9 +59,10 @@
                         <td style="font-family: monospace;">
                             @if (IbanAMano(c))
                             {
-                                @* un file Excel non ha l'IBAN: per un conto Excel lo scrive l'utente, se vuole (dal 10/11) *@
+                                @* un file Excel non ha l'IBAN: per un conto Excel lo scrive l'utente (dal 10/11; obbligatorio
+                                   dall'11/11, nella finestra di importazione) *@
                                 <MudTextField T="string" @bind-Value="_iban[c.Codice]" Immediate="true" MaxLength="34"
-                                              Placeholder="IBAN (facoltativo)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                              Placeholder="IBAN (da completare)" Variant="Variant.Outlined" Margin="Margin.Dense"
                                               Error="@(ErroreIban(c) is not null)" ErrorText="@ErroreIban(c)" />
                             }
                             else if (c.Iban == "")
@@ -126,7 +127,7 @@
     {
         if (!IbanAMano(c)) return null;
         var iban = IbanScritto(c);
-        if (iban == "") return null;
+        if (iban == "") return c.Iban != "" ? "L'IBAN del conto è obbligatorio" : null;
         if (!(iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban)))
             return "Non è un IBAN italiano valido";
         return _conti.FirstOrDefault(a => a.Codice != c.Codice && (a.Iban == iban || a.Codice == iban[5..])) is { } altro
@@ -177,7 +178,7 @@
         if (IbanAMano(c) && IbanScritto(c) != c.Iban)
         {
             Database.ImpostaIban(c.Codice, IbanScritto(c));
-            Snackbar.Add(IbanScritto(c) == "" ? $"IBAN del conto \"{nome}\" tolto." : $"IBAN del conto \"{nome}\" salvato.", Severity.Success);
+            Snackbar.Add($"IBAN del conto \"{nome}\" salvato.", Severity.Success);
         }
         Carica();
     }
