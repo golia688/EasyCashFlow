@@ -59,36 +59,60 @@ public static class OpzioniGrafici
     private static object Griglia(int alto = 36) => new { left = 8, right = 16, top = alto, bottom = 8, containLabel = true };
 
     /// <summary>Entrate sopra lo zero, uscite sotto, flusso netto come linea: la posizione distingue
-    /// entrate e uscite anche senza il colore (verde e rosso si confondono per i daltonici).</summary>
-    public static object EntrateUscitePerMese(IReadOnlyList<ValoriMese> mesi, ColoriGrafici c) => new
+    /// entrate e uscite anche senza il colore (verde e rosso si confondono per i daltonici).
+    /// Nello stile moderno (dall'11/11) la struttura è la stessa: le colonne sono sfumate, piene verso
+    /// l'estremità e tenui verso lo zero, con gli angoli più tondi, e la linea del flusso netto è morbida
+    /// e nel colore principale.</summary>
+    public static object EntrateUscitePerMese(IReadOnlyList<ValoriMese> mesi, ColoriGrafici c,
+                                              StileGrafici stile = StileGrafici.Classico)
     {
-        textStyle = Testo(c),
-        tooltip = Tooltip(c, "axis"),
-        legend = Legenda(c),
-        grid = Griglia(),
-        xAxis = AsseCategorie(c, mesi.Select(m => Mese(m.Mese))),
-        yAxis = AsseImporti(c),
-        series = new object[]
+        var moderno = stile == StileGrafici.Moderno;
+        object coloreEntrate = moderno ? Sfumatura(c.Entrate, 1, 0.35) : c.Entrate;
+        object coloreUscite = moderno ? Sfumatura(c.Uscite, 0.35, 1) : c.Uscite;
+        var raggio = moderno ? 7 : 4;
+        var coloreNetto = moderno ? c.Principale : c.Testo;
+        return new
         {
-            new
+            textStyle = Testo(c),
+            tooltip = Tooltip(c, "axis"),
+            legend = Legenda(c),
+            grid = Griglia(),
+            xAxis = AsseCategorie(c, mesi.Select(m => Mese(m.Mese))),
+            yAxis = AsseImporti(c),
+            series = new object[]
             {
-                name = "Entrate", type = "bar", stack = "flusso", barMaxWidth = 28, cursor = "pointer",
-                itemStyle = new { color = c.Entrate, borderRadius = new[] { 4, 4, 0, 0 } },
-                data = mesi.Select(m => Arrotonda(m.Entrate))
-            },
-            new
-            {
-                name = "Uscite", type = "bar", stack = "flusso", barMaxWidth = 28, cursor = "pointer",
-                itemStyle = new { color = c.Uscite, borderRadius = new[] { 0, 0, 4, 4 } },
-                data = mesi.Select(m => Arrotonda(-m.Uscite))
-            },
-            new
-            {
-                name = "Flusso netto", type = "line", symbol = "circle", symbolSize = 8, cursor = "pointer",
-                lineStyle = new { width = 2, color = c.Testo },
-                itemStyle = new { color = c.Testo, borderColor = c.Superficie, borderWidth = 2 },
-                data = mesi.Select(m => Arrotonda(m.Netto))
+                new
+                {
+                    name = "Entrate", type = "bar", stack = "flusso", barMaxWidth = 28, cursor = "pointer",
+                    itemStyle = new { color = coloreEntrate, borderRadius = new[] { raggio, raggio, 0, 0 } },
+                    data = mesi.Select(m => Arrotonda(m.Entrate))
+                },
+                new
+                {
+                    name = "Uscite", type = "bar", stack = "flusso", barMaxWidth = 28, cursor = "pointer",
+                    itemStyle = new { color = coloreUscite, borderRadius = new[] { 0, 0, raggio, raggio } },
+                    data = mesi.Select(m => Arrotonda(-m.Uscite))
+                },
+                new
+                {
+                    name = "Flusso netto", type = "line", symbol = "circle", symbolSize = 8, cursor = "pointer",
+                    smooth = moderno,
+                    lineStyle = new { width = moderno ? 2.5 : 2, color = coloreNetto },
+                    itemStyle = new { color = coloreNetto, borderColor = c.Superficie, borderWidth = 2 },
+                    data = mesi.Select(m => Arrotonda(m.Netto))
+                }
             }
+        };
+    }
+
+    // sfumatura verticale di un colore "#RRGGBB": l'opacità in alto e quella in basso
+    private static object Sfumatura(string hex, double sopra, double sotto) => new
+    {
+        type = "linear", x = 0, y = 0, x2 = 0, y2 = 1,
+        colorStops = new object[]
+        {
+            new { offset = 0, color = Trasparente(hex, sopra) },
+            new { offset = 1, color = Trasparente(hex, sotto) }
         }
     };
 
@@ -241,34 +265,45 @@ public static class OpzioniGrafici
 
     /// <summary>Il saldo come sola linea, senza assi né griglia, per la Home: conta l'andamento,
     /// i valori si leggono nel tooltip.</summary>
-    public static object SaldoMini(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c) => new
+    /// Nello stile moderno l'area è sfumata, piena sotto la linea e trasparente in fondo.
+    public static object SaldoMini(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c, StileGrafici stile = StileGrafici.Classico)
     {
-        textStyle = Testo(c),
-        tooltip = Tooltip(c, "axis"),
-        grid = new { left = 2, right = 2, top = 6, bottom = 2 },
-        xAxis = new { type = "category", show = false, boundaryGap = false, data = punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)) },
-        yAxis = new { type = "value", show = false, scale = true },
-        series = new object[]
+        var moderno = stile == StileGrafici.Moderno;
+        object area = moderno ? new { color = Sfumatura(c.Principale, 0.55, 0.03) } : new { color = c.Principale, opacity = 0.12 };
+        return new
         {
-            new
+            textStyle = Testo(c),
+            tooltip = Tooltip(c, "axis"),
+            grid = new { left = 2, right = 2, top = 6, bottom = 2 },
+            xAxis = new { type = "category", show = false, boundaryGap = false, data = punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)) },
+            yAxis = new { type = "value", show = false, scale = true },
+            series = new object[]
             {
-                name = "Saldo", type = "line", showSymbol = false, symbolSize = 8,
-                lineStyle = new { width = 2, color = c.Principale },
-                itemStyle = new { color = c.Principale },
-                areaStyle = new { color = c.Principale, opacity = 0.12 },
-                data = punti.Select(p => Arrotonda(p.Saldo))
+                new
+                {
+                    name = "Saldo", type = "line", showSymbol = false, symbolSize = 8,
+                    lineStyle = new { width = moderno ? 2.5 : 2, color = c.Principale },
+                    itemStyle = new { color = c.Principale },
+                    areaStyle = area,
+                    data = punti.Select(p => Arrotonda(p.Saldo))
+                }
             }
-        }
-    };
+        };
+    }
 
     /// <summary>Simulazione: saldo reale (linea piena con area) e, di seguito, saldo simulato a fine mese
     /// (tratteggiato, stesso colore), su un asse dei tempi vero: i punti reali sono giornalieri, quelli
     /// simulati mensili, e un asse a categorie li distanzierebbe in modo sbagliato. La linea simulata
     /// parte dall'ultimo saldo reale, così le due si toccano. Se il saldo simulato scende sotto zero,
     /// una linea rossa segna lo zero.</summary>
+    ///
+    /// Nello stile moderno (dall'11/11) il saldo reale ha l'area sfumata, il simulato un'area leggera nel
+    /// suo colore e una linea morbida, e una linea verticale "oggi" separa il reale dal simulato.
     public static object Simulazione(IReadOnlyList<PuntoSaldo> storico, PuntoSaldo? inizio,
-                                     IReadOnlyList<MeseSimulato> mesi, ColoriGrafici c)
+                                     IReadOnlyList<MeseSimulato> mesi, ColoriGrafici c,
+                                     StileGrafici stile = StileGrafici.Classico)
     {
+        var moderno = stile == StileGrafici.Moderno;
         static string Data(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         static DateOnly FineMese(DateOnly m) => m.AddMonths(1).AddDays(-1);
 
@@ -294,30 +329,44 @@ public static class OpzioniGrafici
             }
         }
 
+        // le linee di riferimento: lo zero, se il saldo simulato lo attraversa, e "oggi" nello stile moderno
+        var riferimenti = new List<object>();
+        if (sottoZero)
+            riferimenti.Add(new
+            {
+                yAxis = 0,
+                lineStyle = new { color = c.Uscite, width = 1, type = "solid" },
+                label = new { formatter = "zero", color = c.Uscite }
+            });
+        if (moderno && inizio is not null)
+            riferimenti.Add(new
+            {
+                xAxis = Data(inizio.Data),
+                lineStyle = new { color = c.TestoSecondario, width = 1, type = "dotted" },
+                label = new { formatter = "oggi", color = c.TestoSecondario }
+            });
+
+        object areaReale = moderno ? new { color = Sfumatura(c.Principale, 0.55, 0.03) } : new { color = c.Principale, opacity = 0.12 };
         var serie = new List<object>
         {
             new
             {
                 name = "Saldo reale", type = "line", showSymbol = false, symbolSize = 8,
-                lineStyle = new { width = 2, color = c.Principale },
+                lineStyle = new { width = moderno ? 2.5 : 2, color = c.Principale },
                 itemStyle = new { color = c.Principale },
-                areaStyle = new { color = c.Principale, opacity = 0.12 },
+                areaStyle = areaReale,
                 data = storico.Select(p => new object[] { Data(p.Data), Arrotonda(p.Saldo) })
             },
             new
             {
                 name = "Saldo simulato", type = "line", symbol = "circle", symbolSize = 8,
+                smooth = moderno,
                 lineStyle = new { width = 2, color = c.Ipotesi, type = "dashed" },
                 itemStyle = new { color = c.Ipotesi, borderColor = c.Superficie, borderWidth = 2 },
+                areaStyle = moderno ? new { color = Sfumatura(c.Ipotesi, 0.30, 0.02) } : null,
                 data = simulati,
-                markLine = sottoZero
-                    ? new
-                    {
-                        silent = true, symbol = "none",
-                        lineStyle = new { color = c.Uscite, width = 1 },
-                        label = new { formatter = "zero", color = c.Uscite },
-                        data = new object[] { new { yAxis = 0 } }
-                    }
+                markLine = riferimenti.Count > 0
+                    ? new { silent = true, symbol = "none", data = riferimenti }
                     : null
             }
         };
@@ -420,7 +469,39 @@ public static class OpzioniGrafici
         }).ToList();
     }
 
-    public static object RicorrentiVariabili(IReadOnlyList<ValoriMese> mesi, ColoriGrafici c) => new
+    /// <summary>Uscite ricorrenti e variabili per mese: colonne impilate nello stile classico, aree impilate e
+    /// sfumate nello stile moderno (dall'11/11), con i punti dei mesi cliccabili come le colonne.</summary>
+    public static object RicorrentiVariabili(IReadOnlyList<ValoriMese> mesi, ColoriGrafici c, StileGrafici stile = StileGrafici.Classico) =>
+        stile == StileGrafici.Moderno ? RicorrentiVariabiliModerno(mesi, c) : RicorrentiVariabiliClassico(mesi, c);
+
+    private static object RicorrentiVariabiliModerno(IReadOnlyList<ValoriMese> mesi, ColoriGrafici c)
+    {
+        object Area(string nome, string colore, IEnumerable<double> dati) => new
+        {
+            name = nome, type = "line", stack = "uscite", smooth = true, cursor = "pointer",
+            symbol = "circle", symbolSize = 7,
+            lineStyle = new { width = 2, color = colore },
+            itemStyle = new { color = colore, borderColor = c.Superficie, borderWidth = 2 },
+            areaStyle = new { color = Sfumatura(colore, 0.65, 0.12) },
+            data = dati
+        };
+        return new
+        {
+            textStyle = Testo(c),
+            tooltip = Tooltip(c, "axis"),
+            legend = Legenda(c),
+            grid = Griglia(),
+            xAxis = AsseCategorie(c, mesi.Select(m => Mese(m.Mese))),
+            yAxis = AsseImporti(c),
+            series = new object[]
+            {
+                Area("Ricorrenti", c.Categorie[0], mesi.Select(m => Arrotonda(m.UsciteRicorrenti))),
+                Area("Variabili", c.Categorie[1], mesi.Select(m => Arrotonda(m.UsciteVariabili)))
+            }
+        };
+    }
+
+    private static object RicorrentiVariabiliClassico(IReadOnlyList<ValoriMese> mesi, ColoriGrafici c) => new
     {
         textStyle = Testo(c),
         tooltip = Tooltip(c, "axis"),
@@ -446,26 +527,33 @@ public static class OpzioniGrafici
         }
     };
 
-    /// <summary>L'anno scelto nel colore principale, il precedente in grigio tratteggiato.</summary>
-    public static object Cumulati(IReadOnlyList<CumulatoAnno> anni, ColoriGrafici c) => new
+    /// <summary>L'anno scelto nel colore principale, il precedente in grigio tratteggiato. Nello stile moderno
+    /// (dall'11/11) le linee sono morbide e l'anno scelto ha sotto un'area sfumata.</summary>
+    public static object Cumulati(IReadOnlyList<CumulatoAnno> anni, ColoriGrafici c, StileGrafici stile = StileGrafici.Classico)
     {
-        textStyle = Testo(c),
-        tooltip = Tooltip(c, "axis"),
-        legend = Legenda(c),
-        grid = Griglia(),
-        xAxis = AsseCategorie(c, NomiMesi),
-        yAxis = AsseImporti(c),
-        series = anni.Select((a, i) =>
+        var moderno = stile == StileGrafici.Moderno;
+        return new
         {
-            var corrente = i == anni.Count - 1;
-            var colore = corrente ? c.Principale : c.Neutro;
-            return (object)new
+            textStyle = Testo(c),
+            tooltip = Tooltip(c, "axis"),
+            legend = Legenda(c),
+            grid = Griglia(),
+            xAxis = AsseCategorie(c, NomiMesi),
+            yAxis = AsseImporti(c),
+            series = anni.Select((a, i) =>
             {
-                name = a.Anno.ToString(Italiano), type = "line", symbol = "circle", symbolSize = 8,
-                lineStyle = new { width = 2, color = colore, type = corrente ? "solid" : "dashed" },
-                itemStyle = new { color = colore, borderColor = c.Superficie, borderWidth = 2 },
-                data = a.Mesi.Select(v => v is { } valore ? Arrotonda(valore) : (double?)null)
-            };
-        }).ToArray()
-    };
+                var corrente = i == anni.Count - 1;
+                var colore = corrente ? c.Principale : c.Neutro;
+                return (object)new
+                {
+                    name = a.Anno.ToString(Italiano), type = "line", symbol = "circle", symbolSize = moderno ? 6 : 8,
+                    smooth = moderno,
+                    lineStyle = new { width = moderno && corrente ? 2.5 : 2, color = colore, type = corrente ? "solid" : "dashed" },
+                    itemStyle = new { color = colore, borderColor = c.Superficie, borderWidth = 2 },
+                    areaStyle = moderno && corrente ? new { color = Sfumatura(c.Principale, 0.45, 0.03) } : null,
+                    data = a.Mesi.Select(v => v is { } valore ? Arrotonda(valore) : (double?)null)
+                };
+            }).ToArray()
+        };
+    }
 }

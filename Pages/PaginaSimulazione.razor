@@ -341,7 +341,8 @@
         if (_base is not { } b) return;
         _mesi = AnalisiService.Simula(b, _orizzonte, _nettoUnico, _investito, _nettoPerMese);
         _opzioni = OpzioniGrafici.Simulazione(b.Storico, b.SaldoIniziale, _mesi,
-                                              ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale));
+                                              ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale),
+                                              Impostazioni.StileGrafici);
     }
 
     private void CambiaPeriodo(PeriodoAnalisi periodo)

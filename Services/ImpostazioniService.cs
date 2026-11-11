@@ -30,8 +30,8 @@ public enum StilePulsanti
 /// <summary>Lo stile dei grafici (dall'11/11): gli stessi dati, disegnati in due modi (OpzioniGrafici).</summary>
 public enum StileGrafici
 {
-    Classico,       // quelli di sempre: barre per gruppo, saldo come linea
-    Moderno         // grafici a rosa per gruppo con i colori in scala, saldo ad area sfumata con la barra per ingrandire
+    Classico,       // quelli di sempre: tinte piene, barre per gruppo, saldo come linea
+    Moderno         // colonne e aree sfumate, linee morbide, grafici a rosa per gruppo, saldo con la barra per ingrandire
 }
 
 /// <summary>Preferenze d'aspetto dell'utente e giorni di conservazione dei log, salvate in

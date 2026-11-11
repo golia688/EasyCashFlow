@@ -292,7 +292,8 @@
     {
         _temaDelleOpzioni = TemaScuro;
         _mesi = AnalisiService.PerMese(_selezione);
-        _opzioni = OpzioniGrafici.EntrateUscitePerMese(_mesi, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale));
+        _opzioni = OpzioniGrafici.EntrateUscitePerMese(_mesi, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale),
+                                                       Impostazioni.StileGrafici);
     }
 
     // clic su una colonna (Entrate, Uscite) o su un punto del flusso netto: i movimenti scelti di quel mese,

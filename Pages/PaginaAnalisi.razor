@@ -439,14 +439,14 @@
         if (_risultato is not { } r) return;
 
         var colori = ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale);
-        _opzioniMesi = OpzioniGrafici.EntrateUscitePerMese(r.Mesi, colori);
         // classico o moderno, come scelto in Impostazioni > Aspetto
         var stile = Impostazioni.StileGrafici;
+        _opzioniMesi = OpzioniGrafici.EntrateUscitePerMese(r.Mesi, colori, stile);
         _opzioniSaldo = OpzioniGrafici.Saldo(r.Saldo, colori, stile);
         _opzioniUscite = OpzioniGrafici.PerGruppo(r.UscitePerGruppo, uscite: true, colori, stile);
         _opzioniEntrate = OpzioniGrafici.PerGruppo(r.EntratePerGruppo, uscite: false, colori, stile);
-        _opzioniRicorrenti = OpzioniGrafici.RicorrentiVariabili(r.Mesi, colori);
-        _opzioniCumulati = OpzioniGrafici.Cumulati(r.Cumulati, colori);
+        _opzioniRicorrenti = OpzioniGrafici.RicorrentiVariabili(r.Mesi, colori, stile);
+        _opzioniCumulati = OpzioniGrafici.Cumulati(r.Cumulati, colori, stile);
     }
 
     // dopo un'importazione possono esserci nuovi mesi, anni e saldi
