@@ -44,7 +44,7 @@ Le schermate sono fatte con i dati inventati di [`docs/esempi`](docs/esempi): du
 
 ![Analisi](docs/immagini/analisi.png)
 
-**Dove vanno i soldi**: uscite ed entrate per gruppo di causali; un clic su una barra apre i movimenti del gruppo.
+**Dove vanno i soldi**: uscite ed entrate per gruppo di causali; un clic su una barra apre i movimenti del gruppo. I grafici hanno due stili a scelta, classico (barre, saldo come linea) e moderno (grafici a rosa con una scala di rossi o di verdi, saldo ad area).
 
 ![Analisi per gruppi](docs/immagini/analisi-gruppi.png)
 

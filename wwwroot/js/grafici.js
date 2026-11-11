@@ -27,10 +27,13 @@ window.grafici = (() => {
         // tooltip delle barre per gruppo: nome, importo, numero di movimenti e, per "Altro", i gruppi raccolti
         "@tooltipGruppo": p => {
             const d = p.data ?? {};
-            let testo = `${html(p.name)}<br><b>${importo(p.value)}</b> · ${d.movimenti} ${d.movimenti === 1 ? "movimento" : "movimenti"}`;
+            const quota = p.percent == null ? "" : ` (${numeroBreve.format(p.percent)}%)`;
+            let testo = `${html(p.name)}<br><b>${importo(p.value)}</b>${quota} · ${d.movimenti} ${d.movimenti === 1 ? "movimento" : "movimenti"}`;
             if (d.contiene?.length) testo += `<br>Comprende: ${d.contiene.map(html).join(", ")}`;
             return testo + `<br><i>Clicca per vedere i movimenti</i>`;
         },
+        // etichetta dei settori dei grafici a rosa per gruppo: nome, importo e percentuale (testo semplice)
+        "@etichettaGruppo": p => `${p.name}\n${importo(p.value)} · ${numeroBreve.format(p.percent ?? 0)}%`,
         // asse dei tempi (valori in millisecondi): mese e anno, "nov 26"
         "@meseDaTempo": v => {
             const d = new Date(v);

@@ -92,7 +92,23 @@ public static class OpzioniGrafici
         }
     };
 
-    public static object Saldo(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c) => new
+    /// <summary>L'andamento del saldo, nello stile scelto in Impostazioni > Aspetto (dall'11/11): classico, una
+    /// linea con un'area leggera; moderno, un'area sfumata con la barra per ingrandire un tratto.</summary>
+    public static object Saldo(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c, StileGrafici stile) =>
+        stile == StileGrafici.Moderno ? SaldoModerno(punti, c) : SaldoClassico(punti, c);
+
+    /// <summary>Uscite (o entrate) per gruppo, nello stile scelto: classico, barre orizzontali di un solo colore;
+    /// moderno, grafico a rosa con i colori in scala. Dati, tooltip e clic sono gli stessi.</summary>
+    public static object PerGruppo(IReadOnlyList<TotaleGruppo> gruppi, bool uscite, ColoriGrafici c, StileGrafici stile)
+    {
+        var nome = uscite ? "Uscite" : "Entrate";
+        if (stile == StileGrafici.Moderno)
+            return PerGruppoModerno(gruppi, uscite ? c.UsciteScuro : c.EntrateScuro, uscite ? c.UsciteChiaro : c.EntrateChiaro, nome, c);
+        return PerGruppoClassico(gruppi, uscite ? c.Uscite : c.Entrate, nome, c);
+    }
+
+    // stile classico: una linea con un'area leggera sotto
+    private static object SaldoClassico(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c) => new
     {
         textStyle = Testo(c),
         tooltip = Tooltip(c, "axis"),
@@ -112,6 +128,116 @@ public static class OpzioniGrafici
             }
         }
     };
+
+    /// <summary>Barre orizzontali dal gruppo più grande, con l'importo in fondo alla barra.
+    /// Un solo colore: il gruppo si legge sull'asse, non serve distinguerlo con le tinte.
+    /// Il tooltip dice quanti movimenti ci sono e, per "Altro", quali gruppi raccoglie.</summary>
+    private static object PerGruppoClassico(IReadOnlyList<TotaleGruppo> gruppi, string colore, string nomeSerie, ColoriGrafici c) => new
+    {
+        textStyle = Testo(c),
+        tooltip = new
+        {
+            trigger = "item",
+            backgroundColor = c.SfondoTooltip,
+            borderColor = c.Griglia,
+            textStyle = new { color = c.Testo },
+            formatter = "@tooltipGruppo"
+        },
+        grid = new { left = 8, right = 96, top = 8, bottom = 8, containLabel = true },
+        xAxis = new { type = "value", show = false },
+        yAxis = new
+        {
+            type = "category",
+            inverse = true,     // il gruppo più grande in alto
+            data = gruppi.Select(g => g.Gruppo),
+            axisLine = new { show = false },
+            axisTick = new { show = false },
+            axisLabel = new { color = c.Testo }
+        },
+        series = new object[]
+        {
+            new
+            {
+                name = nomeSerie, type = "bar", barMaxWidth = 18,
+                cursor = "pointer",     // cliccando una barra si apre il dettaglio del gruppo
+                itemStyle = new { color = colore, borderRadius = new[] { 0, 4, 4, 0 } },
+                label = new { show = true, position = "right", color = c.TestoSecondario, formatter = "@euroEtichetta" },
+                // oggetti invece di numeri: il valore più i dati che servono al tooltip
+                data = gruppi.Select(g => new { value = Arrotonda(g.Totale), movimenti = g.Movimenti, contiene = g.Contiene })
+            }
+        }
+    };
+
+    /// <summary>L'andamento del saldo come grafico ad area per tante giornate (dall'11/11, "large scale area"
+    /// di ECharts): l'area sfuma dal colore principale verso il fondo, i punti si sfoltiscono senza perdere
+    /// picchi e minimi (sampling "lttb"), e sotto c'è la barra per scegliere il tratto da guardare (anche con
+    /// la rotellina del mouse sul grafico).</summary>
+    private static object SaldoModerno(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c) => new
+    {
+        textStyle = Testo(c),
+        tooltip = Tooltip(c, "axis"),
+        grid = new { left = 8, right = 16, top = 16, bottom = 48, containLabel = true },
+        xAxis = new
+        {
+            type = "category",
+            boundaryGap = false,
+            data = punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)),
+            axisLine = new { lineStyle = new { color = c.Griglia } },
+            axisTick = new { show = false },
+            axisLabel = new { color = c.TestoSecondario, formatter = "@meseDaData" }
+        },
+        yAxis = AsseImporti(c, scala: true),
+        dataZoom = new object[]
+        {
+            new { type = "inside", start = 0, end = 100 },
+            new
+            {
+                type = "slider", start = 0, end = 100, height = 22, bottom = 8,
+                borderColor = c.Griglia,
+                fillerColor = Trasparente(c.Principale, 0.15),
+                handleStyle = new { color = c.Principale, borderColor = c.Principale },
+                moveHandleStyle = new { color = c.Principale },
+                dataBackground = new
+                {
+                    lineStyle = new { color = c.TestoSecondario, opacity = 0.5 },
+                    areaStyle = new { color = c.TestoSecondario, opacity = 0.15 }
+                },
+                selectedDataBackground = new
+                {
+                    lineStyle = new { color = c.Principale },
+                    areaStyle = new { color = c.Principale, opacity = 0.25 }
+                },
+                textStyle = new { color = c.TestoSecondario }
+            }
+        },
+        series = new object[]
+        {
+            new
+            {
+                name = "Saldo", type = "line", symbol = "none", sampling = "lttb", smooth = false,
+                lineStyle = new { width = 1.5, color = c.Principale },
+                itemStyle = new { color = c.Principale },
+                // sfumatura verticale: piena sotto la linea, trasparente in fondo
+                areaStyle = new
+                {
+                    color = new
+                    {
+                        type = "linear", x = 0, y = 0, x2 = 0, y2 = 1,
+                        colorStops = new object[]
+                        {
+                            new { offset = 0, color = Trasparente(c.Principale, 0.55) },
+                            new { offset = 1, color = Trasparente(c.Principale, 0.03) }
+                        }
+                    }
+                },
+                data = punti.Select(p => Arrotonda(p.Saldo))
+            }
+        }
+    };
+
+    // "#RRGGBB" -> "rgba(r,g,b,a)"
+    private static string Trasparente(string hex, double opacita) =>
+        $"rgba({Convert.ToInt32(hex[1..3], 16)},{Convert.ToInt32(hex[3..5], 16)},{Convert.ToInt32(hex[5..7], 16)},{opacita.ToString(CultureInfo.InvariantCulture)})";
 
     /// <summary>Il saldo come sola linea, senza assi né griglia, per la Home: conta l'andamento,
     /// i valori si leggono nel tooltip.</summary>
@@ -229,44 +355,70 @@ public static class OpzioniGrafici
         };
     }
 
-    /// <summary>Barre orizzontali dal gruppo più grande, con l'importo in fondo alla barra.
-    /// Un solo colore: il gruppo si legge sull'asse, non serve distinguerlo con le tinte.
-    /// Il tooltip dice quanti movimenti ci sono e, per "Altro", quali gruppi raccoglie.</summary>
-    public static object PerGruppo(IReadOnlyList<TotaleGruppo> gruppi, string colore, string nomeSerie, ColoriGrafici c) => new
+    /// <summary>Grafico a rosa (Nightingale, dall'11/11; prima barre orizzontali): un settore per gruppo, dal più
+    /// grande, in senso orario. Tutti i settori hanno lo stesso angolo e la distanza dal centro dice l'importo
+    /// (roseType "area"); le etichette fuori dicono nome, importo e percentuale. I colori vanno dallo scuro
+    /// (il gruppo più grande) al chiaro (il più piccolo); "Altro" è grigio. Il tooltip dice quanti movimenti
+    /// ci sono e, per "Altro", quali gruppi raccoglie; cliccando un settore si apre il dettaglio del gruppo.</summary>
+    private static object PerGruppoModerno(IReadOnlyList<TotaleGruppo> gruppi, string scuro, string chiaro, string nomeSerie, ColoriGrafici c)
     {
-        textStyle = Testo(c),
-        tooltip = new
-        {
-            trigger = "item",
-            backgroundColor = c.SfondoTooltip,
-            borderColor = c.Griglia,
-            textStyle = new { color = c.Testo },
-            formatter = "@tooltipGruppo"
-        },
-        grid = new { left = 8, right = 96, top = 8, bottom = 8, containLabel = true },
-        xAxis = new { type = "value", show = false },
-        yAxis = new
-        {
-            type = "category",
-            inverse = true,     // il gruppo più grande in alto
-            data = gruppi.Select(g => g.Gruppo),
-            axisLine = new { show = false },
-            axisTick = new { show = false },
-            axisLabel = new { color = c.Testo }
-        },
-        series = new object[]
-        {
-            new
+        var scala = Scala(scuro, chiaro, gruppi.Count(g => g.Gruppo != "Altro"));
+        var dati = new List<object>();
+        var i = 0;
+        foreach (var g in gruppi)
+            dati.Add(new
             {
-                name = nomeSerie, type = "bar", barMaxWidth = 18,
-                cursor = "pointer",     // cliccando una barra si apre il dettaglio del gruppo
-                itemStyle = new { color = colore, borderRadius = new[] { 0, 4, 4, 0 } },
-                label = new { show = true, position = "right", color = c.TestoSecondario, formatter = "@euroEtichetta" },
-                // oggetti invece di numeri: il valore più i dati che servono al tooltip
-                data = gruppi.Select(g => new { value = Arrotonda(g.Totale), movimenti = g.Movimenti, contiene = g.Contiene })
+                name = g.Gruppo,
+                value = Arrotonda(g.Totale),
+                movimenti = g.Movimenti,
+                contiene = g.Contiene,
+                itemStyle = new { color = g.Gruppo == "Altro" ? c.Neutro : scala[i++] }
+            });
+
+        return new
+        {
+            textStyle = Testo(c),
+            tooltip = new
+            {
+                trigger = "item",
+                backgroundColor = c.SfondoTooltip,
+                borderColor = c.Griglia,
+                textStyle = new { color = c.Testo },
+                formatter = "@tooltipGruppo"
+            },
+            series = new object[]
+            {
+                new
+                {
+                    name = nomeSerie, type = "pie", roseType = "area",
+                    radius = new[] { "16%", "68%" }, center = new[] { "50%", "50%" }, startAngle = 90,
+                    cursor = "pointer",     // cliccando un settore si apre il dettaglio del gruppo
+                    // lo stacco tra i settori ha il colore della superficie
+                    itemStyle = new { borderRadius = 6, borderColor = c.Superficie, borderWidth = 2 },
+                    label = new { show = true, color = c.Testo, formatter = "@etichettaGruppo", lineHeight = 16 },
+                    labelLine = new { show = true, length = 10, length2 = 14, lineStyle = new { color = c.TestoSecondario } },
+                    labelLayout = new { hideOverlap = true },
+                    emphasis = new { scale = true, scaleSize = 6 },
+                    data = dati
+                }
             }
-        }
-    };
+        };
+    }
+
+    // n colori dallo scuro al chiaro, in parti uguali (uno solo: lo scuro)
+    private static IReadOnlyList<string> Scala(string scuro, string chiaro, int n)
+    {
+        static (int R, int G, int B) Rgb(string hex) =>
+            (Convert.ToInt32(hex[1..3], 16), Convert.ToInt32(hex[3..5], 16), Convert.ToInt32(hex[5..7], 16));
+        var (r1, g1, b1) = Rgb(scuro);
+        var (r2, g2, b2) = Rgb(chiaro);
+        return Enumerable.Range(0, Math.Max(n, 0)).Select(i =>
+        {
+            var t = n <= 1 ? 0.0 : (double)i / (n - 1);
+            int Mescola(int a, int b) => (int)Math.Round(a + (b - a) * t);
+            return $"#{Mescola(r1, r2):X2}{Mescola(g1, g2):X2}{Mescola(b1, b2):X2}";
+        }).ToList();
+    }
 
     public static object RicorrentiVariabili(IReadOnlyList<ValoriMese> mesi, ColoriGrafici c) => new
     {

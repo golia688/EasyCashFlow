@@ -313,15 +313,15 @@ Quando metti 500 € in un fondo, quei soldi non sono spariti: hanno solo cambia
 **I grafici**
 
 - **Entrate e uscite per mese**: le barre sopra lo zero sono le entrate, quelle sotto le uscite; la linea è il flusso netto del mese.
-- **Andamento del saldo**: come è cambiato il saldo giorno per giorno.
-- **Dove vanno i soldi** e **Da dove arrivano**: le uscite e le entrate divise per gruppo.
+- **Andamento del saldo**: come è cambiato il saldo giorno per giorno. Nello stile **classico** è una linea; nello stile **moderno** è un'area colorata sotto la linea, e sotto il grafico c'è una barra con l'andamento in piccolo: trascinandone i bordi, o con la rotellina del mouse sul grafico, ingrandisci un tratto del periodo; trascinando la parte scelta la sposti. Così, anche su un periodo lungo, puoi guardare da vicino qualche settimana.
+- **Dove vanno i soldi** e **Da dove arrivano**: le uscite e le entrate divise per gruppo. Nello stile **classico** sono barre orizzontali, dalla più grande, con l'importo accanto: le più facili da confrontare. Nello stile **moderno** sono grafici a **rosa**: ogni gruppo è uno spicchio, e più è lungo più sono i soldi. Il gruppo più grande ha il colore più scuro (rosso per le uscite, verde per le entrate), il più piccolo il più tenue; "Altro" è grigio. Accanto a ogni spicchio leggi il nome del gruppo, l'importo e la percentuale sul totale.
 - **Spese ricorrenti e variabili**: le spese fisse (mutuo, bollette, tasse) e tutte le altre.
 - **Flusso netto cumulato**: quanto hai messo da parte dall'inizio dell'anno, a confronto con l'anno prima. Se la linea sale, in quel mese è entrato più di quanto è uscito; se scende, hai speso più di quanto è entrato.
 - **Movimenti più grandi**: in fondo alla pagina, i dieci movimenti più grandi del periodo, entrate e uscite.
 
 Passando con il mouse su un grafico vedi i valori precisi.
 
-Nei grafici **Dove vanno i soldi** e **Da dove arrivano** puoi anche **cliccare una barra**: si apre l'elenco dei movimenti di quel gruppo. Per esempio, clicca "Mutuo" per vedere tutte le rate del periodo.
+Nei grafici **Dove vanno i soldi** e **Da dove arrivano** puoi anche **cliccare una barra o uno spicchio**: si apre l'elenco dei movimenti di quel gruppo. Per esempio, clicca "Mutuo" per vedere tutte le rate del periodo.
 
 Allo stesso modo, in **Entrate e uscite per mese** e in **Spese ricorrenti e variabili** puoi **cliccare una colonna**: si apre l'elenco dei movimenti di quel mese. Cliccando la parte verde (entrate) vedi le entrate del mese, la parte rossa le uscite, un punto della linea il flusso netto; nel grafico delle spese, la parte ricorrente o quella variabile. I conti e gli straordinari restano quelli scelti nella pagina Analisi.
 
@@ -478,6 +478,7 @@ In [Aspetto](app:aspetto) (menu **Impostazioni > Preferenze > Aspetto**) puoi sc
 - il **tema**: chiaro, scuro, oppure come Windows;
 - il **colore principale** dei pulsanti e dei menu;
 - lo **stile delle icone** e dei **pulsanti**;
+- lo **stile dei grafici**: **Classico** (barre per gruppo e saldo come linea) oppure **Moderno** (grafici a rosa per gruppo, con i colori dal più scuro al più tenue, e saldo ad area con la barra per ingrandire un tratto). I numeri sono gli stessi: cambia solo il disegno. All'inizio è Classico;
 - la **dimensione** di tutto il programma, se i testi ti sembrano troppo piccoli o troppo grandi.
 
 Ogni scelta si applica subito e viene ricordata.

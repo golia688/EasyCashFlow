@@ -209,7 +209,7 @@
         else
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Saldo contabile a fine giornata.</MudText>
-            <Grafico Opzioni="_opzioniSaldo" Altezza="300px" />
+            <Grafico Opzioni="_opzioniSaldo" Altezza="@(Moderno ? "340px" : "300px")" />
         }
     </MudPaper>
 
@@ -218,7 +218,7 @@
             <MudPaper Class="pa-4 mt-4" Elevation="1" Style="height: calc(100% - 16px);">
                 <MudText Typo="Typo.h6">Dove vanno i soldi</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Uscite per gruppo di causali.</MudText>
-                <Grafico Opzioni="_opzioniUscite" Altezza="@AltezzaBarre(r.UscitePerGruppo.Count)"
+                <Grafico Opzioni="_opzioniUscite" Altezza="@AltezzaPerGruppo(r.UscitePerGruppo.Count)"
                          ClicElemento="@(g => ApriGruppo(Indicatore.Uscite, g, r.UscitePerGruppo))" />
             </MudPaper>
         </MudItem>
@@ -226,7 +226,7 @@
             <MudPaper Class="pa-4 mt-4" Elevation="1" Style="height: calc(100% - 16px);">
                 <MudText Typo="Typo.h6">Da dove arrivano</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">Entrate per gruppo di causali.</MudText>
-                <Grafico Opzioni="_opzioniEntrate" Altezza="@AltezzaBarre(r.EntratePerGruppo.Count)"
+                <Grafico Opzioni="_opzioniEntrate" Altezza="@AltezzaPerGruppo(r.EntratePerGruppo.Count)"
                          ClicElemento="@(g => ApriGruppo(Indicatore.Entrate, g, r.EntratePerGruppo))" />
             </MudPaper>
         </MudItem>
@@ -440,9 +440,11 @@
 
         var colori = ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale);
         _opzioniMesi = OpzioniGrafici.EntrateUscitePerMese(r.Mesi, colori);
-        _opzioniSaldo = OpzioniGrafici.Saldo(r.Saldo, colori);
-        _opzioniUscite = OpzioniGrafici.PerGruppo(r.UscitePerGruppo, colori.Uscite, "Uscite", colori);
-        _opzioniEntrate = OpzioniGrafici.PerGruppo(r.EntratePerGruppo, colori.Entrate, "Entrate", colori);
+        // classico o moderno, come scelto in Impostazioni > Aspetto
+        var stile = Impostazioni.StileGrafici;
+        _opzioniSaldo = OpzioniGrafici.Saldo(r.Saldo, colori, stile);
+        _opzioniUscite = OpzioniGrafici.PerGruppo(r.UscitePerGruppo, uscite: true, colori, stile);
+        _opzioniEntrate = OpzioniGrafici.PerGruppo(r.EntratePerGruppo, uscite: false, colori, stile);
         _opzioniRicorrenti = OpzioniGrafici.RicorrentiVariabili(r.Mesi, colori);
         _opzioniCumulati = OpzioniGrafici.Cumulati(r.Cumulati, colori);
     }
@@ -520,7 +522,11 @@
         return ApriDettaglioMese.InvokeAsync((s.Indicatore, new PeriodoAnalisi(nome, dal, al), s.Ricorrenti));
     }
 
-    private static string AltezzaBarre(int barre) => $"{Math.Max(120, barre * 40 + 16)}px";
+    private bool Moderno => Impostazioni.StileGrafici == StileGrafici.Moderno;
+
+    // i grafici per gruppo: a rosa (moderno) altezza fissa, con lo spazio per le etichette intorno; a barre
+    // (classico) un'altezza che cresce con il numero di gruppi
+    private string AltezzaPerGruppo(int gruppi) => Moderno ? "380px" : $"{Math.Max(120, gruppi * 40 + 16)}px";
 
     // media mensile come quella delle uscite: sui mesi del periodo, anche se l'ultimo è incompleto
     private static decimal AlMese(decimal totale, IndicatoriPeriodo k) => k.Mesi > 0 ? totale / k.Mesi : 0;

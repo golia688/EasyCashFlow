@@ -27,6 +27,13 @@ public enum StilePulsanti
     Arrotondato     // come Moderno, a forma di pillola
 }
 
+/// <summary>Lo stile dei grafici (dall'11/11): gli stessi dati, disegnati in due modi (OpzioniGrafici).</summary>
+public enum StileGrafici
+{
+    Classico,       // quelli di sempre: barre per gruppo, saldo come linea
+    Moderno         // grafici a rosa per gruppo con i colori in scala, saldo ad area sfumata con la barra per ingrandire
+}
+
 /// <summary>Preferenze d'aspetto dell'utente e giorni di conservazione dei log, salvate in
 /// dati\preferenze.json, in chiaro: servono prima della password (colori della schermata di avvio e della
 /// barra del titolo, zoom, pulizia dei log all'avvio) e non sono dati personali (docs/07-sicurezza.md,
@@ -38,6 +45,7 @@ public class ImpostazioniService
     private const string ChiaveColore = "Aspetto.ColorePrincipale";
     private const string ChiaveIcone = "Aspetto.StileIcone";
     private const string ChiavePulsanti = "Aspetto.StilePulsanti";
+    private const string ChiaveGrafici = "Aspetto.StileGrafici";
     private const string ChiaveZoom = "Aspetto.Zoom";
     private const string ChiaveGiorniLog = "Log.GiorniDiConservazione";
 
@@ -64,6 +72,7 @@ public class ImpostazioniService
         ColorePrincipale = ColoreTema.DaChiave(salvate.GetValueOrDefault(ChiaveColore));
         StileIcone = LeggiEnum(salvate, ChiaveIcone, StileIcone.Piene);
         StilePulsanti = LeggiEnum(salvate, ChiavePulsanti, StilePulsanti.Classico);
+        StileGrafici = LeggiEnum(salvate, ChiaveGrafici, StileGrafici.Classico);
         if (salvate.TryGetValue(ChiaveZoom, out var zoom) && int.TryParse(zoom, out var percentuale)
             && LivelliZoom.Contains(percentuale))
             Zoom = percentuale;
@@ -127,6 +136,8 @@ public class ImpostazioniService
 
     public StilePulsanti StilePulsanti { get; private set; } = StilePulsanti.Classico;
 
+    public StileGrafici StileGrafici { get; private set; } = StileGrafici.Classico;
+
     /// <summary>Zoom dell'intera interfaccia, in percentuale (uno dei <see cref="LivelliZoom"/>).</summary>
     public int Zoom { get; private set; } = 100;
 
@@ -164,6 +175,16 @@ public class ImpostazioniService
         StileIcone = stile;
         SalvaImpostazione(ChiaveIcone, stile.ToString());
         _log.Info($"Stile delle icone cambiato: {stile}");
+        Cambiate?.Invoke();
+    }
+
+    public void ImpostaStileGrafici(StileGrafici stile)
+    {
+        if (stile == StileGrafici) return;
+
+        StileGrafici = stile;
+        SalvaImpostazione(ChiaveGrafici, stile.ToString());
+        _log.Info($"Stile dei grafici cambiato: {stile}");
         Cambiate?.Invoke();
     }
 

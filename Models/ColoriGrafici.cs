@@ -20,7 +20,10 @@ public record ColoriGrafici(
     string Uscite,
     string Neutro,
     string Ipotesi,     // valori simulati (giallo miele): si distinguono dai reali, nel colore principale
-    IReadOnlyList<string> Categorie)
+    IReadOnlyList<string> Categorie,
+    // le scale dei grafici a rosa "Dove vanno i soldi" e "Da dove arrivano" (dall'11/11): il gruppo più grande
+    // ha il colore scuro, il più piccolo quello chiaro, e quelli in mezzo le sfumature intermedie
+    string UsciteScuro, string UsciteChiaro, string EntrateScuro, string EntrateChiaro)
 {
     public static ColoriGrafici Per(bool scuro, ColoreTema principale) => scuro
         ? new ColoriGrafici(
@@ -34,7 +37,8 @@ public record ColoriGrafici(
             Uscite: ColoreTema.Uscite.Scuro,
             Neutro: "#8E8E99",
             Ipotesi: ColoreTema.Avviso.Scuro,
-            Categorie: ["#695ca3", "#c98250", "#3a6aa7", "#b48f3c", "#8c5087", "#1faaa4"])
+            Categorie: ["#695ca3", "#c98250", "#3a6aa7", "#b48f3c", "#8c5087", "#1faaa4"],
+            UsciteScuro: "#8E1F1F", UsciteChiaro: "#F2A39C", EntrateScuro: "#1D5C38", EntrateChiaro: "#A3DAB5")
         : new ColoriGrafici(
             Testo: "rgba(0,0,0,0.80)",
             TestoSecondario: "rgba(0,0,0,0.55)",
@@ -46,5 +50,6 @@ public record ColoriGrafici(
             Uscite: ColoreTema.Uscite.Chiaro,
             Neutro: "#8C8A85",
             Ipotesi: ColoreTema.Avviso.Chiaro,
-            Categorie: ["#695ca6", "#dc905b", "#376aaa", "#c69f47", "#8d4e88", "#2dbbb4"]);
+            Categorie: ["#695ca6", "#dc905b", "#376aaa", "#c69f47", "#8d4e88", "#2dbbb4"],
+            UsciteScuro: "#9A2A26", UsciteChiaro: "#EFB0AA", EntrateScuro: "#1F6A40", EntrateChiaro: "#AEDDBD");
 }
