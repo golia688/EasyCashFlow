@@ -60,16 +60,11 @@
                             @if (IbanAMano(c))
                             {
                                 @* un file Excel non ha l'IBAN: per un conto Excel lo scrive l'utente (dal 10/11; obbligatorio
-                                   dall'11/11, nella finestra di importazione) *@
+                                   dall'11/11, nella finestra di importazione). Dal 12/11 anche per un conto CBI rimasto
+                                   senza IBAN *@
                                 <MudTextField T="string" @bind-Value="_iban[c.Codice]" Immediate="true" MaxLength="34"
                                               Placeholder="IBAN (da completare)" Variant="Variant.Outlined" Margin="Margin.Dense"
                                               Error="@(ErroreIban(c) is not null)" ErrorText="@ErroreIban(c)" />
-                            }
-                            else if (c.Iban == "")
-                            {
-                                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                                    non disponibile (si completa alla prossima importazione di un file CBI o XML)
-                                </MudText>
                             }
                             else
                             {
@@ -118,7 +113,11 @@
     private Dictionary<string, string?> _iban = new();   // IBAN nei campi, per i conti Excel
 
     // l'IBAN si scrive a mano per i conti dei file Excel, che non lo hanno; quello dei file CBI e XML viene dal file
-    private bool IbanAMano(ContoCorrente c) =>
+    // o, se il file non lo dà, dalla finestra dell'importazione (dal 12/11). Un conto CBI rimasto senza IBAN (da
+    // un'importazione di prima) lo riceve qui; una volta salvato non si cambia più
+    private bool IbanAMano(ContoCorrente c) => ContoExcel(c) || c.Iban == "";
+
+    private bool ContoExcel(ContoCorrente c) =>
         _formati.GetValueOrDefault(c.Codice, FormatoConto.Nessuno) == FormatoConto.Excel;
 
     private string IbanScritto(ContoCorrente c) => (_iban.GetValueOrDefault(c.Codice) ?? "").Replace(" ", "").ToUpperInvariant();
@@ -128,6 +127,9 @@
         if (!IbanAMano(c)) return null;
         var iban = IbanScritto(c);
         if (iban == "") return c.Iban != "" ? "L'IBAN del conto è obbligatorio" : null;
+        // un conto CBI: l'IBAN deve essere proprio il suo (con ABI, CAB e numero del conto)
+        if (!ContoExcel(c)) return CbiParser.ErroreIbanDelConto(iban, c.Codice) ??
+            (_conti.FirstOrDefault(a => a.Codice != c.Codice && a.Iban == iban) is { } stesso ? $"È l'IBAN del conto {stesso.Nome}" : null);
         if (!(iban.StartsWith("IT") && iban.Length == 27 && CbiParser.IbanValido(iban)))
             return "Non è un IBAN italiano valido";
         return _conti.FirstOrDefault(a => a.Codice != c.Codice && (a.Iban == iban || a.Codice == iban[5..])) is { } altro

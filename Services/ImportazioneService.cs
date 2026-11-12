@@ -40,15 +40,18 @@ public class ImportazioneService
     /// l'abbinamento delle colonne di un file Excel o se un'importazione è già in corso; fileScelto riceve il
     /// nome del file appena scelto, così la finestra di importazione può mostrarlo mentre lavora. Per un file
     /// Excel chiediAbbinamento apre la finestra in cui l'utente abbina le colonne e sceglie il conto (null se
-    /// annulla). L'esito va anche a chi è iscritto a ImportCompletato.</summary>
+    /// annulla). Per i conti di un file CBI o XML senza un IBAN valido chiediIban apre la finestra in cui
+    /// l'utente lo scrive (dal 12/11 l'IBAN è obbligatorio): restituisce l'IBAN per codice del conto, o null se
+    /// annulla, e allora non si salva niente. L'esito va anche a chi è iscritto a ImportCompletato.</summary>
     public async Task<EsitoImportazione?> ImportaDaFileAsync(Action<string>? fileScelto = null,
-        Func<string, TabellaExcel, Task<RichiestaExcel?>>? chiediAbbinamento = null)
+        Func<string, TabellaExcel, Task<RichiestaExcel?>>? chiediAbbinamento = null,
+        Func<string, IReadOnlyList<ContoCorrente>, Task<IReadOnlyDictionary<string, string>?>>? chiediIban = null)
     {
         if (InCorso) return null;
         InCorso = true;
         try
         {
-            return await ScegliEImporta(fileScelto, chiediAbbinamento);
+            return await ScegliEImporta(fileScelto, chiediAbbinamento, chiediIban);
         }
         finally
         {
@@ -57,7 +60,8 @@ public class ImportazioneService
     }
 
     private async Task<EsitoImportazione?> ScegliEImporta(Action<string>? fileScelto,
-        Func<string, TabellaExcel, Task<RichiestaExcel?>>? chiediAbbinamento)
+        Func<string, TabellaExcel, Task<RichiestaExcel?>>? chiediAbbinamento,
+        Func<string, IReadOnlyList<ContoCorrente>, Task<IReadOnlyDictionary<string, string>?>>? chiediIban)
     {
         _log.Debug("Importazione: apertura della finestra di selezione del file");
 
@@ -90,7 +94,31 @@ public class ImportazioneService
                     return null;
                 }
             }
-            esito = await Task.Run(() => Importa(percorso, nomeFile, formato, richiesta));
+            var cronometro = Stopwatch.StartNew();
+            var (letto, rifiuto) = await Task.Run(() => Leggi(percorso, nomeFile, formato, richiesta));
+            if (rifiuto is not null)
+                esito = rifiuto;
+            else
+            {
+                // l'IBAN è obbligatorio per ogni conto (dal 12/11): se il file non lo dà, lo scrive l'utente
+                // prima che si salvi qualcosa; un file Excel lo ha già dalla sua finestra
+                var senzaIban = richiesta is null ? ContiSenzaIban(letto!) : [];
+                if (senzaIban.Count > 0)
+                {
+                    _log.Info($"Importazione di {nomeFile}: {senzaIban.Count} conti senza un IBAN valido nel file, chiesto all'utente");
+                    var scritti = chiediIban is null ? null : await chiediIban(nomeFile, senzaIban);
+                    if (scritti is null)
+                    {
+                        _log.Info($"Importazione di {nomeFile} annullata dall'utente alla richiesta dell'IBAN: nessun movimento caricato");
+                        return null;
+                    }
+                    letto = letto! with
+                    {
+                        Conti = letto.Conti.Select(c => scritti.TryGetValue(c.Codice, out var iban) ? c with { Iban = iban } : c).ToList()
+                    };
+                }
+                esito = await Task.Run(() => Salva(letto!, nomeFile, formato, richiesta, cronometro));
+            }
         }
         catch (FileNonCbiException ex)
         {
@@ -109,10 +137,18 @@ public class ImportazioneService
         return esito;
     }
 
-    private EsitoImportazione Importa(string percorso, string nomeFile, FormatoExport formato, RichiestaExcel? richiesta)
+    // i conti del file che restano senza IBAN: senza un IBAN valido nel file e senza uno già salvato
+    private List<ContoCorrente> ContiSenzaIban(RisultatoImportCbi letto)
     {
-        var cronometro = Stopwatch.StartNew();
+        var registrati = _database.ElencoConti().ToDictionary(c => c.Codice, c => c.Iban);
+        return letto.Conti.Where(c => c.Iban == "" && registrati.GetValueOrDefault(c.Codice, "") == "").ToList();
+    }
 
+    // Legge il file e fa i controlli che lo rifiutano senza salvare niente: restituisce i dati letti oppure
+    // l'esito con il motivo del rifiuto
+    private (RisultatoImportCbi? Letto, EsitoImportazione? Rifiuto) Leggi(string percorso, string nomeFile,
+        FormatoExport formato, RichiestaExcel? richiesta)
+    {
         if (_log.TraceAttivo)
         {
             var info = new FileInfo(percorso);
@@ -139,16 +175,16 @@ public class ImportazioneService
         if (letto.Saldi.Count == 0 && letto.Movimenti.Count == 0 && richiesta is not null)
         {
             _log.Errore($"Importazione di {nomeFile}: nessun movimento riconosciuto con le colonne scelte");
-            return new EsitoImportazione(nomeFile, 0, 0, 0, letto.Scartati.Count, letto.Avvisi, _log.NomeFileCorrente,
+            return (null, new EsitoImportazione(nomeFile, 0, 0, 0, letto.Scartati.Count, letto.Avvisi, _log.NomeFileCorrente,
                 "Con le colonne scelte non si è riconosciuto nessun movimento: controlla la riga delle intestazioni e le colonne di data e importo.",
-                RigheNonValide: letto.Scartati.Count);
+                RigheNonValide: letto.Scartati.Count));
         }
 
         if (letto.Saldi.Count == 0 && letto.Movimenti.Count == 0)
         {
             _log.Errore($"Importazione di {nomeFile}: nessuna giornata riconosciuta, il file non sembra un export CBI valido");
-            return new EsitoImportazione(nomeFile, 0, 0, 0, letto.Scartati.Count, letto.Avvisi,
-                _log.NomeFileCorrente, "Nessuna giornata riconosciuta: il file non sembra un export CBI valido, di testo o XML.");
+            return (null, new EsitoImportazione(nomeFile, 0, 0, 0, letto.Scartati.Count, letto.Avvisi,
+                _log.NomeFileCorrente, "Nessuna giornata riconosciuta: il file non sembra un export CBI valido, di testo o XML."));
         }
 
         // un conto si importa sempre con lo stesso tipo di file (dal 10/11): file CBI o XML, oppure Excel. I due
@@ -156,9 +192,16 @@ public class ImportazioneService
         if (ContoDiUnAltroFormato(letto, formato) is { } errore)
         {
             _log.Errore($"Importazione di {nomeFile} rifiutata: {errore}");
-            return new EsitoImportazione(nomeFile, 0, 0, 0, 0, Array.Empty<string>(), _log.NomeFileCorrente, errore);
+            return (null, new EsitoImportazione(nomeFile, 0, 0, 0, 0, Array.Empty<string>(), _log.NomeFileCorrente, errore));
         }
 
+        return (letto, null);
+    }
+
+    // Salva conti, movimenti e saldi letti dal file e registra l'importazione
+    private EsitoImportazione Salva(RisultatoImportCbi letto, string nomeFile, FormatoExport formato,
+        RichiestaExcel? richiesta, Stopwatch cronometro)
+    {
         var avvisi = letto.Avvisi.ToList();
 
         // prima dei movimenti, così ogni movimento salvato ha il suo conto registrato

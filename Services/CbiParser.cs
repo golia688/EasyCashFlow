@@ -423,6 +423,53 @@ public class CbiParser
             Nome: "");
     }
 
+    // tabella del carattere di controllo (CIN) del conto italiano: valore dei caratteri in posizione dispari
+    // (prima, terza...), per le cifre da 0 a 9 e per le lettere da A a Z (le cifre valgono come A..J)
+    private static readonly int[] CinDispari =
+        [1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23];
+
+    /// <summary>L'IBAN italiano che corrisponde a un codice di conto dei file CBI (ABI + CAB + numero, 22
+    /// caratteri): il CIN si calcola da ABI, CAB e numero, le cifre di controllo con il modulo 97. Null se il
+    /// codice non è di quel tipo. Serve a proporre l'IBAN quando il file non lo dà (dal 12/11): l'utente lo
+    /// conferma.</summary>
+    public static string? IbanDalCodice(string codice)
+    {
+        codice = codice.ToUpperInvariant();
+        if (!CodiceItaliano(codice)) return null;
+
+        int Valore(char c) => char.IsAsciiDigit(c) ? c - '0' : c - 'A';
+        var somma = 0;
+        for (var i = 0; i < codice.Length; i++)
+            somma += i % 2 == 0 ? CinDispari[Valore(codice[i])] : Valore(codice[i]);
+        var bban = (char)('A' + somma % 26) + codice;
+
+        // con le cifre di controllo "00" il resto della divisione per 97 dà quelle giuste: 98 - resto
+        int resto = 0;
+        foreach (var c in bban + "IT00")
+        {
+            var valore = char.IsAsciiDigit(c) ? c - '0' : c - 'A' + 10;
+            resto = (valore > 9 ? resto * 100 + valore : resto * 10 + valore) % 97;
+        }
+        var iban = $"IT{98 - resto:00}{bban}";
+        return IbanValido(iban) ? iban : null;
+    }
+
+    /// <summary>Il messaggio per l'utente se l'IBAN scritto non va bene per il conto con quel codice; null se
+    /// va bene. Per un conto italiano (codice di 22 caratteri) l'IBAN deve finire con il codice.</summary>
+    public static string? ErroreIbanDelConto(string iban, string codice)
+    {
+        if (!IbanValido(iban)) return "Non è un IBAN valido";
+        if (CodiceItaliano(codice) && !(iban.StartsWith("IT") && iban.Length == 27 && iban[5..] == codice))
+            return "Non è l'IBAN di questo conto: dopo i primi cinque caratteri devono venire ABI, CAB e numero del conto";
+        return null;
+    }
+
+    /// <summary>Vero per il codice di un conto italiano: ABI e CAB (dieci cifre) e il numero del conto (dodici
+    /// caratteri). Il codice di un conto straniero dei file XML è l'IBAN intero, che comincia con due lettere,
+    /// anche quando è lungo 22 caratteri come quelli tedeschi.</summary>
+    public static bool CodiceItaliano(string codice) =>
+        codice.Length == 22 && codice[..10].All(char.IsAsciiDigit) && codice.All(char.IsAsciiLetterOrDigit);
+
     internal static bool IbanValido(string iban)
     {
         if (iban.Length < 15 || iban.Length > 34 || !iban.All(char.IsAsciiLetterOrDigit))

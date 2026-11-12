@@ -1,0 +1,101 @@
+@using MudBlazor
+@using EasyCashFlow.Models
+@using EasyCashFlow.Services
+@inject DatabaseService Database
+
+@* L'IBAN dei conti di un file CBI o XML che non lo dà (dal 12/11: l'IBAN è obbligatorio per tutti i conti).
+   Si apre durante l'importazione, sopra la finestra di importazione, prima di salvare: per ogni conto senza
+   IBAN un campo, già riempito con l'IBAN calcolato dal codice del conto (CbiParser.IbanDalCodice), che
+   l'utente controlla. Annulla ferma l'importazione senza salvare niente. *@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Il file <b>@NomeFile</b> non contiene l'IBAN @(Conti.Count == 1 ? "del conto" : "di questi conti"),
+            o ne contiene uno non valido. L'IBAN è obbligatorio: identifica il conto.
+            @if (Conti.Any(c => CbiParser.IbanDalCodice(c.Codice) is not null))
+            {
+                <span>
+                    Il programma lo ha calcolato da ABI, CAB e numero del conto: controlla che sia quello che trovi
+                    nell'home banking o nell'estratto conto.
+                </span>
+            }
+        </MudText>
+
+        @foreach (var c in Conti)
+        {
+            <div class="mb-3">
+                <MudText Typo="Typo.subtitle2">@NomeDi(c)</MudText>
+                @if (c.Codice.Length == 22)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-1">
+                        ABI @c.Codice[..5] · CAB @c.Codice[5..10] · conto @c.Codice[10..]
+                    </MudText>
+                }
+                <MudTextField T="string" @bind-Value="_iban[c.Codice]" Immediate="true" Required="true" MaxLength="40"
+                              Label="IBAN del conto" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Error="@(Errore(c) is not null)" ErrorText="@Errore(c)" />
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="() => Dialogo.Cancel()">Annulla l'importazione</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(Conti.Any(c => Errore(c) is not null))"
+                   OnClick="Conferma">Continua</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string NomeFile { get; set; } = "";
+
+    /// <summary>I conti del file senza un IBAN valido (né nel file né già nel database).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<ContoCorrente> Conti { get; set; } = [];
+
+    private readonly Dictionary<string, string?> _iban = new();
+    private List<ContoCorrente> _registrati = [];
+
+    /// <summary>Apre la finestra; restituisce l'IBAN di ogni conto (per codice), o null se l'utente annulla.</summary>
+    public static async Task<IReadOnlyDictionary<string, string>?> ApriAsync(IDialogService dialoghi, string nomeFile,
+        IReadOnlyList<ContoCorrente> conti)
+    {
+        var parametri = new DialogParameters<DialogoIbanConti> { { d => d.NomeFile, nomeFile }, { d => d.Conti, conti } };
+        var finestra = await dialoghi.ShowAsync<DialogoIbanConti>(conti.Count == 1 ? "IBAN del conto" : "IBAN dei conti",
+            parametri, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false, CloseOnEscapeKey = false });
+        return await finestra.Result is { Canceled: false, Data: IReadOnlyDictionary<string, string> iban } ? iban : null;
+    }
+
+    protected override void OnInitialized()
+    {
+        _registrati = Database.ElencoConti();
+        foreach (var c in Conti)
+            _iban[c.Codice] = CbiParser.IbanDalCodice(c.Codice) is { } proposto ? Raggruppato(proposto) : null;
+    }
+
+    // il nome dato dall'utente, se il conto è già registrato; altrimenti quello provvisorio che riceverà
+    private string NomeDi(ContoCorrente c) =>
+        _registrati.FirstOrDefault(r => r.Codice == c.Codice)?.Nome ?? ContoCorrente.NomeProvvisorio(c.Codice);
+
+    private string Scritto(ContoCorrente c) => (_iban.GetValueOrDefault(c.Codice) ?? "").Replace(" ", "").ToUpperInvariant();
+
+    private string? Errore(ContoCorrente c)
+    {
+        var iban = Scritto(c);
+        if (iban == "") return "Scrivi l'IBAN del conto";
+        if (CbiParser.ErroreIbanDelConto(iban, c.Codice) is { } errore) return errore;
+        // un conto straniero (codice diverso da ABI + CAB + numero): l'IBAN non deve essere già di un altro conto
+        return _registrati.FirstOrDefault(r => r.Codice != c.Codice && r.Iban == iban) is { } altro
+            ? $"È l'IBAN del conto {altro.Nome}" : null;
+    }
+
+    // a gruppi di quattro, come nell'home banking: si legge e si confronta meglio
+    private static string Raggruppato(string iban) =>
+        string.Join(" ", Enumerable.Range(0, (iban.Length + 3) / 4).Select(i => iban.Substring(i * 4, Math.Min(4, iban.Length - i * 4))));
+
+    private void Conferma()
+    {
+        if (Conti.Any(c => Errore(c) is not null)) return;
+        IReadOnlyDictionary<string, string> iban = Conti.ToDictionary(c => c.Codice, Scritto);
+        Dialogo.Close(DialogResult.Ok(iban));
+    }
+}

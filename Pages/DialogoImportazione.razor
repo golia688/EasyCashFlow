@@ -232,7 +232,9 @@
             StateHasChanged();
         },
         // un file Excel: prima l'abbinamento delle colonne, in una finestra sopra questa
-        (nome, tabella) => DialogoAbbinamentoExcel.ApriAsync(Dialoghi, nome, tabella));
+        (nome, tabella) => DialogoAbbinamentoExcel.ApriAsync(Dialoghi, nome, tabella),
+        // un file CBI o XML senza l'IBAN di un conto: l'utente lo scrive, sempre in una finestra sopra questa
+        (nome, conti) => DialogoIbanConti.ApriAsync(Dialoghi, nome, conti));
 
         // nessun file scelto (o un'importazione già in corso): la finestra non serve
         if (esito is null)
