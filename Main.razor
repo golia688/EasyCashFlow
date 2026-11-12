@@ -72,18 +72,24 @@
 @if (Rilievo)
 {
     @* i valori cambiano con il tema: nel tema scuro la luce è un bianco tenue e l'ombra un nero deciso, nel tema
-       chiaro la luce è bianco pieno e l'ombra un grigio caldo *@
+       chiaro la luce è bianco pieno e l'ombra un grigio caldo. Dal 12/11 la luce è fine e marcata: poco spostata e
+       poco sfumata, più un filo di luce di 1 px sul bordo in alto a sinistra (--ril-filo), mentre l'ombra resta
+       ampia e morbida *@
     <style>
         :root {
-            --ril-luce: @(TemaScuro ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.95)");
+            --ril-luce: @(TemaScuro ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.95)");
+            --ril-filo: @(TemaScuro ? "rgba(255, 255, 255, 0.13)" : "rgba(255, 255, 255, 1)");
             --ril-ombra: @(TemaScuro ? "rgba(0, 0, 0, 0.52)" : "rgba(150, 144, 128, 0.55)");
             --ril-luce-dentro: @(TemaScuro ? "rgba(255, 255, 255, 0.10)" : "rgba(255, 255, 255, 0.90)");
             --ril-ombra-dentro: @(TemaScuro ? "rgba(0, 0, 0, 0.50)" : "rgba(150, 144, 128, 0.60)");
-            --ril-sfondo: linear-gradient(145deg, @(TemaScuro ? "#424A5B, #2F3541" : "#F7F5F0, #E3E1DA"));
+            @* nel tema chiaro un colore pieno, quello della superficie (Tema): con la sfumatura i riquadri si
+               scurivano in basso a destra, mentre tabelle e riquadretti al loro interno restavano chiari, e i
+               riquadri sembravano di colori diversi (12/11) *@
+            --ril-sfondo: @(TemaScuro ? "linear-gradient(145deg, #424A5B, #2F3541)" : "#F4F2EC");
         }
 
         .mud-main-content {
-            --mud-elevation-1: 10px 10px 22px var(--ril-ombra), -9px -9px 20px var(--ril-luce);
+            --mud-elevation-1: 10px 10px 22px var(--ril-ombra), -4px -4px 9px var(--ril-luce), inset 1px 1px 0 var(--ril-filo);
         }
 
         .mud-main-content .mud-elevation-1 {
@@ -113,14 +119,14 @@
         .mud-dialog .mud-button-root.mud-button-outlined {
             border-color: transparent;
             background: var(--ril-sfondo);
-            box-shadow: 5px 5px 11px var(--ril-ombra), -5px -5px 11px var(--ril-luce);
+            box-shadow: 5px 5px 11px var(--ril-ombra), -2px -2px 5px var(--ril-luce), inset 1px 1px 0 var(--ril-filo);
         }
 
         .mud-main-content .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation),
         .mud-main-content .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation):hover,
         .mud-dialog .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation),
         .mud-dialog .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation):hover {
-            box-shadow: 5px 5px 11px var(--ril-ombra), -5px -5px 11px var(--ril-luce) !important;
+            box-shadow: 5px 5px 11px var(--ril-ombra), -2px -2px 5px var(--ril-luce), inset 1px 1px 0 var(--ril-filo) !important;
         }
 
         .mud-main-content .mud-button-root.mud-button-outlined:active,

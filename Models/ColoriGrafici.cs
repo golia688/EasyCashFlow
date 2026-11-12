@@ -30,7 +30,7 @@ public record ColoriGrafici(
     public static ColoriGrafici Per(bool scuro, ColoreTema principale, bool rilievo = false) =>
         !rilievo ? PerTema(scuro, principale)
         : scuro ? PerTema(true, principale) with { Superficie = "#363C4A", SfondoTooltip = "#2F3542" }
-        : PerTema(false, principale) with { Superficie = "#ECEAE4" };
+        : PerTema(false, principale) with { Superficie = "#F4F2EC" };
 
     private static ColoriGrafici PerTema(bool scuro, ColoreTema principale) => scuro
         ? new ColoriGrafici(
