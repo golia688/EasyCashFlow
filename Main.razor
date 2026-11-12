@@ -49,6 +49,62 @@
     </style>
 }
 
+@* Riquadri a rilievo (Impostazioni > Aspetto, dall'11/11), solo con il tema scuro: lo sfondo blu-grigio è
+   nella palette (Tema); qui luce e ombra. I riquadri delle pagine sporgono (luce in alto a sinistra, ombra
+   in basso a destra), i campi sono incassati, i pulsanti in leggero rilievo. *@
+@if (Rilievo)
+{
+    <style>
+        .mud-main-content {
+            --mud-elevation-1: 10px 10px 22px rgba(0, 0, 0, 0.52), -9px -9px 20px rgba(255, 255, 255, 0.095);
+        }
+
+        .mud-main-content .mud-elevation-1 {
+            background: linear-gradient(145deg, #404858, #2F3541);
+            border-radius: 18px;
+        }
+
+        .mud-dialog {
+            border-radius: 16px;
+        }
+
+        .mud-input-outlined-border {
+            border-color: transparent;
+            border-radius: 10px;
+            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.50), inset -4px -4px 8px rgba(255, 255, 255, 0.08);
+        }
+
+        .mud-input.mud-input-outlined:focus-within .mud-input-outlined-border {
+            border-color: var(--mud-palette-primary);
+        }
+
+        .mud-input.mud-input-outlined.mud-input-error .mud-input-outlined-border {
+            border-color: var(--mud-palette-error);
+        }
+
+        .mud-button-root.mud-button-outlined {
+            border-color: transparent;
+            background: linear-gradient(145deg, #404858, #2F3541);
+            box-shadow: 5px 5px 11px rgba(0, 0, 0, 0.50), -4px -4px 10px rgba(255, 255, 255, 0.09);
+        }
+
+        .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation),
+        .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation):hover {
+            box-shadow: 5px 5px 11px rgba(0, 0, 0, 0.50), -4px -4px 10px rgba(255, 255, 255, 0.09) !important;
+        }
+
+        .mud-button-root.mud-button-outlined:active,
+        .mud-button-root.mud-button-filled:active {
+            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.50), inset -4px -4px 8px rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .mud-button-root.mud-button-outlined.mud-disabled,
+        .mud-button-root.mud-button-filled.mud-disabled {
+            box-shadow: none !important;
+        }
+    </style>
+}
+
 @* Finché il database non è aperto (password da creare o da inserire) si vede solo la pagina di accesso *@
 @if (!Accesso.Aperto && !_giaAperto)
 {
@@ -366,18 +422,24 @@
     private PaginaHome? _home;
     private bool _windowsScuro = true;      // tema di Windows, letto all'avvio e poi osservato
 
-    // Il tema si ricrea solo quando cambia il colore: MudBlazor rigenera gli stili
+    // Il tema si ricrea solo quando cambia il colore o lo stile dei riquadri: MudBlazor rigenera gli stili
     // ogni volta che riceve un'istanza diversa.
     private MudTheme? _tema;
     private ColoreTema? _coloreDelTema;
+    private StileRiquadri _riquadriDelTema;
+
+    // riquadri a rilievo: la scelta in Aspetto vale solo con il tema scuro
+    private bool Rilievo => TemaScuro && Impostazioni.StileRiquadri == StileRiquadri.Rilievo;
 
     private MudTheme Tema
     {
         get
         {
             var colore = Impostazioni.ColorePrincipale;
-            if (_tema is null || colore != _coloreDelTema)
+            var riquadri = Impostazioni.StileRiquadri;
+            if (_tema is null || colore != _coloreDelTema || riquadri != _riquadriDelTema)
             {
+                var rilievo = riquadri == StileRiquadri.Rilievo;
                 _tema = new MudTheme
                 {
                     PaletteLight = new PaletteLight
@@ -423,7 +485,18 @@
                         InfoContrastText = ColoreTema.TestoSu(ColoreTema.Informazione.Scuro)
                     }
                 };
+                // a rilievo: il blu-grigio ardesia al posto dei grigi predefiniti di MudBlazor, che senza
+                // rilievo restano quelli di sempre
+                if (rilievo)
+                {
+                    _tema.PaletteDark.Background = "#363C4A";
+                    _tema.PaletteDark.BackgroundGray = "#2F3542";
+                    _tema.PaletteDark.Surface = "#394050";
+                    _tema.PaletteDark.DrawerBackground = "#323845";
+                    _tema.PaletteDark.AppbarBackground = "#323845";
+                }
                 _coloreDelTema = colore;
+                _riquadriDelTema = riquadri;
             }
             return _tema;
         }

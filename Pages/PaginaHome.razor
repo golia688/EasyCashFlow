@@ -436,7 +436,7 @@
     private void CostruisciOpzioni()
     {
         _temaDelleOpzioni = TemaScuro;
-        _opzioniSaldo = OpzioniGrafici.SaldoMini(_saldo, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale),
+        _opzioniSaldo = OpzioniGrafici.SaldoMini(_saldo, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale, Impostazioni.StileRiquadri == StileRiquadri.Rilievo),
                                                  Impostazioni.StileGrafici);
     }
 

@@ -292,7 +292,7 @@
     {
         _temaDelleOpzioni = TemaScuro;
         _mesi = AnalisiService.PerMese(_selezione);
-        _opzioni = OpzioniGrafici.EntrateUscitePerMese(_mesi, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale),
+        _opzioni = OpzioniGrafici.EntrateUscitePerMese(_mesi, ColoriGrafici.Per(TemaScuro, Impostazioni.ColorePrincipale, Impostazioni.StileRiquadri == StileRiquadri.Rilievo),
                                                        Impostazioni.StileGrafici);
     }
 

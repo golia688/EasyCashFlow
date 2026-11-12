@@ -27,6 +27,15 @@ public enum StilePulsanti
     Arrotondato     // come Moderno, a forma di pillola
 }
 
+/// <summary>Lo stile dei riquadri (dall'11/11). A rilievo: con il tema scuro lo sfondo diventa blu-grigio e
+/// riquadri, campi e pulsanti hanno luce e ombra morbide, come se sporgessero o fossero incassati
+/// (neumorfismo; Main.razor). Con il tema chiaro non cambia niente.</summary>
+public enum StileRiquadri
+{
+    Piatto,         // quello di sempre
+    Rilievo
+}
+
 /// <summary>Lo stile dei grafici (dall'11/11): gli stessi dati, disegnati in due modi (OpzioniGrafici).</summary>
 public enum StileGrafici
 {
@@ -46,6 +55,7 @@ public class ImpostazioniService
     private const string ChiaveIcone = "Aspetto.StileIcone";
     private const string ChiavePulsanti = "Aspetto.StilePulsanti";
     private const string ChiaveGrafici = "Aspetto.StileGrafici";
+    private const string ChiaveRiquadri = "Aspetto.StileRiquadri";
     private const string ChiaveZoom = "Aspetto.Zoom";
     private const string ChiaveGiorniLog = "Log.GiorniDiConservazione";
 
@@ -73,6 +83,7 @@ public class ImpostazioniService
         StileIcone = LeggiEnum(salvate, ChiaveIcone, StileIcone.Piene);
         StilePulsanti = LeggiEnum(salvate, ChiavePulsanti, StilePulsanti.Classico);
         StileGrafici = LeggiEnum(salvate, ChiaveGrafici, StileGrafici.Classico);
+        StileRiquadri = LeggiEnum(salvate, ChiaveRiquadri, StileRiquadri.Piatto);
         if (salvate.TryGetValue(ChiaveZoom, out var zoom) && int.TryParse(zoom, out var percentuale)
             && LivelliZoom.Contains(percentuale))
             Zoom = percentuale;
@@ -138,6 +149,8 @@ public class ImpostazioniService
 
     public StileGrafici StileGrafici { get; private set; } = StileGrafici.Classico;
 
+    public StileRiquadri StileRiquadri { get; private set; } = StileRiquadri.Piatto;
+
     /// <summary>Zoom dell'intera interfaccia, in percentuale (uno dei <see cref="LivelliZoom"/>).</summary>
     public int Zoom { get; private set; } = 100;
 
@@ -175,6 +188,16 @@ public class ImpostazioniService
         StileIcone = stile;
         SalvaImpostazione(ChiaveIcone, stile.ToString());
         _log.Info($"Stile delle icone cambiato: {stile}");
+        Cambiate?.Invoke();
+    }
+
+    public void ImpostaStileRiquadri(StileRiquadri stile)
+    {
+        if (stile == StileRiquadri) return;
+
+        StileRiquadri = stile;
+        SalvaImpostazione(ChiaveRiquadri, stile.ToString());
+        _log.Info($"Stile dei riquadri cambiato: {stile}");
         Cambiate?.Invoke();
     }
 

@@ -478,6 +478,7 @@ In [Aspetto](app:aspetto) (menu **Impostazioni > Preferenze > Aspetto**) puoi sc
 - il **tema**: chiaro, scuro, oppure come Windows;
 - il **colore principale** dei pulsanti e dei menu;
 - lo **stile delle icone** e dei **pulsanti**;
+- lo **stile dei riquadri**: **Piatto**, quello di sempre, oppure **A rilievo**: con il tema scuro lo sfondo diventa blu-grigio e riquadri, campi e pulsanti hanno luce e ombra morbide, come se sporgessero dallo sfondo. Con il tema chiaro non cambia niente;
 - lo **stile dei grafici**: **Classico** (colonne e linee a tinta piena, barre per gruppo) oppure **Moderno** (colonne e aree sfumate, linee morbide, grafici a rosa per gruppo con i colori dal più scuro al più tenue, saldo con la barra per ingrandire un tratto). Vale per tutti i grafici: Home, Analisi, Simulazione e grafico personalizzato. I numeri, i suggerimenti e i clic sono gli stessi: cambia solo il disegno. All'inizio è Classico;
 - la **dimensione** di tutto il programma, se i testi ti sembrano troppo piccoli o troppo grandi.
 
