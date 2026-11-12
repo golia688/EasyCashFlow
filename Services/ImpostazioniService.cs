@@ -27,9 +27,9 @@ public enum StilePulsanti
     Arrotondato     // come Moderno, a forma di pillola
 }
 
-/// <summary>Lo stile dei riquadri (dall'11/11). A rilievo: con il tema scuro lo sfondo diventa blu-grigio e
-/// riquadri, campi e pulsanti hanno luce e ombra morbide, come se sporgessero o fossero incassati
-/// (neumorfismo; Main.razor). Con il tema chiaro non cambia niente.</summary>
+/// <summary>Lo stile dei riquadri (dall'11/11). A rilievo: riquadri, campi e pulsanti hanno luce e ombra
+/// morbide, come se sporgessero o fossero incassati (neumorfismo; Main.razor); con il tema scuro lo sfondo
+/// diventa blu-grigio, con il tema chiaro (dal 12/11) un avorio appena più scuro.</summary>
 public enum StileRiquadri
 {
     Piatto,         // quello di sempre

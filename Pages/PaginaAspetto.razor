@@ -121,8 +121,8 @@
 <MudPaper Class="pa-4 mt-4" Elevation="1">
     <MudText Typo="Typo.h6">Stile dei riquadri</MudText>
     <MudText Typo="Typo.body2" Class="mt-1 mb-4 mud-text-secondary">
-        Piatto: i riquadri di sempre. A rilievo: con il <b>tema scuro</b> lo sfondo diventa blu-grigio e riquadri, campi e
-        pulsanti hanno luce e ombra morbide, come se sporgessero dallo sfondo. Con il tema chiaro non cambia niente.
+        Piatto: i riquadri di sempre. A rilievo: riquadri, campi e pulsanti hanno luce e ombra morbide, come se
+        sporgessero dallo sfondo. Con il tema scuro lo sfondo diventa blu-grigio.
     </MudText>
 
     <div class="scelte">
@@ -130,8 +130,8 @@
         {
             <div class="scelta @(stile == Impostazioni.StileRiquadri ? "scelta-attiva" : null)" role="button" tabindex="0"
                  @onclick="() => Impostazioni.ImpostaStileRiquadri(stile)">
-                <div class="anteprima-riquadro-sfondo @(classe)-sfondo mb-2">
-                    <div class="anteprima-riquadro @classe"></div>
+                <div class="anteprima-riquadro-sfondo @(classe)-sfondo @(TemaScuro ? "scuro" : "chiaro") mb-2">
+                    <div class="anteprima-riquadro @classe @(TemaScuro ? "scuro" : "chiaro")"></div>
                 </div>
                 <MudText Typo="Typo.body2" Align="Align.Center">@testo</MudText>
             </div>
@@ -199,7 +199,7 @@
         box-shadow: 0 0 0 3px var(--mud-palette-background), 0 0 0 5px var(--mud-palette-text-primary);
     }
 
-    /* le anteprime dello stile dei riquadri: sempre con i colori del tema scuro, dove lo stile si vede */
+    /* le anteprime dello stile dei riquadri, con i colori del tema in uso */
     .anteprima-riquadro-sfondo {
         display: flex;
         justify-content: center;
@@ -207,24 +207,38 @@
         border-radius: 10px;
     }
 
-    .riquadro-piatto-sfondo { background: #32333D; }
-    .riquadro-rilievo-sfondo { background: #363C4A; }
+    .riquadro-piatto-sfondo.scuro { background: #32333D; }
+    .riquadro-rilievo-sfondo.scuro { background: #363C4A; }
+    .riquadro-piatto-sfondo.chiaro { background: #EFEEE9; }
+    .riquadro-rilievo-sfondo.chiaro { background: #ECEAE4; }
 
     .anteprima-riquadro {
         width: 86px;
         height: 44px;
     }
 
-    .riquadro-piatto {
+    .riquadro-piatto.scuro {
         background: #373740;
-        border-radius: 4px;
-        box-shadow: 0 2px 1px -1px rgba(0, 0, 0, 0.2), 0 1px 1px 0 rgba(0, 0, 0, 0.14), 0 1px 3px 0 rgba(0, 0, 0, 0.12);
+        border-radius: 8px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.07);
     }
 
-    .riquadro-rilievo {
-        background: linear-gradient(145deg, #404858, #2F3541);
+    .riquadro-piatto.chiaro {
+        background: #F7F6F2;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    }
+
+    .riquadro-rilievo.scuro {
+        background: linear-gradient(145deg, #424A5B, #2F3541);
         border-radius: 12px;
-        box-shadow: 6px 6px 13px rgba(0, 0, 0, 0.52), -5px -5px 12px rgba(255, 255, 255, 0.095);
+        box-shadow: 6px 6px 13px rgba(0, 0, 0, 0.52), -5px -5px 12px rgba(255, 255, 255, 0.15);
+    }
+
+    .riquadro-rilievo.chiaro {
+        background: linear-gradient(145deg, #F7F5F0, #E3E1DA);
+        border-radius: 12px;
+        box-shadow: 6px 6px 13px rgba(150, 144, 128, 0.55), -5px -5px 12px rgba(255, 255, 255, 0.95);
     }
 
     .scelte {
@@ -300,7 +314,7 @@
     private static readonly (StileRiquadri Stile, string Testo, string Classe)[] StiliRiquadri =
     {
         (StileRiquadri.Piatto, "Piatto", "riquadro-piatto"),
-        (StileRiquadri.Rilievo, "A rilievo (tema scuro)", "riquadro-rilievo")
+        (StileRiquadri.Rilievo, "A rilievo", "riquadro-rilievo")
     };
 
     private static readonly (StileGrafici Stile, string Testo, string Icona)[] StiliGrafici =

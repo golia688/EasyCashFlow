@@ -25,11 +25,12 @@ public record ColoriGrafici(
     // ha il colore scuro, il più piccolo quello chiaro, e quelli in mezzo le sfumature intermedie
     string UsciteScuro, string UsciteChiaro, string EntrateScuro, string EntrateChiaro)
 {
-    /// <summary>rilievo: con il tema scuro a rilievo (StileRiquadri) la superficie è il blu-grigio dei riquadri.</summary>
+    /// <summary>rilievo: con i riquadri a rilievo (StileRiquadri) la superficie è quella dei riquadri, blu-grigio
+    /// nel tema scuro e avorio nel tema chiaro.</summary>
     public static ColoriGrafici Per(bool scuro, ColoreTema principale, bool rilievo = false) =>
-        scuro && rilievo
-            ? PerTema(true, principale) with { Superficie = "#363C4A", SfondoTooltip = "#2F3542" }
-            : PerTema(scuro, principale);
+        !rilievo ? PerTema(scuro, principale)
+        : scuro ? PerTema(true, principale) with { Superficie = "#363C4A", SfondoTooltip = "#2F3542" }
+        : PerTema(false, principale) with { Superficie = "#ECEAE4" };
 
     private static ColoriGrafici PerTema(bool scuro, ColoreTema principale) => scuro
         ? new ColoriGrafici(

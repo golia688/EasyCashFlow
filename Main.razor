@@ -49,18 +49,45 @@
     </style>
 }
 
-@* Riquadri a rilievo (Impostazioni > Aspetto, dall'11/11), solo con il tema scuro: lo sfondo blu-grigio è
+@* Riquadri a rilievo (Impostazioni > Aspetto, dall'11/11; dal 12/11 anche con il tema chiaro): lo sfondo è
    nella palette (Tema); qui luce e ombra. I riquadri delle pagine sporgono (luce in alto a sinistra, ombra
    in basso a destra), i campi sono incassati, i pulsanti in leggero rilievo. *@
-@if (Rilievo)
+@if (!Rilievo)
 {
+    @* Stile piatto (dal 12/11): i riquadri delle pagine un po' più in evidenza di prima, senza arrivare al
+       rilievo: un'ombra morbida appena più ampia e un filo di contorno, più chiaro dello sfondo nel tema
+       scuro e più scuro in quello chiaro. *@
     <style>
         .mud-main-content {
-            --mud-elevation-1: 10px 10px 22px rgba(0, 0, 0, 0.52), -9px -9px 20px rgba(255, 255, 255, 0.095);
+            --mud-elevation-1: @(TemaScuro
+                ? "0 3px 10px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.07)"
+                : "0 2px 8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06)");
         }
 
         .mud-main-content .mud-elevation-1 {
-            background: linear-gradient(145deg, #404858, #2F3541);
+            border-radius: 8px;
+        }
+    </style>
+}
+@if (Rilievo)
+{
+    @* i valori cambiano con il tema: nel tema scuro la luce è un bianco tenue e l'ombra un nero deciso, nel tema
+       chiaro la luce è bianco pieno e l'ombra un grigio caldo *@
+    <style>
+        :root {
+            --ril-luce: @(TemaScuro ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.95)");
+            --ril-ombra: @(TemaScuro ? "rgba(0, 0, 0, 0.52)" : "rgba(150, 144, 128, 0.55)");
+            --ril-luce-dentro: @(TemaScuro ? "rgba(255, 255, 255, 0.10)" : "rgba(255, 255, 255, 0.90)");
+            --ril-ombra-dentro: @(TemaScuro ? "rgba(0, 0, 0, 0.50)" : "rgba(150, 144, 128, 0.60)");
+            --ril-sfondo: linear-gradient(145deg, @(TemaScuro ? "#424A5B, #2F3541" : "#F7F5F0, #E3E1DA"));
+        }
+
+        .mud-main-content {
+            --mud-elevation-1: 10px 10px 22px var(--ril-ombra), -9px -9px 20px var(--ril-luce);
+        }
+
+        .mud-main-content .mud-elevation-1 {
+            background: var(--ril-sfondo);
             border-radius: 18px;
         }
 
@@ -71,7 +98,7 @@
         .mud-input-outlined-border {
             border-color: transparent;
             border-radius: 10px;
-            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.50), inset -4px -4px 8px rgba(255, 255, 255, 0.08);
+            box-shadow: inset 4px 4px 8px var(--ril-ombra-dentro), inset -4px -4px 8px var(--ril-luce-dentro);
         }
 
         .mud-input.mud-input-outlined:focus-within .mud-input-outlined-border {
@@ -82,24 +109,31 @@
             border-color: var(--mud-palette-error);
         }
 
-        .mud-button-root.mud-button-outlined {
+        .mud-main-content .mud-button-root.mud-button-outlined,
+        .mud-dialog .mud-button-root.mud-button-outlined {
             border-color: transparent;
-            background: linear-gradient(145deg, #404858, #2F3541);
-            box-shadow: 5px 5px 11px rgba(0, 0, 0, 0.50), -4px -4px 10px rgba(255, 255, 255, 0.09);
+            background: var(--ril-sfondo);
+            box-shadow: 5px 5px 11px var(--ril-ombra), -5px -5px 11px var(--ril-luce);
         }
 
-        .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation),
-        .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation):hover {
-            box-shadow: 5px 5px 11px rgba(0, 0, 0, 0.50), -4px -4px 10px rgba(255, 255, 255, 0.09) !important;
+        .mud-main-content .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation),
+        .mud-main-content .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation):hover,
+        .mud-dialog .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation),
+        .mud-dialog .mud-button-root.mud-button-filled:not(.mud-button-disable-elevation):hover {
+            box-shadow: 5px 5px 11px var(--ril-ombra), -5px -5px 11px var(--ril-luce) !important;
         }
 
-        .mud-button-root.mud-button-outlined:active,
-        .mud-button-root.mud-button-filled:active {
-            box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.50), inset -4px -4px 8px rgba(255, 255, 255, 0.08) !important;
+        .mud-main-content .mud-button-root.mud-button-outlined:active,
+        .mud-main-content .mud-button-root.mud-button-filled:active,
+        .mud-dialog .mud-button-root.mud-button-outlined:active,
+        .mud-dialog .mud-button-root.mud-button-filled:active {
+            box-shadow: inset 4px 4px 8px var(--ril-ombra-dentro), inset -4px -4px 8px var(--ril-luce-dentro) !important;
         }
 
-        .mud-button-root.mud-button-outlined.mud-disabled,
-        .mud-button-root.mud-button-filled.mud-disabled {
+        .mud-main-content .mud-button-root.mud-button-outlined.mud-disabled,
+        .mud-main-content .mud-button-root.mud-button-filled.mud-disabled,
+        .mud-dialog .mud-button-root.mud-button-outlined.mud-disabled,
+        .mud-dialog .mud-button-root.mud-button-filled.mud-disabled {
             box-shadow: none !important;
         }
     </style>
@@ -428,8 +462,8 @@
     private ColoreTema? _coloreDelTema;
     private StileRiquadri _riquadriDelTema;
 
-    // riquadri a rilievo: la scelta in Aspetto vale solo con il tema scuro
-    private bool Rilievo => TemaScuro && Impostazioni.StileRiquadri == StileRiquadri.Rilievo;
+    // riquadri a rilievo, nei due temi (scelta in Aspetto)
+    private bool Rilievo => Impostazioni.StileRiquadri == StileRiquadri.Rilievo;
 
     private MudTheme Tema
     {
@@ -485,10 +519,14 @@
                         InfoContrastText = ColoreTema.TestoSu(ColoreTema.Informazione.Scuro)
                     }
                 };
-                // a rilievo: il blu-grigio ardesia al posto dei grigi predefiniti di MudBlazor, che senza
-                // rilievo restano quelli di sempre
+                // a rilievo: nel tema scuro il blu-grigio ardesia al posto dei grigi predefiniti di MudBlazor (che
+                // senza rilievo restano quelli di sempre); nel tema chiaro un avorio appena più scuro, su cui si
+                // vedono la luce bianca e l'ombra dei riquadri
                 if (rilievo)
                 {
+                    _tema.PaletteLight.Background = "#ECEAE4";
+                    _tema.PaletteLight.Surface = "#F4F2EC";
+                    _tema.PaletteLight.DrawerBackground = "#ECEAE4";
                     _tema.PaletteDark.Background = "#363C4A";
                     _tema.PaletteDark.BackgroundGray = "#2F3542";
                     _tema.PaletteDark.Surface = "#394050";
