@@ -15,7 +15,9 @@
     <MudTextField T="string" @bind-Value="_testo" Placeholder="Cerca descrizione, causale, gruppo o importo"
                   Immediate="true" DebounceInterval="200" Clearable="true"
                   Adornment="Adornment.Start" AdornmentIcon="@Impostazioni.Icona(nameof(Icons.Material.Filled.Search))"
-                  Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 320px;" />
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 320px; padding-top: 4px;" />
+    @* padding-top: MudBlazor dà 4 px in più sopra ai campi con un'etichetta, come il campo delle date; senza,
+       i due campi restavano sfalsati di 2 px, che con i riquadri a rilievo si vedono (12/11) *@
     <MudDateRangePicker @bind-DateRange="_date" Label="Dal / al" Clearable="true"
                         Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 260px;" />
     @if (CiSonoFiltri)

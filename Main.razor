@@ -107,6 +107,33 @@
             box-shadow: inset 4px 4px 8px var(--ril-ombra-dentro), inset -4px -4px 8px var(--ril-luce-dentro);
         }
 
+        @if (!TemaScuro)
+        {
+            @* tema chiaro (12/11): l'etichetta piccola sul bordo in alto ("Conti", "Periodo") cadeva sull'ombra
+               interna del campo e non si leggeva; ora ha sotto il colore del fondo su cui sta il campo, come
+               una piccola etichetta, e il testo segnaposto è un po' più scuro *@
+            <text>
+            .mud-shrink ~ label.mud-input-label-outlined,
+            .mud-input:focus-within ~ label.mud-input-label-outlined {
+                background-color: var(--mud-palette-background);
+                border-radius: 4px;
+            }
+
+            .mud-paper .mud-shrink ~ label.mud-input-label-outlined,
+            .mud-paper .mud-input:focus-within ~ label.mud-input-label-outlined,
+            .mud-dialog .mud-shrink ~ label.mud-input-label-outlined,
+            .mud-dialog .mud-input:focus-within ~ label.mud-input-label-outlined {
+                background-color: var(--mud-palette-surface);
+            }
+
+            .mud-input > input.mud-input-root::placeholder,
+            div.mud-input-slot.mud-input-root::placeholder,
+            .mud-input > textarea.mud-input-root::placeholder {
+                opacity: 0.62;
+            }
+            </text>
+        }
+
         .mud-input.mud-input-outlined:focus-within .mud-input-outlined-border {
             border-color: var(--mud-palette-primary);
         }
