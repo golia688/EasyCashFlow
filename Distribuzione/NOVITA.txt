@@ -5,6 +5,77 @@
 
 
 -------------------------------------------------------------------------------
+ VERSIONE 1.3.0 (12 novembre 2026)
+-------------------------------------------------------------------------------
+
+ 1. NUOVO: DUE STILI DEI GRAFICI
+ -------------------------------
+
+ In Impostazioni > Aspetto, "Stile dei grafici", scegli tra:
+
+ - Classico: i grafici di sempre;
+
+ - Moderno: "Dove vanno i soldi" e "Da dove arrivano" a rosa, uno
+   spicchio per gruppo; il saldo ad area sfumata, con la barra sotto
+   (o la rotellina) per ingrandire un tratto del periodo; colonne
+   sfumate, aree e linee morbide negli altri grafici.
+
+
+ 2. NUOVO: RIQUADRI A RILIEVO
+ ----------------------------
+
+ In Impostazioni > Aspetto, "Stile dei riquadri": Piatto, come prima
+ ma con i riquadri un po' piu' in evidenza, oppure A rilievo, con luce
+ e ombra morbide su riquadri, campi e pulsanti, nel tema scuro e in
+ quello chiaro.
+
+
+ 3. SOTTO LO ZERO IN ROSSO
+ -------------------------
+
+ Nei grafici del saldo (Home, Analisi, Simulazione) e nel flusso netto
+ cumulato, la parte della linea che scende sotto lo zero e' rossa.
+
+
+ 4. L'IBAN E' OBBLIGATORIO PER TUTTI I CONTI
+ -------------------------------------------
+
+ - File Excel: l'IBAN si scrive nella finestra dell'importazione, per
+   un conto nuovo e per un conto Excel che non lo aveva.
+
+ - File CBI o XML: se il file non contiene l'IBAN del conto, o ne
+   contiene uno sbagliato, prima di importare una finestra te lo
+   chiede. Il programma lo propone gia', calcolato da ABI, CAB e numero
+   del conto: controlla che sia quello dell'home banking o
+   dell'estratto conto e premi Continua.
+
+ - Un conto rimasto senza IBAN da un'importazione di prima lo completi
+   in Impostazioni > Conti correnti.
+
+
+ 5. ALTRE NOVITA'
+ ----------------
+
+ - Il filtro "Etichette" della pagina Movimenti ha una voce per ogni
+   etichetta che vedi nella griglia: Investimento, Straordinario,
+   Giroconto, Causale fittizia.
+
+
+-------------------------------------------------------------------------------
+ COME AGGIORNARE
+-------------------------------------------------------------------------------
+
+Dalla 1.2.0 o dalla 1.2.1: chiudi EasyCashFlow, estrai il nuovo .zip
+nella STESSA cartella del programma e conferma di sostituire i file.
+Dati, password e impostazioni restano. Controlla in Aiuto > Informazioni
+che la versione sia la 1.3.0. Gli stili nuovi sono in Impostazioni >
+Aspetto: il programma parte con quelli di prima.
+
+Da una versione precedente alla 1.2.0: segui prima le istruzioni della
+1.2.0, qui sotto (backup, poi controllo dei gruppi di causali).
+
+
+-------------------------------------------------------------------------------
  VERSIONE 1.2.1 (10 novembre 2026)
 -------------------------------------------------------------------------------
 
