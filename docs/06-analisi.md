@@ -196,6 +196,7 @@ Analisi > Grafici > **Grafico personalizzato** (`PaginaGraficoPersonalizzato.raz
 
 - **Entrate, uscite e saldo** usano i colori dell'interfaccia: `ColoreTema.Entrate`, `ColoreTema.Uscite` e il colore principale.
 - **Anno precedente** nel cumulato: grigio tratteggiato.
+- **Sotto lo zero in rosso** (dal 12/11): quando il saldo (Home, andamento del saldo, simulazione, reale e simulato) o il flusso netto cumulato dell'anno scelto scendono sotto lo zero, la parte negativa della linea, dei punti e dell'area è nel colore delle uscite. Lo fa una `visualMap` a sezioni di ECharts sul valore (`OpzioniGrafici.RossoSottoZero`), che taglia il colore esattamente sullo zero anche con le linee morbide e con l'ingrandimento. Due vincoli: la linea e l'area non devono avere un colore proprio, che vincerebbe sulla `visualMap`, quindi in quel caso l'area dello stile moderno è piena e leggera invece che sfumata; e le sezioni devono avere limiti finiti (±10¹⁵), perché con una sezione aperta ECharts 5.6 va in errore. Per questo si attiva solo se la linea va davvero sotto lo zero: gli altri grafici restano come prima. La legenda resta nel colore della serie.
 - **Saldo simulato** (dal 03/11): tratteggiato giallo miele (`ColoriGrafici.Ipotesi`, il colore Avviso), non più nel colore principale come il saldo reale, con cui si confondeva.
 - **Serie senza un significato proprio** (oggi ricorrenti e variabili, domani le categorie): una palette categorica a 6 colori, sempre nello stesso ordine:
 

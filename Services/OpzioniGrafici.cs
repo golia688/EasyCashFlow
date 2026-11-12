@@ -58,6 +58,28 @@ public static class OpzioniGrafici
 
     private static object Griglia(int alto = 36) => new { left = 8, right = 16, top = alto, bottom = 8, containLabel = true };
 
+    // Rosso sotto lo zero (dal 12/11): se una linea scende sotto lo zero, la parte negativa della linea e
+    // dell'area è nel colore delle uscite. Lo fa una visualMap a sezioni di ECharts sul valore (dimensione 1),
+    // che taglia il colore esattamente sullo zero anche con le linee morbide e con l'ingrandimento. La linea e
+    // l'area della serie non devono avere un colore proprio, che vincerebbe sulla visualMap: per questo l'area
+    // diventa di un colore pieno e leggero invece che sfumata, e lo si fa solo quando la linea va sotto lo zero.
+    // Le due sezioni hanno limiti enormi ma finiti: con una sezione aperta ("lt: 0" da solo) ECharts 5.6 va in
+    // errore nel calcolo della sfumatura della linea ("reading 'coord'"), provato il 12/11 in una pagina a parte.
+    private static object RossoSottoZero(int serie, string sopra, ColoriGrafici c) => new
+    {
+        type = "piecewise", show = false, seriesIndex = serie, dimension = 1,
+        pieces = new object[]
+        {
+            new { gt = -LimiteSezioni, lt = 0, color = c.Uscite },
+            new { gte = 0, lt = LimiteSezioni, color = sopra }
+        }
+    };
+
+    private const double LimiteSezioni = 1e15;
+
+    // opacità dell'area piena quando una linea va sotto lo zero: lo stile classico tiene la sua
+    private const double AreaSottoZero = 0.28;
+
     /// <summary>Entrate sopra lo zero, uscite sotto, flusso netto come linea: la posizione distingue
     /// entrate e uscite anche senza il colore (verde e rosso si confondono per i daltonici).
     /// Nello stile moderno (dall'11/11) la struttura è la stessa: le colonne sono sfumate, piene verso
@@ -132,26 +154,31 @@ public static class OpzioniGrafici
     }
 
     // stile classico: una linea con un'area leggera sotto
-    private static object SaldoClassico(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c) => new
+    private static object SaldoClassico(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c)
     {
-        textStyle = Testo(c),
-        tooltip = Tooltip(c, "axis"),
-        grid = Griglia(16),
-        xAxis = AsseCategorie(c, punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)),
-            new { color = c.TestoSecondario, formatter = "@meseDaData" }),
-        yAxis = AsseImporti(c, scala: true),
-        series = new object[]
+        var negativo = punti.Any(p => p.Saldo < 0);
+        return new
         {
-            new
+            textStyle = Testo(c),
+            tooltip = Tooltip(c, "axis"),
+            grid = Griglia(16),
+            xAxis = AsseCategorie(c, punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)),
+                new { color = c.TestoSecondario, formatter = "@meseDaData" }),
+            yAxis = AsseImporti(c, scala: true),
+            visualMap = negativo ? new[] { RossoSottoZero(0, c.Principale, c) } : [],
+            series = new object[]
             {
-                name = "Saldo", type = "line", showSymbol = false, symbolSize = 8,
-                lineStyle = new { width = 2, color = c.Principale },
-                itemStyle = new { color = c.Principale },
-                areaStyle = new { color = c.Principale, opacity = 0.12 },
-                data = punti.Select(p => Arrotonda(p.Saldo))
+                new
+                {
+                    name = "Saldo", type = "line", showSymbol = false, symbolSize = 8,
+                    lineStyle = negativo ? new { width = 2 } : (object)new { width = 2, color = c.Principale },
+                    itemStyle = new { color = c.Principale },
+                    areaStyle = negativo ? new { opacity = 0.12 } : (object)new { color = c.Principale, opacity = 0.12 },
+                    data = punti.Select(p => Arrotonda(p.Saldo))
+                }
             }
-        }
-    };
+        };
+    }
 
     /// <summary>Barre orizzontali dal gruppo più grande, con l'importo in fondo alla barra.
     /// Un solo colore: il gruppo si legge sull'asse, non serve distinguerlo con le tinte.
@@ -196,68 +223,62 @@ public static class OpzioniGrafici
     /// di ECharts): l'area sfuma dal colore principale verso il fondo, i punti si sfoltiscono senza perdere
     /// picchi e minimi (sampling "lttb"), e sotto c'è la barra per scegliere il tratto da guardare (anche con
     /// la rotellina del mouse sul grafico).</summary>
-    private static object SaldoModerno(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c) => new
+    private static object SaldoModerno(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c)
     {
-        textStyle = Testo(c),
-        tooltip = Tooltip(c, "axis"),
-        grid = new { left = 8, right = 16, top = 16, bottom = 48, containLabel = true },
-        xAxis = new
+        var negativo = punti.Any(p => p.Saldo < 0);
+        return new
         {
-            type = "category",
-            boundaryGap = false,
-            data = punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)),
-            axisLine = new { lineStyle = new { color = c.Griglia } },
-            axisTick = new { show = false },
-            axisLabel = new { color = c.TestoSecondario, formatter = "@meseDaData" }
-        },
-        yAxis = AsseImporti(c, scala: true),
-        dataZoom = new object[]
-        {
-            new { type = "inside", start = 0, end = 100 },
-            new
+            textStyle = Testo(c),
+            visualMap = negativo ? new[] { RossoSottoZero(0, c.Principale, c) } : [],
+            tooltip = Tooltip(c, "axis"),
+            grid = new { left = 8, right = 16, top = 16, bottom = 48, containLabel = true },
+            xAxis = new
             {
-                type = "slider", start = 0, end = 100, height = 22, bottom = 8,
-                borderColor = c.Griglia,
-                fillerColor = Trasparente(c.Principale, 0.15),
-                handleStyle = new { color = c.Principale, borderColor = c.Principale },
-                moveHandleStyle = new { color = c.Principale },
-                dataBackground = new
-                {
-                    lineStyle = new { color = c.TestoSecondario, opacity = 0.5 },
-                    areaStyle = new { color = c.TestoSecondario, opacity = 0.15 }
-                },
-                selectedDataBackground = new
-                {
-                    lineStyle = new { color = c.Principale },
-                    areaStyle = new { color = c.Principale, opacity = 0.25 }
-                },
-                textStyle = new { color = c.TestoSecondario }
-            }
-        },
-        series = new object[]
-        {
-            new
+                type = "category",
+                boundaryGap = false,
+                data = punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)),
+                axisLine = new { lineStyle = new { color = c.Griglia } },
+                axisTick = new { show = false },
+                axisLabel = new { color = c.TestoSecondario, formatter = "@meseDaData" }
+            },
+            yAxis = AsseImporti(c, scala: true),
+            dataZoom = new object[]
             {
-                name = "Saldo", type = "line", symbol = "none", sampling = "lttb", smooth = false,
-                lineStyle = new { width = 1.5, color = c.Principale },
-                itemStyle = new { color = c.Principale },
-                // sfumatura verticale: piena sotto la linea, trasparente in fondo
-                areaStyle = new
+                new { type = "inside", start = 0, end = 100 },
+                new
                 {
-                    color = new
+                    type = "slider", start = 0, end = 100, height = 22, bottom = 8,
+                    borderColor = c.Griglia,
+                    fillerColor = Trasparente(c.Principale, 0.15),
+                    handleStyle = new { color = c.Principale, borderColor = c.Principale },
+                    moveHandleStyle = new { color = c.Principale },
+                    dataBackground = new
                     {
-                        type = "linear", x = 0, y = 0, x2 = 0, y2 = 1,
-                        colorStops = new object[]
-                        {
-                            new { offset = 0, color = Trasparente(c.Principale, 0.55) },
-                            new { offset = 1, color = Trasparente(c.Principale, 0.03) }
-                        }
-                    }
-                },
-                data = punti.Select(p => Arrotonda(p.Saldo))
+                        lineStyle = new { color = c.TestoSecondario, opacity = 0.5 },
+                        areaStyle = new { color = c.TestoSecondario, opacity = 0.15 }
+                    },
+                    selectedDataBackground = new
+                    {
+                        lineStyle = new { color = c.Principale },
+                        areaStyle = new { color = c.Principale, opacity = 0.25 }
+                    },
+                    textStyle = new { color = c.TestoSecondario }
+                }
+            },
+            series = new object[]
+            {
+                new
+                {
+                    name = "Saldo", type = "line", symbol = "none", sampling = "lttb", smooth = false,
+                    lineStyle = negativo ? new { width = 1.5 } : (object)new { width = 1.5, color = c.Principale },
+                    itemStyle = new { color = c.Principale },
+                    // sfumatura verticale: piena sotto la linea, trasparente in fondo (piena e leggera se va sotto zero)
+                    areaStyle = negativo ? new { opacity = AreaSottoZero } : (object)new { color = Sfumatura(c.Principale, 0.55, 0.03) },
+                    data = punti.Select(p => Arrotonda(p.Saldo))
+                }
             }
-        }
-    };
+        };
+    }
 
     // "#RRGGBB" -> "rgba(r,g,b,a)"
     private static string Trasparente(string hex, double opacita) =>
@@ -269,7 +290,9 @@ public static class OpzioniGrafici
     public static object SaldoMini(IReadOnlyList<PuntoSaldo> punti, ColoriGrafici c, StileGrafici stile = StileGrafici.Classico)
     {
         var moderno = stile == StileGrafici.Moderno;
-        object area = moderno ? new { color = Sfumatura(c.Principale, 0.55, 0.03) } : new { color = c.Principale, opacity = 0.12 };
+        var negativo = punti.Any(p => p.Saldo < 0);
+        object area = negativo ? new { opacity = moderno ? AreaSottoZero : 0.12 }
+            : moderno ? new { color = Sfumatura(c.Principale, 0.55, 0.03) } : new { color = c.Principale, opacity = 0.12 };
         return new
         {
             textStyle = Testo(c),
@@ -277,12 +300,13 @@ public static class OpzioniGrafici
             grid = new { left = 2, right = 2, top = 6, bottom = 2 },
             xAxis = new { type = "category", show = false, boundaryGap = false, data = punti.Select(p => p.Data.ToString("dd/MM/yyyy", Italiano)) },
             yAxis = new { type = "value", show = false, scale = true },
+            visualMap = negativo ? new[] { RossoSottoZero(0, c.Principale, c) } : [],
             series = new object[]
             {
                 new
                 {
                     name = "Saldo", type = "line", showSymbol = false, symbolSize = 8,
-                    lineStyle = new { width = moderno ? 2.5 : 2, color = c.Principale },
+                    lineStyle = negativo ? new { width = moderno ? 2.5 : 2 } : (object)new { width = moderno ? 2.5 : 2, color = c.Principale },
                     itemStyle = new { color = c.Principale },
                     areaStyle = area,
                     data = punti.Select(p => Arrotonda(p.Saldo))
@@ -346,13 +370,23 @@ public static class OpzioniGrafici
                 label = new { formatter = "oggi", color = c.TestoSecondario }
             });
 
-        object areaReale = moderno ? new { color = Sfumatura(c.Principale, 0.55, 0.03) } : new { color = c.Principale, opacity = 0.12 };
+        // rosso sotto lo zero, per il saldo reale e per quello simulato (dal 12/11)
+        var realeNegativo = storico.Any(p => p.Saldo < 0);
+        var simulatoNegativo = sottoZero || inizio is { Saldo: < 0 };
+        var sezioni = new List<object>();
+        if (realeNegativo) sezioni.Add(RossoSottoZero(0, c.Principale, c));
+        if (simulatoNegativo) sezioni.Add(RossoSottoZero(1, c.Ipotesi, c));
+
+        object areaReale = realeNegativo ? new { opacity = moderno ? AreaSottoZero : 0.12 }
+            : moderno ? new { color = Sfumatura(c.Principale, 0.55, 0.03) } : new { color = c.Principale, opacity = 0.12 };
+        object? areaSimulata = !moderno ? null
+            : simulatoNegativo ? new { opacity = AreaSottoZero * 0.6 } : new { color = Sfumatura(c.Ipotesi, 0.30, 0.02) };
         var serie = new List<object>
         {
             new
             {
                 name = "Saldo reale", type = "line", showSymbol = false, symbolSize = 8,
-                lineStyle = new { width = moderno ? 2.5 : 2, color = c.Principale },
+                lineStyle = realeNegativo ? new { width = moderno ? 2.5 : 2 } : (object)new { width = moderno ? 2.5 : 2, color = c.Principale },
                 itemStyle = new { color = c.Principale },
                 areaStyle = areaReale,
                 data = storico.Select(p => new object[] { Data(p.Data), Arrotonda(p.Saldo) })
@@ -361,9 +395,9 @@ public static class OpzioniGrafici
             {
                 name = "Saldo simulato", type = "line", symbol = "circle", symbolSize = 8,
                 smooth = moderno,
-                lineStyle = new { width = 2, color = c.Ipotesi, type = "dashed" },
+                lineStyle = simulatoNegativo ? new { width = 2, type = "dashed" } : (object)new { width = 2, color = c.Ipotesi, type = "dashed" },
                 itemStyle = new { color = c.Ipotesi, borderColor = c.Superficie, borderWidth = 2 },
-                areaStyle = moderno ? new { color = Sfumatura(c.Ipotesi, 0.30, 0.02) } : null,
+                areaStyle = areaSimulata,
                 data = simulati,
                 markLine = riferimenti.Count > 0
                     ? new { silent = true, symbol = "none", data = riferimenti }
@@ -400,6 +434,7 @@ public static class OpzioniGrafici
                 splitLine = new { show = false }
             },
             yAxis = AsseImporti(c, scala: !sottoZero),
+            visualMap = sezioni,
             series = serie
         };
     }
@@ -532,6 +567,9 @@ public static class OpzioniGrafici
     public static object Cumulati(IReadOnlyList<CumulatoAnno> anni, ColoriGrafici c, StileGrafici stile = StileGrafici.Classico)
     {
         var moderno = stile == StileGrafici.Moderno;
+        // rosso sotto lo zero per l'anno scelto (dal 12/11); l'anno prima resta grigio
+        var ultimo = anni.Count - 1;
+        var negativo = ultimo >= 0 && anni[ultimo].Mesi.Any(v => v < 0);
         return new
         {
             textStyle = Testo(c),
@@ -540,17 +578,22 @@ public static class OpzioniGrafici
             grid = Griglia(),
             xAxis = AsseCategorie(c, NomiMesi),
             yAxis = AsseImporti(c),
+            visualMap = negativo ? new[] { RossoSottoZero(ultimo, c.Principale, c) } : [],
             series = anni.Select((a, i) =>
             {
-                var corrente = i == anni.Count - 1;
+                var corrente = i == ultimo;
                 var colore = corrente ? c.Principale : c.Neutro;
+                var spezzata = corrente && negativo;
                 return (object)new
                 {
                     name = a.Anno.ToString(Italiano), type = "line", symbol = "circle", symbolSize = moderno ? 6 : 8,
                     smooth = moderno,
-                    lineStyle = new { width = moderno && corrente ? 2.5 : 2, color = colore, type = corrente ? "solid" : "dashed" },
+                    lineStyle = spezzata
+                        ? new { width = moderno ? 2.5 : 2, type = "solid" }
+                        : (object)new { width = moderno && corrente ? 2.5 : 2, color = colore, type = corrente ? "solid" : "dashed" },
                     itemStyle = new { color = colore, borderColor = c.Superficie, borderWidth = 2 },
-                    areaStyle = moderno && corrente ? new { color = Sfumatura(c.Principale, 0.45, 0.03) } : null,
+                    areaStyle = !(moderno && corrente) ? null
+                        : spezzata ? new { opacity = AreaSottoZero } : (object)new { color = Sfumatura(c.Principale, 0.45, 0.03) },
                     data = a.Mesi.Select(v => v is { } valore ? Arrotonda(valore) : (double?)null)
                 };
             }).ToArray()
